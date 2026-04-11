@@ -1073,7 +1073,7 @@ function renderFocusSheet(){
   // Render cards
   const body=document.getElementById('focus-body');
   if(!filtered.length){
-    body.innerHTML=`<div class="focus-empty"><div class="focus-empty-icon">${focusMode==='overdue'?'🎉':'⚡'}</div><p>${focusMode==='overdue'?'Nothing overdue. You're on top of it.':'No quick wins available with these filters.'}</p></div>`;
+    body.innerHTML=`<div class="focus-empty"><div class="focus-empty-icon">${focusMode==='overdue'?'🎉':'⚡'}</div><p>${focusMode==='overdue'?"Nothing overdue. You're on top of it.":"No quick wins available with these filters."}</p></div>`;
     return;
   }
   body.innerHTML=filtered.map(task=>{
@@ -2040,6 +2040,7 @@ function rerender(){
 // BOOT
 // ================================================================
 async function boot(){
+  try{
   buildUserPicker();
   await loadData();
   document.getElementById('loading-screen').style.display='none';
@@ -2051,6 +2052,20 @@ async function boot(){
     bbMsg("Hey — I'm Blackbird. Tap 🐦‍⬛ on any task for advice, or ask me anything.",'from-bb');
   }else{
     document.getElementById('user-picker').style.display='flex';
+  }
+  }catch(err){
+    console.error('Boot error:',err);
+    document.getElementById('loading-screen').style.display='none';
+    document.getElementById('loading-msg').textContent='Error: '+err.message;
+    // Still try to show app with seed data
+    tasks=seedT();milestones=seedM();shopping=seedS();
+    if(CU){
+      document.getElementById('app').style.display='block';
+      document.getElementById('bb-fab').style.display='flex';
+      setupPill();renderExtraFilters();renderDashboard();
+    }else{
+      document.getElementById('user-picker').style.display='flex';
+    }
   }
 }
 boot();
