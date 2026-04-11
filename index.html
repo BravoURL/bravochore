@@ -454,6 +454,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 /* BB ATTACH + PREVIEW */
 .bb-attach{font-size:18px;cursor:pointer;padding:4px 6px;border-radius:6px;flex-shrink:0;display:flex;align-items:center;line-height:1}
 .bb-attach:active{background:var(--surf2)}
+.bb-mic{font-size:20px;cursor:pointer;padding:4px 6px;border-radius:6px;flex-shrink:0;display:flex;align-items:center;line-height:1;background:none;border:none;transition:all .15s}
+.bb-mic:active{background:var(--surf2)}
+.bb-mic.listening{background:var(--rl) !important;animation:micPulse .8s ease-in-out infinite}
+@keyframes micPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.2)}}
+.bb-rec-indicator{display:none;align-items:center;gap:6px;padding:5px 12px;background:var(--rl);font-size:11px;font-weight:700;color:var(--red);flex-shrink:0}
+.bb-rec-indicator.visible{display:flex}
+.bb-rec-dot{width:7px;height:7px;background:var(--red);border-radius:50%;animation:recBlink 1s ease-in-out infinite}
+@keyframes recBlink{0%,100%{opacity:1}50%{opacity:.2}}
 .bb-photo-thumb{position:relative;width:52px;height:52px;border-radius:6px;overflow:hidden;border:1px solid var(--bdr);flex-shrink:0}
 .bb-photo-thumb img{width:100%;height:100%;object-fit:cover}
 .bb-photo-rm{position:absolute;top:2px;right:2px;width:16px;height:16px;background:rgba(0,0,0,.6);border:none;border-radius:50%;color:#fff;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
@@ -644,12 +652,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
   <div class="bb-msgs" id="bb-msgs"></div>
   <!-- Photo preview strip -->
   <div id="bb-photo-strip" style="display:none;padding:6px 10px;gap:6px;flex-wrap:wrap;border-top:1px solid var(--bdr);background:var(--surf2)"></div>
+  <div id="bb-rec-bar" class="bb-rec-indicator"><div class="bb-rec-dot"></div>Recording...</div>
   <div class="bb-input-row">
     <label for="bb-photo-cam" class="bb-attach" title="Take photo">📷</label>
     <input type="file" id="bb-photo-cam" accept="image/*" capture="environment" style="display:none">
     <label for="bb-photo-lib" class="bb-attach" title="Choose from album" style="font-size:15px">🖼</label>
     <input type="file" id="bb-photo-lib" accept="image/*" multiple style="display:none">
     <input class="bb-input" id="bb-input" placeholder="Describe a task, or ask anything..." onkeydown="if(event.key==='Enter')sendToBB()">
+    <button class="bb-mic" id="bb-mic" onclick="toggleMic()" title="Voice input">🎙</button>
     <button class="bb-send" onclick="sendToBB()">↑</button>
   </div>
 </div>
@@ -2309,6 +2319,100 @@ function rerender(){
   if(v==='view-dashboard')renderDashboard();
   else if(v==='view-tasks'){renderTasksView();}
   else if(v==='view-shopping')renderShopping();
+}
+
+
+// ================================================================
+// WHISPER VOICE INPUT
+// ================================================================
+const WHISPER_PROXY='https://xgmnyhpzuwngdngtttux.supabase.co/functions/v1/whisper-proxy';
+let mediaRecorder=null, audioChunks=[], micActive=false;
+
+async function toggleMic(){
+  if(micActive){
+    stopMic();
+  }else{
+    await startMic();
+  }
+}
+
+async function startMic(){
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    // Pick best supported format
+    const mimeType=['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/mp4'].find(m=>MediaRecorder.isTypeSupported(m))||'';
+    mediaRecorder=new MediaRecorder(stream, mimeType?{mimeType}:{});
+    audioChunks=[];
+    mediaRecorder.ondataavailable=e=>{if(e.data.size>0)audioChunks.push(e.data);};
+    mediaRecorder.onstop=async()=>{
+      stream.getTracks().forEach(t=>t.stop());
+      await transcribeAudio();
+    };
+    mediaRecorder.start(250); // collect in 250ms chunks for reliability
+    micActive=true;
+    document.getElementById('bb-mic').classList.add('listening');
+    document.getElementById('bb-mic').textContent='⏹';
+    document.getElementById('bb-rec-bar').classList.add('visible');
+  }catch(e){
+    if(e.name==='NotAllowedError'){
+      bbMsg("Microphone access denied. Please allow microphone in your browser settings.",'from-bb');
+    }else{
+      bbMsg("Couldn't start microphone: "+e.message,'from-bb');
+    }
+  }
+}
+
+function stopMic(){
+  if(mediaRecorder&&mediaRecorder.state!=='inactive'){
+    mediaRecorder.stop();
+  }
+  micActive=false;
+  document.getElementById('bb-mic').classList.remove('listening');
+  document.getElementById('bb-mic').textContent='🎙';
+  document.getElementById('bb-rec-bar').classList.remove('visible');
+}
+
+async function transcribeAudio(){
+  if(!audioChunks.length)return;
+  const mimeType=mediaRecorder?.mimeType||'audio/webm';
+  const ext=mimeType.includes('mp4')?'mp4':mimeType.includes('ogg')?'ogg':'webm';
+  const blob=new Blob(audioChunks,{type:mimeType});
+  audioChunks=[];
+
+  // Show thinking state
+  document.getElementById('bb-mic').textContent='⏳';
+  document.getElementById('bb-mic').disabled=true;
+  document.getElementById('bb-fab').className='bb-thinking';
+
+  try{
+    const form=new FormData();
+    form.append('file',blob,'audio.'+ext);
+    const res=await fetch(WHISPER_PROXY,{
+      method:'POST',
+      headers:{'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhnbW55aHB6dXduZ2RuZ3R0dHV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0MDYxOTgsImV4cCI6MjA4OTk4MjE5OH0.aQvdjbOSRqQJmBKF-9z7KOXhC2M_gKPZ1m4rQhPZ9eo'},
+      body:form
+    });
+    const data=await res.json();
+    if(data.text){
+      const inp=document.getElementById('bb-input');
+      inp.value=data.text.trim();
+      inp.focus();
+      // Auto-send after brief pause so user can see transcript
+      setTimeout(()=>{
+        // Flash the input so user sees it was filled
+        inp.style.background='var(--gl)';
+        setTimeout(()=>{inp.style.background='';},400);
+      },50);
+    }else{
+      bbMsg("Couldn't catch that. Try again or type it.",'from-bb');
+    }
+  }catch(e){
+    bbMsg("Transcription failed — check your OpenAI API key in Supabase secrets.",'from-bb');
+  }finally{
+    document.getElementById('bb-mic').textContent='🎙';
+    document.getElementById('bb-mic').disabled=false;
+    document.getElementById('bb-fab').className='bb-idle';
+  }
 }
 
 // ================================================================
