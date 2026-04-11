@@ -645,9 +645,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
   <!-- Photo preview strip -->
   <div id="bb-photo-strip" style="display:none;padding:6px 10px;gap:6px;flex-wrap:wrap;border-top:1px solid var(--bdr);background:var(--surf2)"></div>
   <div class="bb-input-row">
-    <label for="bb-photo-input" class="bb-attach" title="Attach photo">📷</label>
-    <input type="file" id="bb-photo-input" accept="image/*" multiple style="display:none">
-    <input class="bb-input" id="bb-input" placeholder="Describe a task to add, or ask anything..." onkeydown="if(event.key==='Enter')sendToBB()">
+    <label for="bb-photo-cam" class="bb-attach" title="Take photo">📷</label>
+    <input type="file" id="bb-photo-cam" accept="image/*" capture="environment" style="display:none">
+    <label for="bb-photo-lib" class="bb-attach" title="Choose from album" style="font-size:15px">🖼</label>
+    <input type="file" id="bb-photo-lib" accept="image/*" multiple style="display:none">
+    <input class="bb-input" id="bb-input" placeholder="Describe a task, or ask anything..." onkeydown="if(event.key==='Enter')sendToBB()">
     <button class="bb-send" onclick="sendToBB()">↑</button>
   </div>
 </div>
@@ -1901,14 +1903,16 @@ let bbPendingPhotos=[]; // [{file, dataUrl}]
 let bbHistory=[]; // conversation history for multi-turn
 
 // Wire photo input
-document.getElementById('bb-photo-input').addEventListener('change',async e=>{
-  const files=Array.from(e.target.files);
-  for(const f of files){
-    const dataUrl=await new Promise(res=>{const r=new FileReader();r.onload=()=>res(r.result);r.readAsDataURL(f);});
-    bbPendingPhotos.push({file:f,dataUrl});
-  }
-  renderBBPhotoStrip();
-  e.target.value='';
+['bb-photo-cam','bb-photo-lib'].forEach(id=>{
+  document.getElementById(id).addEventListener('change',async e=>{
+    const files=Array.from(e.target.files);
+    for(const f of files){
+      const dataUrl=await new Promise(res=>{const r=new FileReader();r.onload=()=>res(r.result);r.readAsDataURL(f);});
+      bbPendingPhotos.push({file:f,dataUrl});
+    }
+    renderBBPhotoStrip();
+    e.target.value='';
+  });
 });
 
 function renderBBPhotoStrip(){
