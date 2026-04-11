@@ -386,11 +386,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 @media print{
   body>*{display:none!important}
   #print-view{display:block!important;padding:20px;font-family:'DM Sans',sans-serif;color:#000}
+  @page{margin:15mm;size:A4}
+  html,body{height:auto!important;overflow:visible!important}
 }
 #print-view{display:none}
 .pv-hdr{margin-bottom:20px;border-bottom:2px solid #333;padding-bottom:10px}
 .pv-hdr h1{font-size:22px;font-weight:700}
 .pv-hdr p{color:#555;font-size:12px;margin-top:3px}
+#print-view{overflow:hidden}
+#print-view *{page-break-inside:avoid}
 .pv-task{margin-bottom:18px;border:1px solid #ddd;border-radius:8px;padding:14px;break-inside:avoid}
 .pv-task h3{font-size:14px;font-weight:700;margin-bottom:6px;color:#000}
 .pv-meta{font-size:11px;color:#555;margin-bottom:7px}
@@ -470,7 +474,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 .bb-preview-title{font-family:'Playfair Display',serif;font-size:15px;font-weight:500;margin-bottom:8px;color:var(--tx)}
 .bb-preview-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
 .bb-preview-shop{background:var(--gl);border-radius:var(--rs);padding:8px 10px;margin-bottom:10px;font-size:12px;color:var(--gd)}
-.bb-preview-shop strong{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;color:var(--tx3)}
+.bb-preview-shop strong{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;color:var(--tx3)}
+.bb-shop-item{display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(92,138,74,.15)}
+.bb-shop-item:last-of-type{border-bottom:none}
+.bb-shop-item-name{flex:1;font-size:12px;font-weight:500;color:var(--gd)}
+.bb-shop-rm{background:none;border:none;color:var(--tx3);cursor:pointer;font-size:14px;padding:0 2px;line-height:1}
+.bb-shop-rm:active{color:var(--red)}
+.bb-shop-add-row{display:flex;gap:5px;margin-top:7px}
+.bb-shop-add-input{flex:1;padding:5px 8px;border:1px solid var(--gm);border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:12px;background:#fff;color:var(--tx);outline:none}
+.bb-shop-add-btn{padding:5px 10px;background:var(--green);border:none;border-radius:var(--rs);color:#fff;font-size:11px;font-weight:700;cursor:pointer}
 .bb-preview-photos{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
 .bb-preview-photo{width:56px;height:56px;border-radius:6px;object-fit:cover;border:1px solid var(--bdr)}
 .bb-confirm-row{display:flex;gap:8px}
@@ -1531,11 +1543,19 @@ async function dpSave(){
 
 async function dpDelete(){
   if(!dpTaskId)return;
+  const idToDelete=dpTaskId; // snapshot before closeDetail() nulls dpTaskId
   const ok=await confirm2('Delete this task?','This cannot be undone.','btn-danger');
   if(!ok)return;
-  tasks=tasks.filter(t=>t.id!==dpTaskId);milestones=milestones.filter(m=>m.task_id!==dpTaskId);
-  closeDetail();rerender();
-  try{await api('bravochore_milestones','DELETE',null,`?task_id=eq.${dpTaskId}`);await api('bravochore_tasks','DELETE',null,`?id=eq.${dpTaskId}`);}catch(e){}
+  tasks=tasks.filter(t=>t.id!==idToDelete);
+  milestones=milestones.filter(m=>m.task_id!==idToDelete);
+  closeDetail();
+  rerender();
+  try{
+    badge('sy','↻ Deleting...');
+    await api('bravochore_milestones','DELETE',null,`?task_id=eq.${idToDelete}`);
+    await api('bravochore_tasks','DELETE',null,`?id=eq.${idToDelete}`);
+    badge('ok','✓ Deleted');
+  }catch(e){badge('er','⚠ Delete failed');}
 }
 
 async function dpTickMs(msId){
@@ -2041,36 +2061,73 @@ Be direct, warm, practical. 2-4 sentences max. Suggest specific Bunnings Perth o
 }
 
 function showBBPreview(parsed,photos){
-  const tomorrow=new Date(Date.now()+86400000).toISOString().slice(0,10);
-  const dueLabel=parsed.due?fmtDate(parsed.due):'No date set';
   const ownerLabel=getOwner(parsed.owner||CU).name;
+  const o=getOwner(parsed.owner||CU);
+  // Store mutable shopping list on the parsed object
+  if(!parsed.shopping)parsed.shopping=[];
   const photoHtml=photos.length?`<div class="bb-preview-photos">${photos.map(p=>`<img class="bb-preview-photo" src="${p.dataUrl}">`).join('')}</div>`:'';
-  const shopHtml=parsed.shopping?.length?`<div class="bb-preview-shop"><strong>To buy (${parsed.shopping_store||'Bunnings'})</strong>${parsed.shopping.join(', ')}</div>`:'';
 
   const card=document.createElement('div');
   card.className='bb-preview-card';
-  card.innerHTML=`
-    <div class="bb-preview-title">${parsed.title}</div>
-    <div class="bb-preview-row">
-      <span class="task-tag" style="background:${getOwner(parsed.owner||CU).bg};color:${getOwner(parsed.owner||CU).color}">${ownerLabel}</span>
-      <span class="task-bucket-b">${parsed.bucket||'Outdoor'}</span>
-      ${parsed.due?`<span class="task-date">${dueLabel}</span>`:''}
-      ${parsed.time_hours?`<span class="task-time-b">${parsed.time_hours}h</span>`:''}
-    </div>
-    ${parsed.notes?`<div style="font-size:12px;color:var(--tx2);margin-bottom:8px">${parsed.notes}</div>`:''}
-    ${photoHtml}
-    ${shopHtml}
-    <div class="bb-confirm-row">
-      <button class="bb-confirm-yes" onclick="bbConfirmTask(this)">✓ Add to BravoChore</button>
-      <button class="bb-confirm-no" onclick="bbDeclineTask(this)">Edit first</button>
-    </div>`;
-  card.dataset.parsed=JSON.stringify(parsed);
   card.dataset.photos=JSON.stringify(photos.map(p=>({dataUrl:p.dataUrl,type:p.file?.type||'image/jpeg',name:p.file?.name||'photo.jpg'})));
+
+  function renderCard(){
+    const shopHtml=`<div class="bb-preview-shop" id="preview-shop-section" style="${!parsed.shopping.length&&'display:none'}">
+      <strong>To buy (${parsed.shopping_store||'Bunnings'}) — tap ✕ to remove</strong>
+      ${parsed.shopping.map((item,i)=>`<div class="bb-shop-item">
+        <span class="bb-shop-item-name">${item}</span>
+        <button class="bb-shop-rm" onclick="bbRemoveShopItem(this,${i})">✕</button>
+      </div>`).join('')}
+      <div class="bb-shop-add-row">
+        <input class="bb-shop-add-input" placeholder="Add another item..." onkeydown="if(event.key==='Enter')bbAddShopItem(this)">
+        <button class="bb-shop-add-btn" onclick="bbAddShopItem(this.previousElementSibling)">+</button>
+      </div>
+    </div>`;
+    card.innerHTML=`
+      <div class="bb-preview-title">${parsed.title}</div>
+      <div class="bb-preview-row">
+        <span class="task-tag" style="background:${o.bg};color:${o.color}">${ownerLabel}</span>
+        <span class="task-bucket-b">${parsed.bucket||'Outdoor'}</span>
+        ${parsed.due?`<span class="task-date">${fmtDate(parsed.due)}</span>`:''}
+        ${parsed.time_hours?`<span class="task-time-b">${parsed.time_hours}h</span>`:''}
+      </div>
+      ${parsed.notes?`<div style="font-size:12px;color:var(--tx2);margin-bottom:8px">${parsed.notes}</div>`:''}
+      ${photoHtml}
+      ${shopHtml}
+      <div class="bb-confirm-row">
+        <button class="bb-confirm-yes" onclick="bbConfirmTask(this)">✓ Add to BravoChore</button>
+        <button class="bb-confirm-no" onclick="bbDeclineTask(this)">Edit first</button>
+      </div>`;
+    card.dataset.parsed=JSON.stringify(parsed);
+  }
+
+  // Expose mutators on card so item buttons can reach parsed
+  card.bbParsed=parsed;
+  card.bbRender=renderCard;
+  renderCard();
 
   if(parsed.blackbird_comment)bbMsg(parsed.blackbird_comment,'from-bb');
   const msgs=document.getElementById('bb-msgs');
   msgs.appendChild(card);
   msgs.scrollTop=msgs.scrollHeight;
+}
+
+function bbRemoveShopItem(btn,idx){
+  const card=btn.closest('.bb-preview-card');
+  card.bbParsed.shopping.splice(idx,1);
+  card.dataset.parsed=JSON.stringify(card.bbParsed);
+  card.bbRender();
+  // Re-attach render fn after innerHTML replace
+  card.bbRender=card.bbRender; // already bound via closure
+}
+
+function bbAddShopItem(input){
+  const val=input.value.trim();if(!val)return;
+  const card=input.closest('.bb-preview-card');
+  card.bbParsed.shopping.push(val);
+  card.dataset.parsed=JSON.stringify(card.bbParsed);
+  input.value='';
+  card.bbRender();
 }
 
 async function bbConfirmTask(btn){
@@ -2079,18 +2136,21 @@ async function bbConfirmTask(btn){
   const photoData=JSON.parse(card.dataset.photos||'[]');
   btn.textContent='Adding...';btn.disabled=true;
 
-  // Create the task
+  // Step 1: Create task in DB FIRST (with empty photo_urls)
   const nid=Date.now();
   const nt={id:nid,title:parsed.title,owner:parsed.owner||CU,due:parsed.due||null,
     time_hours:parsed.time_hours||0,bucket:parsed.bucket||'Outdoor',
     notes:parsed.notes||'',done:false,sort_order:tasks.length+1,photo_urls:[]};
+  tasks.push(nt);
+  try{
+    await api('bravochore_tasks','POST',[nt]);
+  }catch(e){badge('er','⚠ Save failed');btn.textContent='✓ Add to BravoChore';btn.disabled=false;return;}
 
-  // Upload photos if any
+  // Step 2: Upload photos now that task exists in DB
   if(photoData.length){
     badge('sy','↻ Uploading photos...');
     for(const p of photoData){
       try{
-        // Convert dataUrl back to blob
         const res=await fetch(p.dataUrl);
         const blob=await res.blob();
         const file=new File([blob],p.name||'photo.jpg',{type:p.type||'image/jpeg'});
@@ -2098,19 +2158,18 @@ async function bbConfirmTask(btn){
         nt.photo_urls.push(url);
       }catch(e){console.error('Photo upload failed',e);}
     }
+    // Step 3: Update task record with photo URLs
+    if(nt.photo_urls.length){
+      try{await api('bravochore_tasks','PATCH',{photo_urls:nt.photo_urls},`?id=eq.${nid}`);}catch(e){}
+    }
   }
+  badge('ok','✓ Task added');
 
-  tasks.push(nt);
-  try{
-    await api('bravochore_tasks','POST',[nt]);
-    badge('ok','✓ Task added');
-  }catch(e){badge('er','⚠ Save failed');}
-
-  // Add shopping items
+  // Step 4: Add shopping items (read from live parsed which may have been edited)
   if(parsed.shopping?.length){
     const store=parsed.shopping_store||'Bunnings';
     for(const name of parsed.shopping){
-      const si={id:'si_'+Date.now()+Math.random(),name,store,note:parsed.title,done:false,sort_order:shopping.length+1};
+      const si={id:'si_'+Date.now()+'_'+Math.random().toString(36).slice(2),name,store,note:parsed.title,done:false,sort_order:shopping.length+1};
       shopping.push(si);
       try{await api('bravochore_shopping','POST',[si]);}catch(e){}
     }
@@ -2118,7 +2177,8 @@ async function bbConfirmTask(btn){
   }
 
   rerender();
-  const shopNote=parsed.shopping?.length?' + '+parsed.shopping.length+' item'+(parsed.shopping.length>1?'s':'')+' to shopping list':'';  card.innerHTML=`<div style="color:var(--gd);font-weight:600;font-size:13px;padding:4px 0">✓ "${parsed.title}" added to BravoChore${shopNote}</div>`;
+  const shopNote=parsed.shopping?.length?' + '+parsed.shopping.length+' item'+(parsed.shopping.length>1?'s':'')+' added to shopping':'';
+  card.innerHTML=`<div style="color:var(--gd);font-weight:600;font-size:13px;padding:4px 0">✓ "${parsed.title}" added${shopNote}</div>`;
 }
 
 function bbDeclineTask(btn){
