@@ -1498,6 +1498,10 @@ function renderDpBody(task,ms){
 function closeDetail(){
   document.getElementById('detail-backdrop').classList.remove('open');
   document.getElementById('detail-panel').classList.remove('open');
+  const footer=document.querySelector('.dp-footer');
+  if(footer)footer.dataset.confirming='';
+  const delBtn=document.querySelector('.dp-del');
+  if(delBtn){delBtn.textContent='Delete';delBtn.style.background='';delBtn.style.color='';delBtn.style.borderColor='';}
   dpTaskId=null;
 }
 
@@ -1541,21 +1545,41 @@ async function dpSave(){
   }catch(e){badge('er','⚠ Failed');}
 }
 
-async function dpDelete(){
+function dpDelete(){
   if(!dpTaskId)return;
-  const idToDelete=dpTaskId; // snapshot before closeDetail() nulls dpTaskId
-  const ok=await confirm2('Delete this task?','This cannot be undone.','btn-danger');
-  if(!ok)return;
-  tasks=tasks.filter(t=>t.id!==idToDelete);
-  milestones=milestones.filter(m=>m.task_id!==idToDelete);
-  closeDetail();
-  rerender();
-  try{
+  // Show inline confirm inside the detail footer rather than a modal
+  const footer=document.querySelector('.dp-footer');
+  if(footer.dataset.confirming==='1'){
+    // Second tap — actually delete
+    const idToDelete=dpTaskId;
+    tasks=tasks.filter(t=>t.id!==idToDelete);
+    milestones=milestones.filter(m=>m.task_id!==idToDelete);
+    closeDetail();
+    rerender();
     badge('sy','↻ Deleting...');
-    await api('bravochore_milestones','DELETE',null,`?task_id=eq.${idToDelete}`);
-    await api('bravochore_tasks','DELETE',null,`?id=eq.${idToDelete}`);
-    badge('ok','✓ Deleted');
-  }catch(e){badge('er','⚠ Delete failed');}
+    api('bravochore_milestones','DELETE',null,`?task_id=eq.${idToDelete}`)
+      .then(()=>api('bravochore_tasks','DELETE',null,`?id=eq.${idToDelete}`))
+      .then(()=>badge('ok','✓ Deleted'))
+      .catch(()=>badge('er','⚠ Delete failed'));
+  }else{
+    // First tap — ask for confirmation inline
+    footer.dataset.confirming='1';
+    const delBtn=document.querySelector('.dp-del');
+    delBtn.textContent='Tap again to confirm';
+    delBtn.style.background='var(--red)';
+    delBtn.style.color='#fff';
+    delBtn.style.borderColor='var(--red)';
+    // Auto-reset after 3 seconds if no second tap
+    setTimeout(()=>{
+      if(footer.dataset.confirming==='1'){
+        footer.dataset.confirming='';
+        delBtn.textContent='Delete';
+        delBtn.style.background='';
+        delBtn.style.color='';
+        delBtn.style.borderColor='';
+      }
+    },3000);
+  }
 }
 
 async function dpTickMs(msId){
