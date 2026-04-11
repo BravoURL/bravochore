@@ -175,9 +175,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 .task-time-badge{font-size:10px;color:var(--tx3)}
 .task-bucket{font-size:10px;padding:1px 6px;border-radius:100px;background:var(--surf2);color:var(--tx2)}
 .ms-progress-dots{display:flex;align-items:center;gap:3px;margin-left:2px}
-.ms-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
-.ms-dot.done-dot{background:var(--green)}
-.ms-dot.pending-dot{background:var(--bdrm)}
+.ms-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;border:1.5px solid transparent}
+.ms-dot.done-dot{background:var(--green);border-color:var(--gd)}
+.ms-dot.pending-dot{background:var(--surf2);border-color:var(--bdrm)}
 .task-actions{display:flex;gap:4px;padding-right:2px;position:relative;z-index:2}
 .icon-btn{width:28px;height:28px;border-radius:6px;background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--tx3);transition:all .15s;font-size:13px;flex-shrink:0}
 .icon-btn:hover{background:var(--surf2);color:var(--tx)}
@@ -432,6 +432,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
     <span id="ts-est" style="font-size:11px;opacity:.7"></span>
     <button class="ts-btn" onclick="timerPause()">⏸ Pause</button>
     <button class="ts-btn stop" onclick="timerStop(true)">✓ Complete</button>
+    <button class="ts-btn" onclick="timerCancel()" style="opacity:.6" title="Cancel timer — discards without saving">✕</button>
   </div>
 
   <div class="content">
@@ -1560,9 +1561,45 @@ async function timerStop(completed=false){
   try{await api('bravochore_timers','PATCH',{status:'completed',stopped_at:new Date().toISOString(),actual_seconds:actualSecs},`?id=eq.${activeTimer.id}`);}catch(e){}
   activeTimer=null;
   document.getElementById('timer-strip').classList.remove('visible');
+  // Mark the task or milestone as done
+  if(msId){
+    const ms=milestones.find(m=>m.id===msId);
+    if(ms&&!ms.done){
+      ms.done=true;
+      playChime('ms');
+      try{await api('bravochore_milestones','PATCH',{done:true},`?id=eq.${msId}`);}catch(e){}
+      // If all milestones done, tick parent task too
+      const taskMs=getTaskMs(taskId);
+      if(taskMs.every(m=>m.done)){
+        const t=tasks.find(x=>x.id===taskId);
+        if(t&&!t.done){t.done=true;playChime('task');spawnConfettiCenter();try{await api('bravochore_tasks','PATCH',{done:true},`?id=eq.${taskId}`);}catch(e){}}
+      }
+    }
+  }else{
+    const task=tasks.find(t=>t.id===taskId);
+    if(task&&!task.done){
+      task.done=true;
+      playChime('task');
+      spawnConfettiCenter();
+      try{await api('bravochore_tasks','PATCH',{done:true},`?id=eq.${taskId}`);}catch(e){}
+    }
+  }
   rerender();
   const task=tasks.find(t=>t.id===taskId);
   if(task&&dpTaskId===taskId)renderDetailBody(task,getTaskMs(taskId));
+}
+
+async function timerCancel(){
+  if(!activeTimer)return;
+  clearInterval(timerInterval);
+  const tid=activeTimer.id;
+  const taskId=activeTimer.taskId;
+  activeTimer=null;
+  document.getElementById('timer-strip').classList.remove('visible');
+  rerender();
+  const task=tasks.find(t=>t.id===taskId);
+  if(task&&dpTaskId===taskId)renderDetailBody(task,getTaskMs(taskId));
+  try{await api('bravochore_timers','PATCH',{status:'completed',stopped_at:new Date().toISOString()},`?id=eq.${tid}`);}catch(e){}
 }
 
 // ================================================================
