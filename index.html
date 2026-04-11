@@ -53,7 +53,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 /* NAV */
 #app{display:none;min-height:100vh}
 .topnav{background:var(--surf);border-bottom:1px solid var(--bdr);padding:0 16px;display:flex;align-items:center;height:52px;position:sticky;top:0;z-index:100}
-.brand{font-family:'Playfair Display',serif;font-size:18px;font-weight:600;color:var(--green);margin-right:20px;letter-spacing:-.3px;flex-shrink:0}
+.brand{font-family:'Playfair Display',serif;font-size:16px;font-weight:600;color:var(--green);margin-right:16px;letter-spacing:-.3px;flex-shrink:0;white-space:nowrap}
 .nav-tabs{display:flex;flex:1;overflow-x:auto;-webkit-overflow-scrolling:touch}
 .nav-tabs::-webkit-scrollbar{display:none}
 .nav-tab{padding:0 12px;height:52px;display:flex;align-items:center;font-size:13px;font-weight:500;color:var(--tx2);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;flex-shrink:0}
@@ -508,7 +508,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 
 <div id="app">
   <nav class="topnav">
-    <div class="brand">BC</div>
+    <div class="brand">Bravo<span style="color:var(--tx);font-weight:400">Chore</span></div>
     <div class="nav-tabs">
       <div class="nav-tab active" onclick="showView('dashboard',this)">Dashboard</div>
       <div class="nav-tab" onclick="showView('tasks',this)">All Tasks</div>
