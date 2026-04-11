@@ -308,10 +308,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 .shop-sheet-body{flex:1;overflow-y:auto;padding:14px 16px;-webkit-overflow-scrolling:touch}
 .shop-cat-hdr{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--tx3);padding:12px 0 6px;border-bottom:1px solid var(--bdr);margin-bottom:4px}
 .shop-cat-hdr:first-child{padding-top:0}
-.shop-list-item{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--bdr)}
+.shop-list-item{display:flex;align-items:flex-start;gap:10px;padding:11px 0;border-bottom:1px solid var(--bdr);transition:opacity .2s}
 .shop-list-item:last-child{border-bottom:none}
-.shop-list-num{font-size:11px;color:var(--tx3);font-family:'DM Mono',monospace;min-width:18px;padding-top:1px;flex-shrink:0}
-.shop-list-name{flex:1;font-size:13px;font-weight:500;color:var(--tx)}
+.shop-list-item.ticked{opacity:.4}
+.shop-list-item.ticked .shop-list-name{text-decoration:line-through}
+.shop-list-chk{width:22px;height:22px;border:2px solid var(--bdrm);border-radius:50%;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;margin-top:1px}
+.shop-list-chk:active{transform:scale(.9)}
+.shop-list-chk.checked{background:var(--green);border-color:var(--green)}
+.shop-list-chk.checked::after{content:'';width:5px;height:9px;border:2px solid #fff;border-top:none;border-left:none;transform:rotate(45deg) translateY(-1px);display:block}
+.shop-list-num{font-size:11px;color:var(--tx3);font-family:'DM Mono',monospace;min-width:18px;padding-top:3px;flex-shrink:0}
+.shop-list-name{flex:1;font-size:14px;font-weight:500;color:var(--tx)}
 .shop-list-note{font-size:11px;color:var(--tx3);margin-top:1px}
 
 /* SETTINGS PANEL */
@@ -1732,20 +1738,66 @@ function renderShopping(){
   });
 }
 
+let activeShopStore=null;
+const sheetTicked=new Set(); // tracks ids ticked in current session
+
 function openShopList(store){
   const items=shopping.filter(i=>i.store===store&&!i.done);
   if(!items.length){alert('Nothing pending for '+store+'!');return;}
+  activeShopStore=store;
+  sheetTicked.clear();
+  renderSheetItems(store,items);
+  document.getElementById('shop-modal').classList.add('open');
+}
+
+function renderSheetItems(store,items){
   const cats=categoriseItems(items,store);
   let num=1;
+  const total=items.length;
+  const tickedCount=sheetTicked.size;
   let html=cats.map(({cat,items:catItems})=>`
     <div class="shop-cat-hdr">${cat}</div>
-    ${catItems.map(item=>`<div class="shop-list-item">
+    ${catItems.map(item=>`<div class="shop-list-item ${sheetTicked.has(item.id)?'ticked':''}" id="sli-${item.id}">
+      <div class="shop-list-chk ${sheetTicked.has(item.id)?'checked':''}" onclick="tickSheetItem('${item.id}')"></div>
       <span class="shop-list-num">${num++}</span>
       <div><div class="shop-list-name">${item.name}</div>${item.note?`<div class="shop-list-note">${item.note}</div>`:''}</div>
     </div>`).join('')}`).join('');
-  document.getElementById('shop-sheet-title').textContent=`${store} — ${items.length} item${items.length>1?'s':''}`;
+  // Add done-shopping button at bottom
+  html+=`<div style="padding:16px 0 4px">
+    <button onclick="finishShopping()" style="width:100%;padding:13px;background:var(--green);color:#fff;border:none;border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-weight:700;font-size:14px;cursor:pointer">
+      ✓ Done shopping${tickedCount?` — mark ${tickedCount} item${tickedCount>1?'s':''} as got`:''}
+    </button>
+  </div>`;
+  document.getElementById('shop-sheet-title').textContent=`${store} — ${total-tickedCount} remaining`;
   document.getElementById('shop-sheet-body').innerHTML=html;
-  document.getElementById('shop-modal').classList.add('open');
+}
+
+function tickSheetItem(id){
+  const item=shopping.find(i=>i.id===id);if(!item)return;
+  if(sheetTicked.has(id))sheetTicked.delete(id);
+  else sheetTicked.add(id);
+  // Update just this item visually without full re-render
+  const row=document.getElementById('sli-'+id);
+  const chk=row?.querySelector('.shop-list-chk');
+  if(row)row.classList.toggle('ticked',sheetTicked.has(id));
+  if(chk)chk.classList.toggle('checked',sheetTicked.has(id));
+  // Update header count and button text
+  const total=shopping.filter(i=>i.store===activeShopStore&&!i.done).length;
+  const tickedCount=sheetTicked.size;
+  document.getElementById('shop-sheet-title').textContent=`${activeShopStore} — ${total-tickedCount} remaining`;
+  const doneBtn=document.querySelector('#shop-sheet-body button');
+  if(doneBtn)doneBtn.textContent=`✓ Done shopping${tickedCount?` — mark ${tickedCount} item${tickedCount>1?'s':''} as got`:''}`;
+}
+
+async function finishShopping(){
+  // Mark ticked items as done in shopping list
+  for(const id of sheetTicked){
+    const item=shopping.find(i=>i.id===id);
+    if(item){item.done=true;try{await api('bravochore_shopping','PATCH',{done:true},`?id=eq.${id}`);}catch(e){}}
+  }
+  sheetTicked.clear();
+  closeShopList();
+  renderShopping();
 }
 
 function closeShopList(){document.getElementById('shop-modal').classList.remove('open');}
