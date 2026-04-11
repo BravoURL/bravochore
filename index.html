@@ -160,8 +160,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 .task-card.overdue{border-left:3px solid var(--red)}
 .task-card.due-soon{border-left:3px solid var(--amber)}
 .task-card.done{opacity:.4}
-.task-card.dragging{opacity:.35;border:2px dashed var(--green)}
-.task-card.drag-over{border-top:3px solid var(--green)}
+.task-card.dragging{opacity:.3;border:2px dashed var(--green);transform:scale(.98)}
+.task-card.drag-over-above{margin-top:44px;transition:margin-top .15s ease}
+.task-card.drag-over-below{margin-bottom:44px;transition:margin-bottom .15s ease}
+.task-card{transition:margin .15s ease,box-shadow .15s,opacity .15s}
 /* MS progress wash */
 .task-wash{position:absolute;left:0;top:0;height:100%;background:linear-gradient(90deg,rgba(92,138,74,.1) 0%,transparent 100%);pointer-events:none;transition:width .5s ease;border-radius:var(--rs)}
 .task-row{display:flex;align-items:center;padding:12px 10px;gap:9px;position:relative;z-index:1;min-height:56px}
@@ -212,7 +214,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 .search-input:focus{border-color:var(--green)}
 
 /* DETAIL PANEL - slides up from bottom */
-#detail-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:400;display:none;transition:opacity .3s}
+#detail-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:400;display:none}
 #detail-backdrop.open{display:block}
 #detail-panel{position:fixed;left:0;right:0;bottom:-100%;height:92vh;background:var(--surf);z-index:401;display:flex;flex-direction:column;border-radius:20px 20px 0 0;box-shadow:0 -8px 40px rgba(0,0,0,.15);transition:bottom .3s ease;overflow:hidden;max-width:700px;margin:0 auto}
 #detail-panel.open{bottom:0}
@@ -404,8 +406,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 @media(min-width:769px){
   .content{padding:20px 24px 100px}
   .metric-grid{grid-template-columns:repeat(4,1fr)}
-  #detail-panel{left:auto;right:0;top:0;bottom:0;width:480px;height:100vh;border-radius:0;max-width:none}
-  #detail-panel.open{bottom:0}
+  #detail-panel{left:auto;right:-500px;top:0;bottom:auto;width:480px;height:100vh;border-radius:0;max-width:none;transition:right .3s ease}
+  #detail-panel.open{right:0;bottom:auto}
   .dp-row2{grid-template-columns:1fr 1fr}
   .bb-panel{width:340px}
   .user-cards{max-width:480px}
@@ -1704,17 +1706,47 @@ function initDrag(){
   const list=document.getElementById('all-tasks-list');if(!list)return;
   list.querySelectorAll('.task-card:not(.done)').forEach(card=>{
     card.setAttribute('draggable','true');
-    let pt=null;
-    card.addEventListener('touchstart',e=>{pt=setTimeout(()=>{dragSrc=card;card.classList.add('dragging');navigator.vibrate&&navigator.vibrate(40);},{passive:true},500);},{passive:true});
-    card.addEventListener('touchend',()=>{clearTimeout(pt);if(dragSrc)finishDrag();});
+    let pt=null,dragStarted=false;
+    // Touch: 700ms hold before drag activates — allows normal scrolling
+    card.addEventListener('touchstart',e=>{
+      dragStarted=false;
+      pt=setTimeout(()=>{
+        dragStarted=true;dragSrc=card;card.classList.add('dragging');
+        navigator.vibrate&&navigator.vibrate([40,20,40]);
+      },700);
+    },{passive:true});
+    card.addEventListener('touchend',e=>{
+      clearTimeout(pt);
+      if(dragStarted&&dragSrc)finishDrag();
+      dragStarted=false;
+    });
+    card.addEventListener('touchcancel',()=>{clearTimeout(pt);dragStarted=false;if(dragSrc)cleanDrag();});
     card.addEventListener('touchmove',e=>{
-      if(!dragSrc)return;e.preventDefault();
-      const t=e.touches[0];const el=document.elementFromPoint(t.clientX,t.clientY)?.closest('.task-card');
-      if(el&&el!==dragSrc){dragOver=el;list.querySelectorAll('.task-card').forEach(c=>c.classList.remove('drag-over'));el.classList.add('drag-over');}
+      if(!dragStarted){clearTimeout(pt);return;} // allow scroll if drag not started
+      e.preventDefault();
+      const t=e.touches[0];
+      const el=document.elementFromPoint(t.clientX,t.clientY)?.closest('.task-card');
+      if(el&&el!==dragSrc){
+        list.querySelectorAll('.task-card').forEach(c=>c.classList.remove('drag-over-above','drag-over-below'));
+        const elRect=el.getBoundingClientRect();
+        const mid=elRect.top+elRect.height/2;
+        dragOver=el;
+        if(t.clientY<mid)el.classList.add('drag-over-above');
+        else el.classList.add('drag-over-below');
+      }
     },{passive:false});
+    // Desktop drag
     card.addEventListener('dragstart',e=>{dragSrc=card;card.classList.add('dragging');e.dataTransfer.effectAllowed='move';});
     card.addEventListener('dragend',()=>finishDrag());
-    card.addEventListener('dragover',e=>{e.preventDefault();if(card!==dragSrc){dragOver=card;list.querySelectorAll('.task-card').forEach(c=>c.classList.remove('drag-over'));card.classList.add('drag-over');}});
+    card.addEventListener('dragover',e=>{
+      e.preventDefault();
+      if(card===dragSrc)return;
+      list.querySelectorAll('.task-card').forEach(c=>c.classList.remove('drag-over-above','drag-over-below'));
+      dragOver=card;
+      const mid=card.getBoundingClientRect().top+card.getBoundingClientRect().height/2;
+      if(e.clientY<mid)card.classList.add('drag-over-above');
+      else card.classList.add('drag-over-below');
+    });
     card.addEventListener('drop',e=>{e.preventDefault();finishDrag();});
   });
 }
@@ -1722,16 +1754,15 @@ function initDrag(){
 async function finishDrag(){
   if(!dragSrc||!dragOver||dragSrc===dragOver){cleanDrag();return;}
   const list=document.getElementById('all-tasks-list');
-  const cards=Array.from(list.querySelectorAll('.task-card'));
-  const si=cards.indexOf(dragSrc),ti=cards.indexOf(dragOver);
-  if(si<ti)dragOver.after(dragSrc);else dragOver.before(dragSrc);
+  const isAbove=dragOver.classList.contains('drag-over-above');
+  if(isAbove)dragOver.before(dragSrc);else dragOver.after(dragSrc);
   cleanDrag();
   Array.from(list.querySelectorAll('.task-card')).forEach((c,i)=>{
     const t=tasks.find(x=>x.id===parseInt(c.dataset.id));
     if(t){t.sort_order=i+1;api('bravochore_tasks','PATCH',{sort_order:t.sort_order},`?id=eq.${t.id}`).catch(()=>{});}
   });
 }
-function cleanDrag(){document.querySelectorAll('.task-card').forEach(c=>c.classList.remove('dragging','drag-over'));dragSrc=null;dragOver=null;}
+function cleanDrag(){document.querySelectorAll('.task-card').forEach(c=>c.classList.remove('dragging','drag-over-above','drag-over-below'));dragSrc=null;dragOver=null;}
 
 // ================================================================
 // CHIRP
