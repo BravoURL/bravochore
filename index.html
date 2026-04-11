@@ -160,10 +160,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 .task-card.overdue{border-left:3px solid var(--red)}
 .task-card.due-soon{border-left:3px solid var(--amber)}
 .task-card.done{opacity:.4}
-.task-card.dragging{opacity:.3;border:2px dashed var(--green);transform:scale(.98)}
-.task-card.drag-over-above{margin-top:44px;transition:margin-top .15s ease}
-.task-card.drag-over-below{margin-bottom:44px;transition:margin-bottom .15s ease}
-.task-card{transition:margin .15s ease,box-shadow .15s,opacity .15s}
+.task-card{transition:margin .2s ease,box-shadow .15s,opacity .15s,transform .15s}
+.task-card.dragging{opacity:.25;border:2px dashed var(--green) !important;transform:scale(.97)}
+.task-card.drag-over-above{margin-top:56px}
+.task-card.drag-over-below{margin-bottom:56px}
 /* MS progress wash */
 .task-wash{position:absolute;left:0;top:0;height:100%;background:linear-gradient(90deg,rgba(92,138,74,.1) 0%,transparent 100%);pointer-events:none;transition:width .5s ease;border-radius:var(--rs)}
 .task-row{display:flex;align-items:center;padding:12px 10px;gap:9px;position:relative;z-index:1;min-height:56px}
@@ -412,6 +412,38 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
   .bb-panel{width:340px}
   .user-cards{max-width:480px}
 }
+
+/* FOCUS MODE */
+.focus-modal{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:700;display:none;align-items:flex-end;justify-content:center}
+.focus-modal.open{display:flex}
+.focus-sheet{background:var(--bg);border-radius:20px 20px 0 0;width:100%;max-width:700px;max-height:88vh;display:flex;flex-direction:column;padding-bottom:max(16px,env(safe-area-inset-bottom))}
+.focus-hdr{padding:14px 16px 10px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;background:var(--surf);border-radius:20px 20px 0 0;flex-shrink:0}
+.focus-hdr h3{font-family:'Playfair Display',serif;font-size:18px;font-weight:500}
+.focus-hdr p{font-size:11px;color:var(--tx3);margin-top:2px}
+.focus-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--tx3);padding:3px 6px;border-radius:6px}
+.focus-filters{display:flex;gap:6px;padding:10px 14px;overflow-x:auto;-webkit-overflow-scrolling:touch;border-bottom:1px solid var(--bdr);background:var(--surf);flex-shrink:0}
+.focus-filters::-webkit-scrollbar{display:none}
+.focus-body{flex:1;overflow-y:auto;padding:14px 16px;-webkit-overflow-scrolling:touch}
+.focus-card{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);margin-bottom:14px;overflow:hidden;box-shadow:var(--shadow)}
+.focus-card.overdue{border-left:4px solid var(--red)}
+.focus-card.due-soon{border-left:4px solid var(--amber)}
+.focus-card-inner{padding:16px}
+.focus-card-title{font-family:'Playfair Display',serif;font-size:17px;font-weight:500;line-height:1.3;margin-bottom:8px}
+.focus-card-meta{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.focus-ms-bar{background:var(--surf2);border-radius:var(--rs);padding:10px 12px;margin-bottom:12px}
+.focus-ms-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--tx3);margin-bottom:6px}
+.focus-ms-dots{display:flex;gap:4px;flex-wrap:wrap}
+.focus-dot{width:10px;height:10px;border-radius:50%;border:1.5px solid transparent;flex-shrink:0}
+.focus-dot.d{background:var(--green);border-color:var(--gd)}
+.focus-dot.p{background:#fff;border-color:var(--bdrm)}
+.focus-actions{display:flex;gap:8px}
+.focus-tick{flex:1;padding:13px;background:var(--green);color:#fff;border:none;border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-weight:700;font-size:14px;cursor:pointer}
+.focus-tick:active{background:var(--gd)}
+.focus-open{padding:13px 16px;background:none;border:1px solid var(--bdrm);border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;color:var(--tx2)}
+.focus-open:active{background:var(--surf2)}
+.focus-empty{text-align:center;padding:40px 20px;color:var(--tx3)}
+.focus-empty-icon{font-size:40px;margin-bottom:12px}
+.focus-see-all{display:block;text-align:center;padding:14px;color:var(--green);font-size:13px;font-weight:700;cursor:pointer;border-top:1px solid var(--bdr);margin-top:2px;background:var(--surf)}
 </style>
 </head>
 <body>
@@ -533,7 +565,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
         </div>
         <div class="filter-group">
           <select class="filter-chip" id="sort-sel" onchange="renderTasksView()" style="border-radius:100px;padding:4px 8px;font-size:11px">
-            <option value="date">Due date</option>
+            <option value="manual">My order</option>
+            <option value="due">Due date</option>
             <option value="tasc">Quickest</option>
             <option value="tdesc">Longest</option>
             <option value="owner">Owner</option>
@@ -659,6 +692,22 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 </div>
 
 <div id="print-view"></div>
+<!-- FOCUS SHEET -->
+<div class="focus-modal" id="focus-modal" onclick="if(event.target===this)closeFocus()">
+  <div class="focus-sheet">
+    <div class="focus-hdr">
+      <div>
+        <h3 id="focus-title">Pressure On</h3>
+        <p id="focus-subtitle">Top tasks needing attention</p>
+      </div>
+      <button class="focus-close" onclick="closeFocus()">✕</button>
+    </div>
+    <div class="focus-filters" id="focus-filters"></div>
+    <div class="focus-body" id="focus-body"></div>
+    <div class="focus-see-all" id="focus-see-all" onclick="focusSeeAll()">See all →</div>
+  </div>
+</div>
+
 <div id="chirp-container"></div>
 <input type="file" id="photo-input-cam" accept="image/*" capture="environment" style="display:none">
 <input type="file" id="photo-input-lib" accept="image/*" multiple style="display:none">
@@ -972,12 +1021,100 @@ function showView(name,tab){
   else if(name==='shopping')renderShopping();
   else renderDashboard();
 }
+let focusMode=null,focusWho='all',focusBucket='all';
+
 function applyFilter(mode){
-  filterMode=mode;filterWho='all';filterBucket='all';
-  // Reset filter chips
-  document.querySelectorAll('[data-fw]').forEach(e=>e.classList.toggle('active',e.dataset.fw==='all'));
-  document.querySelectorAll('[data-fb]').forEach(e=>e.classList.toggle('active',e.dataset.fb==='all'));
+  focusMode=mode;focusWho='all';focusBucket='all';
+  renderFocusSheet();
+  document.getElementById('focus-modal').classList.add('open');
+}
+
+function closeFocus(){document.getElementById('focus-modal').classList.remove('open');}
+
+function focusSeeAll(){
+  closeFocus();
+  filterMode=focusMode;filterWho=focusWho;filterBucket=focusBucket;
+  document.querySelectorAll('[data-fw]').forEach(e=>e.classList.toggle('active',e.dataset.fw===focusWho||(focusWho==='all'&&e.dataset.fw==='all')));
+  document.querySelectorAll('[data-fb]').forEach(e=>e.classList.toggle('active',e.dataset.fb===focusBucket||(focusBucket==='all'&&e.dataset.fb==='all')));
   showView('tasks',document.querySelectorAll('.nav-tab')[1]);
+}
+
+function setFocusWho(code,el){
+  focusWho=code;
+  document.querySelectorAll('#focus-filters [data-ffw]').forEach(e=>e.classList.toggle('active',e.dataset.ffw===code));
+  renderFocusSheet();
+}
+
+function setFocusBucket(b,el){
+  focusBucket=b;
+  document.querySelectorAll('#focus-filters [data-ffb]').forEach(e=>e.classList.toggle('active',e.dataset.ffb===b));
+  renderFocusSheet();
+}
+
+function renderFocusSheet(){
+  const today=tdStr();
+  const titles={overdue:'🔥 Pressure On',quickwin:'⚡ Quick Wins'};
+  const subtitles={overdue:'Overdue tasks — tackle these first',quickwin:'Tasks under 30 mins — quick momentum'};
+  document.getElementById('focus-title').textContent=titles[focusMode]||'Focus';
+  document.getElementById('focus-subtitle').textContent=subtitles[focusMode]||''
+  // Filters
+  const fEl=document.getElementById('focus-filters');
+  const peopleChips=people.filter(p=>p.code!=='Pete').map(p=>`<div class="filter-chip ${focusWho===p.code?'active':''}" data-ffw="${p.code}" onclick="setFocusWho('${p.code}',this)">${p.name}</div>`).join('');
+  fEl.innerHTML=`<div class="filter-chip ${focusWho==='all'?'active':''}" data-ffw="all" onclick="setFocusWho('all',this)">All</div>${peopleChips}
+    <div class="filter-chip ${focusBucket==='all'?'active':''}" data-ffb="all" onclick="setFocusBucket('all',this)" style="margin-left:8px">All</div>
+    <div class="filter-chip ${focusBucket==='Indoor'?'active':''}" data-ffb="Indoor" onclick="setFocusBucket('Indoor',this)">Indoor</div>
+    <div class="filter-chip ${focusBucket==='Outdoor'?'active':''}" data-ffb="Outdoor" onclick="setFocusBucket('Outdoor',this)">Outdoor</div>`;
+  // Filter tasks
+  let filtered=tasks.filter(t=>!t.done);
+  if(focusWho!=='all')filtered=filtered.filter(t=>t.owner&&t.owner.includes(focusWho));
+  if(focusBucket!=='all')filtered=filtered.filter(t=>t.bucket===focusBucket);
+  if(focusMode==='overdue')filtered=filtered.filter(t=>t.due&&t.due<today).sort((a,b)=>(a.due||'').localeCompare(b.due||'')).slice(0,5);
+  else if(focusMode==='quickwin')filtered=filtered.filter(t=>getEffectiveTime(t)<=0.5).sort((a,b)=>getEffectiveTime(a)-getEffectiveTime(b)).slice(0,5);
+  // Render cards
+  const body=document.getElementById('focus-body');
+  if(!filtered.length){
+    body.innerHTML=`<div class="focus-empty"><div class="focus-empty-icon">${focusMode==='overdue'?'🎉':'⚡'}</div><p>${focusMode==='overdue'?'Nothing overdue. You're on top of it.':'No quick wins available with these filters.'}</p></div>`;
+    return;
+  }
+  body.innerHTML=filtered.map(task=>{
+    const today2=tdStr();
+    const ov=task.due&&task.due<today2;
+    const ds=task.due&&task.due===today2;
+    const ms=getMs(task.id);
+    const msDone=ms.filter(m=>m.done).length;
+    const o=getOwner(task.owner);
+    const timeH=getEffectiveTime(task);
+    const msBar=ms.length?`<div class="focus-ms-bar">
+      <div class="focus-ms-label">${msDone}/${ms.length} milestones</div>
+      <div class="focus-ms-dots">${ms.map(m=>`<div class="focus-dot ${m.done?'d':'p'}" title="${m.title}"></div>`).join('')}</div>
+    </div>`:'';
+    return `<div class="focus-card ${ov?'overdue':ds?'due-soon':''}" id="fc-${task.id}">
+      <div class="focus-card-inner">
+        <div class="focus-card-title">${task.title}</div>
+        <div class="focus-card-meta">
+          <span class="task-tag" style="background:${o.bg};color:${o.color}">${o.name}</span>
+          <span class="task-bucket-b">${task.bucket}</span>
+          ${task.due?`<span class="task-date ${ov?'ov':ds?'ds':''}">${fmtDate(task.due)}</span>`:''}
+          ${timeH?`<span class="task-time-b">${timeH.toFixed(1)}h</span>`:''}
+        </div>
+        ${msBar}
+        <div class="focus-actions">
+          <button class="focus-tick" onclick="focusTick(${task.id})">✓ Done</button>
+          <button class="focus-open" onclick="closeFocus();openDetail(${task.id})">Open</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function focusTick(id){
+  const task=tasks.find(t=>t.id===id);if(!task)return;
+  task.done=true;playChime('task');spawnConfettiCenter();
+  document.getElementById('fc-'+id)?.remove();
+  rerender();
+  try{await api('bravochore_tasks','PATCH',{done:true},`?id=eq.${id}`);}catch(e){}
+  // Re-render focus sheet to pull in next task
+  renderFocusSheet();
 }
 
 // ================================================================
@@ -1122,7 +1259,7 @@ function setFB(el,v){document.querySelectorAll('[data-fb]').forEach(e=>e.classLi
 function renderTasksView(){
   const today=tdStr();
   const srch=(document.getElementById('search-input')?.value||'').toLowerCase();
-  const sort=document.getElementById('sort-sel')?.value||'date';
+  const sort=document.getElementById('sort-sel')?.value||'manual';
   const applyF=arr=>{
     let f=[...arr];
     if(filterWho!=='all')f=f.filter(t=>t.owner&&t.owner.includes(filterWho));
@@ -1135,7 +1272,8 @@ function renderTasksView(){
   };
   filterMode=null;
   const sortF=arr=>{
-    if(sort==='date')arr.sort((a,b)=>(a.due||'').localeCompare(b.due||''));
+    if(sort==='manual'||sort==='date')arr.sort((a,b)=>(a.sort_order||999)-(b.sort_order||999));
+    else if(sort==='due')arr.sort((a,b)=>(a.due||'').localeCompare(b.due||''));
     else if(sort==='tasc')arr.sort((a,b)=>getEffectiveTime(a)-getEffectiveTime(b));
     else if(sort==='tdesc')arr.sort((a,b)=>getEffectiveTime(b)-getEffectiveTime(a));
     else if(sort==='owner')arr.sort((a,b)=>(a.owner||'').localeCompare(b.owner||''));
@@ -1689,8 +1827,30 @@ async function sendToBB(){
   const msg=inp.value.trim();if(!msg)return;
   inp.value='';bbMsg(msg,'from-user');
   document.getElementById('bb-fab').className='bb-thinking';
-  const ctx=bbCtx?`User is on task "${bbCtx.title}" (${bbCtx.bucket}, due ${bbCtx.due}, ${getEffectiveTime(bbCtx).toFixed(1)}h, owner: ${bbCtx.owner}). `:'';
-  const sys=`You are Blackbird, the AI assistant in BravoChore — a household task app for Brent and Bernadette Wallis in Perth WA. They're getting their home ready by 2 May 2026. Be direct and practical. 2-4 sentences max. Suggest specific Bunnings Perth or ABI Interiors products where relevant. ${ctx}`;
+
+  // Build rich task context so Blackbird knows exactly what's on the plate
+  const today=tdStr();
+  const daysLeft=Math.max(0,Math.ceil((TARGET-new Date())/86400000));
+  const overdueTasks=tasks.filter(t=>!t.done&&t.due&&t.due<today);
+  const todayTasks=tasks.filter(t=>!t.done&&t.due===today);
+  const myPending=tasks.filter(t=>!t.done&&t.owner&&t.owner.includes(CU)).sort((a,b)=>(a.due||'9').localeCompare(b.due||'9')).slice(0,12);
+  const allPending=tasks.filter(t=>!t.done).sort((a,b)=>(a.due||'9').localeCompare(b.due||'9')).slice(0,20);
+  const doneCount=tasks.filter(t=>t.done).length;
+  const taskSummary=`
+=== TASK DATA (use this to answer questions about priorities) ===
+Deadline: 2 May 2026 (${daysLeft} days away). ${doneCount} of ${tasks.length} tasks done.
+OVERDUE (${overdueTasks.length}): ${overdueTasks.length?overdueTasks.map(t=>`"${t.title}" (${getOwner(t.owner).name}, was due ${fmtDate(t.due)}, ${getEffectiveTime(t).toFixed(1)}h)`).join('; '):'none'}
+DUE TODAY (${todayTasks.length}): ${todayTasks.length?todayTasks.map(t=>`"${t.title}" (${getOwner(t.owner).name})`).join('; '):'none'}
+${CUN}'s upcoming tasks: ${myPending.map(t=>`"${t.title}" due ${fmtDate(t.due)||'no date'}, ${getEffectiveTime(t).toFixed(1)}h, ${t.bucket}`).join(' | ')}
+All upcoming tasks: ${allPending.map(t=>`"${t.title}" (${getOwner(t.owner).name}, ${fmtDate(t.due)||'no date'}, ${getEffectiveTime(t).toFixed(1)}h)`).join(' | ')}
+===`;
+  const taskCtx=bbCtx?`\nCURRENT TASK OPEN: "${bbCtx.title}" (${bbCtx.bucket}, due ${fmtDate(bbCtx.due)}, ${getEffectiveTime(bbCtx).toFixed(1)}h, owner: ${getOwner(bbCtx.owner).name}).`:'';
+  const sys=`You are Blackbird, the AI assistant inside BravoChore — a household task management app for Brent Wallis (BW) and Bernadette Wallis (BJ) in Perth, Western Australia. They are preparing their home for a big occasion by 2 May 2026. The user currently logged in is ${CUN}.
+
+You have full visibility of their task list — use it. When asked about priorities, most pressing tasks, what to do next, or anything schedule-related, give a direct, specific answer based on the actual task data. Don't say you don't have access — you do.
+
+Be direct, warm, and practical. 3-5 sentences. Suggest Bunnings Perth or ABI Interiors products where relevant. Acknowledge how much is left and the deadline pressure where appropriate.
+${taskSummary}${taskCtx}`;
   try{
     const res=await fetch(BB_PROXY,{method:'POST',headers:{'Content-Type':'application/json','apikey':SK},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:sys,messages:[{role:'user',content:msg}]})});
     const data=await res.json();
@@ -1702,67 +1862,111 @@ async function sendToBB(){
 // ================================================================
 // DRAG REORDER
 // ================================================================
+// ================================================================
+// DRAG REORDER - with auto-scroll and no-revert
+// ================================================================
+let scrollInterval=null;
+
+function setDragOver(el,clientY){
+  if(!el||el===dragSrc)return;
+  document.querySelectorAll('.task-card').forEach(c=>c.classList.remove('drag-over-above','drag-over-below'));
+  dragOver=el;
+  const mid=el.getBoundingClientRect().top+el.getBoundingClientRect().height/2;
+  el.classList.add(clientY<mid?'drag-over-above':'drag-over-below');
+}
+
+function autoScroll(clientY){
+  clearInterval(scrollInterval);
+  const threshold=100,maxSpeed=18;
+  const vh=window.innerHeight;
+  if(clientY<threshold){
+    const speed=Math.round(maxSpeed*(1-clientY/threshold));
+    scrollInterval=setInterval(()=>window.scrollBy(0,-speed),16);
+  }else if(clientY>vh-threshold){
+    const speed=Math.round(maxSpeed*(1-(vh-clientY)/threshold));
+    scrollInterval=setInterval(()=>window.scrollBy(0,speed),16);
+  }
+}
+
 function initDrag(){
   const list=document.getElementById('all-tasks-list');if(!list)return;
   list.querySelectorAll('.task-card:not(.done)').forEach(card=>{
     card.setAttribute('draggable','true');
     let pt=null,dragStarted=false;
-    // Touch: 700ms hold before drag activates — allows normal scrolling
+
+    // TOUCH
     card.addEventListener('touchstart',e=>{
       dragStarted=false;
       pt=setTimeout(()=>{
         dragStarted=true;dragSrc=card;card.classList.add('dragging');
         navigator.vibrate&&navigator.vibrate([40,20,40]);
-      },700);
+      },650);
     },{passive:true});
-    card.addEventListener('touchend',e=>{
-      clearTimeout(pt);
-      if(dragStarted&&dragSrc)finishDrag();
-      dragStarted=false;
-    });
-    card.addEventListener('touchcancel',()=>{clearTimeout(pt);dragStarted=false;if(dragSrc)cleanDrag();});
+
     card.addEventListener('touchmove',e=>{
-      if(!dragStarted){clearTimeout(pt);return;} // allow scroll if drag not started
+      if(!dragStarted){
+        // If finger moved significantly before 650ms, cancel drag so scroll works
+        clearTimeout(pt);return;
+      }
       e.preventDefault();
       const t=e.touches[0];
-      const el=document.elementFromPoint(t.clientX,t.clientY)?.closest('.task-card');
-      if(el&&el!==dragSrc){
-        list.querySelectorAll('.task-card').forEach(c=>c.classList.remove('drag-over-above','drag-over-below'));
-        const elRect=el.getBoundingClientRect();
-        const mid=elRect.top+elRect.height/2;
-        dragOver=el;
-        if(t.clientY<mid)el.classList.add('drag-over-above');
-        else el.classList.add('drag-over-below');
-      }
+      autoScroll(t.clientY);
+      const el=document.elementFromPoint(t.clientX,t.clientY)?.closest('.task-card[data-id]');
+      setDragOver(el,t.clientY);
     },{passive:false});
-    // Desktop drag
-    card.addEventListener('dragstart',e=>{dragSrc=card;card.classList.add('dragging');e.dataTransfer.effectAllowed='move';});
-    card.addEventListener('dragend',()=>finishDrag());
-    card.addEventListener('dragover',e=>{
-      e.preventDefault();
-      if(card===dragSrc)return;
-      list.querySelectorAll('.task-card').forEach(c=>c.classList.remove('drag-over-above','drag-over-below'));
-      dragOver=card;
-      const mid=card.getBoundingClientRect().top+card.getBoundingClientRect().height/2;
-      if(e.clientY<mid)card.classList.add('drag-over-above');
-      else card.classList.add('drag-over-below');
+
+    card.addEventListener('touchend',()=>{
+      clearTimeout(pt);clearInterval(scrollInterval);
+      if(dragStarted&&dragSrc)finishDrag();
+      else cleanDrag();
+      dragStarted=false;
     });
-    card.addEventListener('drop',e=>{e.preventDefault();finishDrag();});
+    card.addEventListener('touchcancel',()=>{clearTimeout(pt);clearInterval(scrollInterval);dragStarted=false;cleanDrag();});
+
+    // DESKTOP
+    card.addEventListener('dragstart',e=>{
+      dragSrc=card;card.classList.add('dragging');
+      e.dataTransfer.effectAllowed='move';
+      e.dataTransfer.setData('text/plain','');
+    });
+    card.addEventListener('dragend',()=>{clearInterval(scrollInterval);finishDrag();});
+    card.addEventListener('dragover',e=>{
+      e.preventDefault();e.dataTransfer.dropEffect='move';
+      autoScroll(e.clientY);
+      setDragOver(card,e.clientY);
+    });
+    card.addEventListener('drop',e=>{e.preventDefault();});
   });
+  // Also allow dropping on the list container (for end of list)
+  list.addEventListener('dragover',e=>e.preventDefault());
 }
 
-async function finishDrag(){
+function finishDrag(){
+  clearInterval(scrollInterval);
   if(!dragSrc||!dragOver||dragSrc===dragOver){cleanDrag();return;}
   const list=document.getElementById('all-tasks-list');
-  const isAbove=dragOver.classList.contains('drag-over-above');
-  if(isAbove)dragOver.before(dragSrc);else dragOver.after(dragSrc);
+  // Snapshot refs BEFORE cleanDrag wipes them
+  const src=dragSrc,tgt=dragOver;
+  const isAbove=tgt.classList.contains('drag-over-above');
   cleanDrag();
-  Array.from(list.querySelectorAll('.task-card')).forEach((c,i)=>{
-    const t=tasks.find(x=>x.id===parseInt(c.dataset.id));
-    if(t){t.sort_order=i+1;api('bravochore_tasks','PATCH',{sort_order:t.sort_order},`?id=eq.${t.id}`).catch(()=>{});}
+  // Move in DOM
+  if(isAbove)tgt.before(src);else tgt.after(src);
+  // Rebuild sort_order in tasks array from new DOM order
+  const newOrder=Array.from(list.querySelectorAll('.task-card[data-id]')).map(c=>parseInt(c.dataset.id));
+  newOrder.forEach((id,i)=>{
+    const t=tasks.find(x=>x.id===id);
+    if(t)t.sort_order=i+1;
   });
+  tasks.sort((a,b)=>(a.sort_order||999)-(b.sort_order||999));
+  // Persist to Supabase (fire and forget)
+  newOrder.forEach((id,i)=>api('bravochore_tasks','PATCH',{sort_order:i+1},`?id=eq.${id}`).catch(()=>{}));
 }
-function cleanDrag(){document.querySelectorAll('.task-card').forEach(c=>c.classList.remove('dragging','drag-over-above','drag-over-below'));dragSrc=null;dragOver=null;}
+
+function cleanDrag(){
+  clearInterval(scrollInterval);
+  document.querySelectorAll('.task-card').forEach(c=>c.classList.remove('dragging','drag-over-above','drag-over-below'));
+  dragSrc=null;dragOver=null;
+}
 
 // ================================================================
 // CHIRP
