@@ -1989,7 +1989,7 @@ async function finishShopping(){
 }
 
 function closeShopList(){document.getElementById('shop-modal').classList.remove('open');}
-document.getElementById('shop-modal').addEventListener('click',e=>{if(e.target===document.getElementById('shop-modal'))closeShopList();});
+document.addEventListener('DOMContentLoaded',()=>document.getElementById('shop-modal')?.addEventListener('click',e=>{if(e.target===document.getElementById('shop-modal'))closeShopList();}));
 
 async function toggleShop(id){const i=shopping.find(x=>x.id===id);if(!i)return;i.done=!i.done;renderShopping();try{await api('bravochore_shopping','PATCH',{done:i.done},`?id=eq.${id}`);}catch(e){}}
 async function removeShop(id){shopping=shopping.filter(x=>x.id!==id);renderShopping();try{await api('bravochore_shopping','DELETE',null,`?id=eq.${id}`);}catch(e){}}
@@ -2080,7 +2080,7 @@ let bbPendingPhotos=[]; // [{file, dataUrl}]
 let bbHistory=[]; // conversation history for multi-turn
 
 // Wire photo input
-['bb-photo-cam','bb-photo-lib'].forEach(id=>{
+document.addEventListener('DOMContentLoaded',()=>['bb-photo-cam','bb-photo-lib'].forEach(id=>{
   const el=document.getElementById(id);
   if(!el)return;
   el.addEventListener('change',async e=>{
@@ -2092,7 +2092,7 @@ let bbHistory=[]; // conversation history for multi-turn
     renderBBPhotoStrip();
     e.target.value='';
   });
-});
+}));
 
 function renderBBPhotoStrip(){
   const strip=document.getElementById('bb-photo-strip');if(!strip)return;
@@ -2484,7 +2484,7 @@ function confirm2(title,body,btnCls='btn-ok'){
 }
 function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
-document.querySelectorAll('.modal-bd').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');}));
+document.addEventListener('DOMContentLoaded',()=>document.querySelectorAll('.modal-bd').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');})));
 
 // ================================================================
 // PDF / PRINT
