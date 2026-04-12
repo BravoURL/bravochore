@@ -78,7 +78,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 /* NAV */
 #app{display:none;min-height:100vh}
 .topnav{background:var(--surf);border-bottom:1px solid var(--bdr);padding:0 16px;display:flex;align-items:center;height:52px;position:sticky;top:0;z-index:100}
-.brand{font-family:'Playfair Display',serif;font-size:16px;font-weight:600;color:var(--green);margin-right:16px;letter-spacing:-.3px;flex-shrink:0;white-space:nowrap}
+.brand{font-family:'Playfair Display',serif;font-size:16px;font-weight:600;color:var(--green);margin-right:16px;letter-spacing:-.3px;flex-shrink:0;white-space:nowrap;user-select:none;-webkit-user-select:none}
 .nav-tabs{display:flex;flex:1;overflow-x:auto;-webkit-overflow-scrolling:touch}
 .nav-tabs::-webkit-scrollbar{display:none}
 .nav-tab{padding:0 12px;height:52px;display:flex;align-items:center;font-size:13px;font-weight:500;color:var(--tx2);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;flex-shrink:0}
@@ -513,6 +513,45 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 .bb-confirm-row{display:flex;gap:8px}
 .bb-confirm-yes{flex:1;padding:9px;background:var(--green);color:#fff;border:none;border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-weight:700;font-size:13px;cursor:pointer}
 .bb-confirm-no{padding:9px 14px;background:none;border:1px solid var(--bdrm);border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;color:var(--tx2)}
+
+/* JOB COMPLETE CARD */
+.job-complete-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:800;display:none;align-items:flex-end;justify-content:center}
+.job-complete-backdrop.open{display:flex}
+.job-complete-sheet{background:var(--surf);border-radius:20px 20px 0 0;width:100%;max-width:700px;padding:24px 20px max(24px,env(safe-area-inset-bottom));animation:slideUp .3s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.jc-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:500;margin-bottom:4px}
+.jc-comment{font-size:14px;color:var(--tx2);margin-bottom:20px;line-height:1.5}
+.jc-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.jc-stat{background:var(--surf2);border-radius:var(--rs);padding:12px;text-align:center}
+.jc-stat-val{font-size:22px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:-1px}
+.jc-stat-lbl{font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+.jc-sessions{margin-bottom:18px}
+.jc-session-row{display:flex;justify-content:space-between;font-size:12px;color:var(--tx2);padding:5px 0;border-bottom:1px solid var(--bdr)}
+.jc-session-row:last-child{border-bottom:none}
+.jc-performance{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:var(--rs);margin-bottom:20px;font-size:13px;font-weight:600}
+.jc-performance.fast{background:var(--gl);color:var(--gd)}
+.jc-performance.over{background:var(--rl);color:var(--red)}
+.jc-performance.exact{background:var(--al);color:var(--amber)}
+.jc-confirm-btn{width:100%;padding:14px;background:var(--green);color:#fff;border:none;border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-weight:700;font-size:15px;cursor:pointer}
+.jc-confirm-btn:active{background:var(--gd)}
+
+/* FULLSCREEN BLACKBIRD */
+#bb-fullscreen{position:fixed;inset:0;z-index:500;display:none;flex-direction:column;background:var(--bg)}
+#bb-fullscreen.open{display:flex}
+.bbfs-header{padding:14px 16px 10px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;background:var(--surf);flex-shrink:0}
+.bbfs-title{font-family:'Playfair Display',serif;font-size:17px;font-weight:500;display:flex;align-items:center;gap:8px}
+.bbfs-close{background:none;border:none;font-size:13px;cursor:pointer;color:var(--tx2);padding:6px 12px;border-radius:100px;border:1px solid var(--bdrm);font-family:'DM Sans',sans-serif;font-weight:600}
+.bbfs-msgs{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:8px;-webkit-overflow-scrolling:touch}
+.bbfs-photo-strip{display:none;padding:6px 14px;gap:6px;flex-wrap:wrap;border-top:1px solid var(--bdr);background:var(--surf2)}
+.bbfs-photo-strip.visible{display:flex}
+.bbfs-input-row{padding:10px 14px;border-top:1px solid var(--bdr);display:flex;gap:8px;align-items:center;background:var(--surf);flex-shrink:0;padding-bottom:max(10px,env(safe-area-inset-bottom))}
+.bbfs-input{flex:1;padding:10px 14px;border:1px solid var(--bdrm);border-radius:100px;font-family:'DM Sans',sans-serif;font-size:15px;outline:none;background:var(--bg);color:var(--tx)}
+.bbfs-input:focus{border-color:var(--green)}
+.bbfs-icon-btn{width:38px;height:38px;border-radius:50%;background:none;border:1px solid var(--bdrm);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--tx2);transition:all .15s}
+.bbfs-icon-btn:active{background:var(--surf2)}
+.bbfs-icon-btn.listening{background:var(--rl);border-color:var(--red);animation:micPulse .8s ease-in-out infinite}
+.bbfs-send{width:38px;height:38px;background:var(--green);border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.bbfs-send:active{background:var(--gd)}
 </style>
 </head>
 <body>
@@ -533,7 +572,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 
 <div id="app">
   <nav class="topnav">
-    <div class="brand">Bravo<span style="color:var(--tx);font-weight:400">Chore</span></div>
+    <div class="brand" onclick="showView('dashboard',document.querySelectorAll('.nav-tab')[0])" style="cursor:pointer;user-select:none">Bravo<span style="color:var(--tx);font-weight:400">Chore</span></div>
     <div class="nav-tabs">
       <div class="nav-tab active" onclick="showView('dashboard',this)">Dashboard</div>
       <div class="nav-tab" onclick="showView('tasks',this)">All Tasks</div>
@@ -550,8 +589,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 
   <div id="timer-strip">
     <span id="ts-label" class="ts-label">Task</span>
-    <span id="ts-time" class="ts-time">00:00</span>
-    <span id="ts-est" style="font-size:10px;opacity:.6"></span>
+    <div style="display:flex;flex-direction:column;align-items:center;min-width:80px">
+      <span id="ts-time" class="ts-time">00:00</span>
+      <span id="ts-total" style="font-size:9px;opacity:.5;font-family:'DM Mono',monospace"></span>
+    </div>
+    <span id="ts-est" style="font-size:10px;opacity:.55;white-space:nowrap"></span>
     <button class="ts-btn" id="ts-pause-btn" onclick="timerPause()">⏸</button>
     <button class="ts-btn stop" onclick="timerStop(true)">✓ Done</button>
     <button class="ts-btn cancel" onclick="timerCancel()">✕</button>
@@ -676,99 +718,50 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 </div>
 
 <!-- BLACKBIRD FAB -->
-<div id="bb-fab" class="bb-idle" onclick="toggleBB()">
+<div id="bb-fab" class="bb-idle" onclick="openBBFullscreen()">
   <span id="bb-emoji" style="font-size:22px;line-height:1">🐦‍⬛</span>
 </div>
 
-<!-- BLACKBIRD PANEL -->
-<div id="bb-panel">
-  <div class="bb-hdr">
-    <div class="bb-ttl"><div class="bb-dot"></div>Blackbird</div>
-    <span class="bb-close" onclick="toggleBB()">✕</span>
+<!-- FULLSCREEN BLACKBIRD -->
+<div id="bb-fullscreen">
+  <div class="bbfs-header">
+    <div class="bbfs-title"><div class="bb-dot"></div>Blackbird</div>
+    <button class="bbfs-close" onclick="closeBBFullscreen()">✕ Close</button>
   </div>
-  <div class="bb-msgs" id="bb-msgs"></div>
-  <!-- Photo preview strip -->
-  <div id="bb-photo-strip" style="display:none;padding:6px 10px;gap:6px;flex-wrap:wrap;border-top:1px solid var(--bdr);background:var(--surf2)"></div>
-  <div id="bb-rec-bar" class="bb-rec-indicator"><div class="bb-rec-dot"></div>Recording...</div>
-  <div class="bb-input-row">
-    <label for="bb-photo-cam" class="bb-attach" title="Take photo">📷</label>
+  <div class="bbfs-msgs" id="bb-msgs"></div>
+  <div id="bb-photo-strip" class="bbfs-photo-strip"></div>
+  <div class="bbfs-input-row">
+    <label for="bb-photo-cam" class="bbfs-icon-btn" title="Take photo">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+    </label>
     <input type="file" id="bb-photo-cam" accept="image/*" capture="environment" style="display:none">
-    <label for="bb-photo-lib" class="bb-attach" title="Choose from album" style="font-size:15px">🖼</label>
+    <label for="bb-photo-lib" class="bbfs-icon-btn" title="Choose from album">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+    </label>
     <input type="file" id="bb-photo-lib" accept="image/*" multiple style="display:none">
-    <input class="bb-input" id="bb-input" placeholder="Describe a task, or ask anything..." onkeydown="if(event.key==='Enter')sendToBB()">
-    <button class="bb-mic" id="bb-mic" onclick="toggleMic()" title="Voice input">🎙</button>
-    <button class="bb-send" onclick="sendToBB()">↑</button>
+    <input class="bbfs-input" id="bb-input" placeholder="Describe a task, or ask anything..." onkeydown="if(event.key==='Enter')sendToBB()">
+    <button class="bbfs-icon-btn bb-mic" id="bb-mic" onclick="toggleMic()" title="Voice input">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+    </button>
+    <button class="bbfs-send" onclick="sendToBB()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+    </button>
+  </div>
+</div>
+<div id="bb-panel" style="display:none"></div>
+
+<!-- JOB COMPLETE SHEET -->
+<div class="job-complete-backdrop" id="jc-backdrop">
+  <div class="job-complete-sheet">
+    <div class="jc-title" id="jc-title">Job done.</div>
+    <div class="jc-comment" id="jc-comment"></div>
+    <div class="jc-performance" id="jc-perf" style="display:none"></div>
+    <div class="jc-stats" id="jc-stats"></div>
+    <div class="jc-sessions" id="jc-sessions"></div>
+    <button class="jc-confirm-btn" onclick="jcConfirm()">✓ Got it</button>
   </div>
 </div>
 
-<!-- DETAIL PANEL -->
-<div id="detail-backdrop" onclick="closeDetail()"></div>
-<div id="detail-panel">
-  <div class="dp-drag-handle"></div>
-  <div class="dp-header">
-    <div class="dp-title-row">
-      <div id="dp-check" class="dp-check" onclick="dpToggleTask()"></div>
-      <div id="dp-title" class="dp-title" contenteditable="true" onblur="dpTitleBlur()">Task name</div>
-      <button class="dp-close" onclick="closeDetail()">✕</button>
-    </div>
-    <div class="dp-meta" id="dp-meta"></div>
-  </div>
-  <div class="dp-body" id="dp-body"></div>
-  <div class="dp-footer">
-    <button class="dp-pdf" onclick="generatePDFForTask()">🖨</button>
-    <button class="dp-del" onclick="dpDelete()">Delete</button>
-    <button class="dp-save" onclick="dpSave()">Save</button>
-  </div>
-</div>
-
-<!-- SHOPPING LIST SHEET -->
-<div class="shop-modal" id="shop-modal" onclick="e=>{if(e.target===this)closeShopList()}">
-  <div class="shop-sheet">
-    <div class="shop-sheet-hdr">
-      <h3 id="shop-sheet-title">Shopping List</h3>
-      <button onclick="closeShopList()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--tx3)">✕</button>
-    </div>
-    <div class="shop-sheet-body" id="shop-sheet-body"></div>
-  </div>
-</div>
-
-<!-- SETTINGS -->
-<div id="settings-panel">
-  <div class="sp-header">
-    <button class="sp-back" onclick="closeSettings()">←</button>
-    <h2>Settings</h2>
-  </div>
-  <div class="sp-body">
-    <div class="sp-section">
-      <h3>People</h3>
-      <div id="people-list"></div>
-      <div class="add-person-row">
-        <input class="add-person-input" id="new-person-name" placeholder="Full name">
-        <input class="add-person-input" id="new-person-code" placeholder="Code (e.g. LW)" style="width:80px;flex:none">
-        <button class="add-person-btn" onclick="addPerson()">Add</button>
-      </div>
-    </div>
-    <div class="sp-section">
-      <h3>Data</h3>
-      <button class="qa-btn" style="width:100%;justify-content:center;margin-bottom:8px" onclick="exportData()">📤 Export all tasks</button>
-      <button class="qa-btn urgent" style="width:100%;justify-content:center" onclick="resetData()">⚠ Reset all data</button>
-    </div>
-  </div>
-</div>
-
-<!-- CONFIRM MODAL -->
-<div class="modal-bd" id="confirm-modal">
-  <div class="modal">
-    <h3 id="cm-title">Confirm</h3>
-    <p id="cm-body"></p>
-    <div class="modal-acts">
-      <button class="btn-cancel" onclick="closeModal('confirm-modal');cmReject&&cmReject()">Cancel</button>
-      <button id="cm-ok" class="btn-ok" onclick="closeModal('confirm-modal');cmResolve&&cmResolve()">OK</button>
-    </div>
-  </div>
-</div>
-
-<div id="print-view"></div>
 <!-- FOCUS SHEET -->
 <div class="focus-modal" id="focus-modal" onclick="if(event.target===this)closeFocus()">
   <div class="focus-sheet">
@@ -810,6 +803,7 @@ let people=JSON.parse(localStorage.getItem('bc_people')||'null')||[
   {code:'Pete',name:'Pete',bg:'#EAF3DE',color:'#3B6D11'},
 ];
 let activeTimer=null,timerInterval=null;
+let timerSessions=[]; // [{start,end,secs}] for current task
 let filterWho='all',filterBucket='all',filterMode=null;
 let bbOpen=false,bbCtx=null;
 let dpTaskId=null;
@@ -1094,7 +1088,7 @@ function showView(name,tab){
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('view-'+name).classList.add('active');
   if(tab)tab.classList.add('active');
-  if(name==='tasks'){renderTasksView();setTimeout(initDrag,100);}
+  if(name==='tasks'){renderTasksView();setTimeout(initDrag,50);}
   else if(name==='shopping')renderShopping();
   else renderDashboard();
 }
@@ -1370,7 +1364,7 @@ function renderTasksView(){
       ${done.map(taskCard).join('')}
     </div>`;
   }else cs.innerHTML='';
-  setTimeout(initDrag,80);
+  setTimeout(initDrag,50);
 }
 
 function toggleDone(el){
@@ -1678,13 +1672,18 @@ async function startMsTimer(msId,taskId){
 
 function startTimerInterval(){
   clearInterval(timerInterval);
+  timerSessions=[];
   document.getElementById('timer-strip').classList.add('visible');
   timerInterval=setInterval(()=>{
     if(!activeTimer||activeTimer.status==='paused')return;
     const el=elapsedSecs();const rem=activeTimer.estimateSecs-el;
     document.getElementById('ts-label').textContent=activeTimer.label;
     const tt=document.getElementById('ts-time');tt.textContent=fmtSecs(el);tt.className='ts-time'+(rem<0?' over':'');
-    document.getElementById('ts-est').textContent=activeTimer.estimateSecs?fmtSecs(activeTimer.estimateSecs):'';
+    const totalSoFar=timerSessions.reduce((s,x)=>s+x.secs,0)+el;
+    const sessNum=timerSessions.length+1;
+    const totEl=document.getElementById('ts-total');
+    if(totEl)totEl.textContent=sessNum>1?'Sess '+sessNum+' · '+fmtSecs(totalSoFar):'';
+    document.getElementById('ts-est').textContent=activeTimer.estimateSecs?'Est: '+fmtSecs(activeTimer.estimateSecs):'';
     const dd=document.getElementById('dp-timer-disp');
     if(dd){dd.textContent=fmtSecs(el);dd.className='timer-disp'+(rem<0?' over':'');}
   },1000);
@@ -1692,9 +1691,14 @@ function startTimerInterval(){
 
 async function timerPause(){
   if(!activeTimer||activeTimer.status!=='running')return;
+  const sessionSecs=elapsedSecs();
+  timerSessions.push({start:activeTimer.startedAt,end:new Date(),secs:sessionSecs});
   activeTimer.status='paused';activeTimer.pausedAt=new Date();
+  const totalSecs=timerSessions.reduce((s,x)=>s+x.secs,0);
   const pb=document.getElementById('ts-pause-btn');
   if(pb){pb.textContent='▷';pb.onclick=timerResume;}
+  // Update strip to show session paused
+  document.getElementById('ts-total').textContent=totalSecs>0?'Total: '+fmtSecs(totalSecs):'';
   try{await api('bravochore_timers','PATCH',{status:'paused',paused_at:activeTimer.pausedAt.toISOString()},`?id=eq.${activeTimer.id}`);}catch(e){}
   const task=tasks.find(t=>t.id===activeTimer.taskId);
   if(task&&dpTaskId===activeTimer.taskId)renderDpBody(task,getMs(activeTimer.taskId));
@@ -1702,36 +1706,104 @@ async function timerPause(){
 
 async function timerResume(){
   if(!activeTimer||activeTimer.status!=='paused')return;
-  activeTimer.totalPausedSecs+=Math.floor((new Date()-activeTimer.pausedAt)/1000);
+  // Start fresh session tracking
+  activeTimer.startedAt=new Date(); // reset start for this session
+  activeTimer.totalPausedSecs=0;
   activeTimer.pausedAt=null;activeTimer.status='running';
+  const sessionNum=timerSessions.length+1;
   const pb=document.getElementById('ts-pause-btn');
   if(pb){pb.textContent='⏸';pb.onclick=timerPause;}
-  try{await api('bravochore_timers','PATCH',{status:'running',total_paused_seconds:activeTimer.totalPausedSecs},`?id=eq.${activeTimer.id}`);}catch(e){}
+  const totalSoFar=timerSessions.reduce((s,x)=>s+x.secs,0);
+  document.getElementById('ts-total').textContent=sessionNum>1?'Sess '+sessionNum+' · Total: '+fmtSecs(totalSoFar):'';
+  try{await api('bravochore_timers','PATCH',{status:'running',total_paused_seconds:0},`?id=eq.${activeTimer.id}`);}catch(e){}
 }
+
+let jcPendingData=null; // data for job complete card
 
 async function timerStop(completed=false){
   if(!activeTimer)return;
   clearInterval(timerInterval);
-  const actualSecs=elapsedSecs();
-  const actualH=parseFloat((actualSecs/3600).toFixed(2));
-  const{taskId,msId,id}=activeTimer;
+  const sessionSecs=elapsedSecs();
+  // Close current session
+  if(timerSessions.length===0||timerSessions[timerSessions.length-1].end){
+    timerSessions.push({start:activeTimer.startedAt,end:new Date(),secs:sessionSecs});
+  }else{
+    timerSessions[timerSessions.length-1].end=new Date();
+    timerSessions[timerSessions.length-1].secs=sessionSecs;
+  }
+  const totalSecs=timerSessions.reduce((s,x)=>s+x.secs,0);
+  const actualH=parseFloat((totalSecs/3600).toFixed(2));
+  const{taskId,msId,id,estimateSecs,label}=activeTimer;
+  const estH=estimateSecs/3600;
+  // Save actual time to DB
   if(msId){
     const ms=milestones.find(m=>m.id===msId);
-    if(ms){ms.actual_time_hours=actualH;if(!ms.done){ms.done=true;playChime('ms');}
-      try{await api('bravochore_milestones','PATCH',{actual_time_hours:actualH,done:true},`?id=eq.${msId}`);}catch(e){}
+    if(ms){ms.actual_time_hours=actualH;try{await api('bravochore_milestones','PATCH',{actual_time_hours:actualH},`?id=eq.${msId}`);}catch(e){}}
+  }else{
+    const task=tasks.find(t=>t.id===taskId);
+    if(task){task.actual_time_hours=actualH;try{await api('bravochore_tasks','PATCH',{actual_time_hours:actualH},`?id=eq.${taskId}`);}catch(e){}}
+  }
+  try{await api('bravochore_timers','PATCH',{status:'completed',stopped_at:new Date().toISOString(),actual_seconds:totalSecs},`?id=eq.${id}`);}catch(e){}
+  // Store data for job complete card
+  jcPendingData={taskId,msId,label,estH,actualH,totalSecs,sessions:[...timerSessions]};
+  activeTimer=null;timerSessions=[];
+  document.getElementById('timer-strip').classList.remove('visible');
+  // Show job complete card
+  showJobComplete(jcPendingData);
+}
+
+function showJobComplete(d){
+  const fmtH=h=>{
+    const m=Math.round(h*60);
+    if(m<60)return m+'m';
+    return Math.floor(m/60)+'h '+(m%60>0?m%60+'m':'');
+  };
+  const fmtS=s=>{const m=Math.floor(s/60),se=s%60;return String(m).padStart(2,'0')+':'+String(se).padStart(2,'0');};
+  const diffMins=Math.round((d.actualH-d.estH)*60);
+  const absDiff=Math.abs(diffMins);
+  let perfClass='exact',perfIcon='',perfText='';
+  if(d.estH===0){perfClass='exact';perfIcon='⏱';perfText='No estimate was set — good to know for next time.';}
+  else if(diffMins<-5){perfClass='fast';perfIcon='🐦';perfText=`${absDiff} minutes under estimate. Clean work.`;}
+  else if(diffMins>10){perfClass='over';perfIcon='⏰';perfText=`${absDiff} minutes over estimate. Worth noting for next time.`;}
+  else{perfClass='exact';perfIcon='✓';perfText='Right on time. Solid estimate.';}
+  document.getElementById('jc-title').textContent=d.label;
+  document.getElementById('jc-comment').textContent='';
+  const perf=document.getElementById('jc-perf');
+  perf.style.display='flex';perf.className='jc-performance '+perfClass;
+  perf.innerHTML=`<span style="font-size:18px">${perfIcon}</span>${perfText}`;
+  document.getElementById('jc-stats').innerHTML=`
+    <div class="jc-stat"><div class="jc-stat-val">${fmtH(d.actualH)}</div><div class="jc-stat-lbl">Actual time</div></div>
+    <div class="jc-stat"><div class="jc-stat-val">${d.estH?fmtH(d.estH):'—'}</div><div class="jc-stat-lbl">Estimated</div></div>`;
+  const sessEl=document.getElementById('jc-sessions');
+  if(d.sessions.length>1){
+    sessEl.innerHTML='<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--tx3);margin-bottom:6px">Sessions</div>'+
+      d.sessions.map((s,i)=>`<div class="jc-session-row"><span>Session ${i+1}</span><span>${fmtS(s.secs)}</span></div>`).join('')+
+      `<div class="jc-session-row" style="font-weight:700"><span>Total</span><span>${fmtS(d.totalSecs)}</span></div>`;
+  }else{sessEl.innerHTML='';}
+  document.getElementById('jc-backdrop').classList.add('open');
+}
+
+async function jcConfirm(){
+  document.getElementById('jc-backdrop').classList.remove('open');
+  if(!jcPendingData)return;
+  const{taskId,msId}=jcPendingData;
+  playChime('task');
+  if(msId){
+    const ms=milestones.find(m=>m.id===msId);
+    if(ms&&!ms.done){
+      ms.done=true;
       const taskMs=getMs(taskId);
-      if(taskMs.every(m=>m.done)){const t=tasks.find(x=>x.id===taskId);if(t&&!t.done){t.done=true;playChime('task');spawnConfettiCenter();try{await api('bravochore_tasks','PATCH',{done:true},`?id=eq.${taskId}`);}catch(e){}}}
+      if(taskMs.every(m=>m.done)){
+        const t=tasks.find(x=>x.id===taskId);
+        if(t&&!t.done){t.done=true;spawnConfettiCenter();try{await api('bravochore_tasks','PATCH',{done:true},`?id=eq.${taskId}`);}catch(e){}}
+      }
+      try{await api('bravochore_milestones','PATCH',{done:true},`?id=eq.${msId}`);}catch(e){}
     }
   }else{
     const task=tasks.find(t=>t.id===taskId);
-    if(task){task.actual_time_hours=actualH;if(!task.done){task.done=true;playChime('task');spawnConfettiCenter();}
-      try{await api('bravochore_tasks','PATCH',{actual_time_hours:actualH,done:true},`?id=eq.${taskId}`);}catch(e){}
-    }
+    if(task&&!task.done){task.done=true;spawnConfettiCenter();try{await api('bravochore_tasks','PATCH',{done:true},`?id=eq.${taskId}`);}catch(e){}}
   }
-  try{await api('bravochore_timers','PATCH',{status:'completed',stopped_at:new Date().toISOString(),actual_seconds:actualSecs},`?id=eq.${id}`);}catch(e){}
-  activeTimer=null;document.getElementById('timer-strip').classList.remove('visible');rerender();
-  const task=tasks.find(t=>t.id===taskId);
-  if(task&&dpTaskId===taskId)renderDpBody(task,getMs(taskId));
+  jcPendingData=null;rerender();
 }
 
 async function timerCancel(){
@@ -1751,19 +1823,29 @@ function playChime(type){
   try{
     const ctx=new(window.AudioContext||window.webkitAudioContext)();
     if(type==='ms'){
-      const o=ctx.createOscillator(),g=ctx.createGain();
-      o.connect(g);g.connect(ctx.destination);o.frequency.value=880;o.type='sine';
-      g.gain.setValueAtTime(0.25,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.35);
-      o.start();o.stop(ctx.currentTime+0.35);
+      // Single soft chirp
+      chirpNote(ctx,1200,0,0.08);chirpNote(ctx,1500,0.09,0.07);
     }else{
-      [[523,0],[659,.1],[784,.2],[1047,.3]].forEach(([f,d])=>{
-        const o=ctx.createOscillator(),g=ctx.createGain();
-        o.connect(g);g.connect(ctx.destination);o.frequency.value=f;o.type='triangle';
-        g.gain.setValueAtTime(0,ctx.currentTime+d);g.gain.linearRampToValueAtTime(0.2,ctx.currentTime+d+.05);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+d+.7);
-        o.start(ctx.currentTime+d);o.stop(ctx.currentTime+d+.8);
-      });
+      // Blackbird call — three ascending bright chirps
+      chirpNote(ctx,1100,0,0.1);
+      chirpNote(ctx,1400,0.12,0.1);
+      chirpNote(ctx,1750,0.26,0.14);
+      chirpNote(ctx,1400,0.42,0.08);
     }
   }catch(e){}
+}
+function chirpNote(ctx,freq,delay,dur){
+  const o=ctx.createOscillator(),g=ctx.createGain(),bend=ctx.createOscillator(),bGain=ctx.createGain();
+  // Frequency bend for natural chirp feel
+  o.type='sine';o.frequency.setValueAtTime(freq*0.85,ctx.currentTime+delay);
+  o.frequency.linearRampToValueAtTime(freq,ctx.currentTime+delay+dur*0.3);
+  o.frequency.linearRampToValueAtTime(freq*1.05,ctx.currentTime+delay+dur*0.7);
+  o.frequency.linearRampToValueAtTime(freq*0.9,ctx.currentTime+delay+dur);
+  g.gain.setValueAtTime(0,ctx.currentTime+delay);
+  g.gain.linearRampToValueAtTime(0.18,ctx.currentTime+delay+0.01);
+  g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+delay+dur);
+  o.connect(g);g.connect(ctx.destination);
+  o.start(ctx.currentTime+delay);o.stop(ctx.currentTime+delay+dur+0.05);
 }
 
 function spawnConfetti(btn){
@@ -1965,16 +2047,29 @@ async function resetData(){
 // ================================================================
 // BLACKBIRD
 // ================================================================
-function toggleBB(){bbOpen=!bbOpen;document.getElementById('bb-panel').classList.toggle('open',bbOpen);if(bbOpen)document.getElementById('bb-input').focus();}
+function openBBFullscreen(){
+  document.getElementById('bb-fullscreen').classList.add('open');
+  document.getElementById('bb-fab').style.display='none';
+  setTimeout(()=>document.getElementById('bb-input').focus(),100);
+}
+function closeBBFullscreen(){
+  document.getElementById('bb-fullscreen').classList.remove('open');
+  document.getElementById('bb-fab').style.display='flex';
+}
+function toggleBB(){openBBFullscreen();}
 function bbMsg(text,cls){
-  const msgs=document.getElementById('bb-msgs');
+  const msgs=document.getElementById('bb-msgs');if(!msgs)return;
   const d=document.createElement('div');d.className='bb-msg '+cls;d.textContent=text;
   msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;
+}
+function bbMsgEl(el){
+  const msgs=document.getElementById('bb-msgs');if(!msgs)return;
+  msgs.appendChild(el);msgs.scrollTop=msgs.scrollHeight;
 }
 function askBBTask(tid,e){
   if(e)e.stopPropagation();
   const t=tasks.find(x=>x.id===tid);if(!t)return;
-  bbCtx=t;bbOpen=true;document.getElementById('bb-panel').classList.add('open');
+  bbCtx=t;openBBFullscreen();
   bbMsg(`On "${t.title}" — due ${fmtDate(t.due)}, ${getEffectiveTime(t).toFixed(1)}h. What do you need?`,'from-bb');
 }
 // Pending photos for BB message
@@ -1983,7 +2078,9 @@ let bbHistory=[]; // conversation history for multi-turn
 
 // Wire photo input
 ['bb-photo-cam','bb-photo-lib'].forEach(id=>{
-  document.getElementById(id).addEventListener('change',async e=>{
+  const el=document.getElementById(id);
+  if(!el)return;
+  el.addEventListener('change',async e=>{
     const files=Array.from(e.target.files);
     for(const f of files){
       const dataUrl=await new Promise(res=>{const r=new FileReader();r.onload=()=>res(r.result);r.readAsDataURL(f);});
@@ -1995,9 +2092,9 @@ let bbHistory=[]; // conversation history for multi-turn
 });
 
 function renderBBPhotoStrip(){
-  const strip=document.getElementById('bb-photo-strip');
-  if(!bbPendingPhotos.length){strip.style.display='none';strip.innerHTML='';return;}
-  strip.style.display='flex';
+  const strip=document.getElementById('bb-photo-strip');if(!strip)return;
+  if(!bbPendingPhotos.length){strip.classList.remove('visible');strip.innerHTML='';return;}
+  strip.classList.add('visible');
   strip.innerHTML=bbPendingPhotos.map((p,i)=>`<div class="bb-photo-thumb">
     <img src="${p.dataUrl}">
     <button class="bb-photo-rm" onclick="bbRemovePhoto(${i})">✕</button>
@@ -2021,7 +2118,7 @@ async function sendToBB(){
     bbMsg(msg,'from-user');
   }
 
-  document.getElementById('bb-fab').className='bb-thinking';
+  const fabEl=document.getElementById('bb-fab');if(fabEl)fabEl.className='bb-thinking';
 
   // Detect add-task intent
   const addIntent=/add|create|new task|remind|schedule|put.*on.*list|add.*list|need to|remember to|fertilise|trim|fix|paint|install|buy|get|order|plant|clean|wash|repair|replace|sort|organise|organize/i.test(msg);
@@ -2106,7 +2203,7 @@ Be direct, warm, practical. 2-4 sentences max. Suggest specific Bunnings Perth o
       bbMsg(reply,'from-bb');
     }catch(e){bbMsg("Connection issue.",'from-bb');}
   }
-  document.getElementById('bb-fab').className='bb-idle';
+  const fabEl2=document.getElementById('bb-fab');if(fabEl2)fabEl2.className='bb-idle';
 }
 
 function showBBPreview(parsed,photos){
@@ -2156,9 +2253,7 @@ function showBBPreview(parsed,photos){
   renderCard();
 
   if(parsed.blackbird_comment)bbMsg(parsed.blackbird_comment,'from-bb');
-  const msgs=document.getElementById('bb-msgs');
-  msgs.appendChild(card);
-  msgs.scrollTop=msgs.scrollHeight;
+  bbMsgEl(card);
 }
 
 function bbRemoveShopItem(btn,idx){
@@ -2248,7 +2343,7 @@ function bbDeclineTask(btn){
 }
 
 function bbMsgHTML(html,cls){
-  const msgs=document.getElementById('bb-msgs');
+  const msgs=document.getElementById('bb-msgs');if(!msgs)return;
   const d=document.createElement('div');d.className='bb-msg '+cls;d.innerHTML=html;
   msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;
 }
@@ -2259,107 +2354,107 @@ function bbMsgHTML(html,cls){
 // ================================================================
 // DRAG REORDER - with auto-scroll and no-revert
 // ================================================================
+// ================================================================
+// DRAG REORDER — event delegation, survives rerenders
+// ================================================================
 let scrollInterval=null;
+let dragPressTimer=null;
+let dragStarted=false;
 
-function setDragOver(el,clientY){
-  if(!el||el===dragSrc)return;
+function dragSetOver(el,clientY){
+  if(!el||el===dragSrc||!el.dataset.id)return;
   document.querySelectorAll('.task-card').forEach(c=>c.classList.remove('drag-over-above','drag-over-below'));
   dragOver=el;
-  const mid=el.getBoundingClientRect().top+el.getBoundingClientRect().height/2;
-  el.classList.add(clientY<mid?'drag-over-above':'drag-over-below');
+  const r=el.getBoundingClientRect();
+  el.classList.add(clientY<r.top+r.height/2?'drag-over-above':'drag-over-below');
 }
 
-function autoScroll(clientY){
+function dragAutoScroll(clientY){
   clearInterval(scrollInterval);
-  const threshold=100,maxSpeed=18;
-  const vh=window.innerHeight;
-  if(clientY<threshold){
-    const speed=Math.round(maxSpeed*(1-clientY/threshold));
-    scrollInterval=setInterval(()=>window.scrollBy(0,-speed),16);
-  }else if(clientY>vh-threshold){
-    const speed=Math.round(maxSpeed*(1-(vh-clientY)/threshold));
-    scrollInterval=setInterval(()=>window.scrollBy(0,speed),16);
+  const vh=window.innerHeight,th=110,max=20;
+  if(clientY<th){
+    const sp=Math.ceil(max*(1-clientY/th));
+    scrollInterval=setInterval(()=>window.scrollBy(0,-sp),16);
+  }else if(clientY>vh-th){
+    const sp=Math.ceil(max*(1-(vh-clientY)/th));
+    scrollInterval=setInterval(()=>window.scrollBy(0,sp),16);
   }
 }
 
-function initDrag(){
-  const list=document.getElementById('all-tasks-list');if(!list)return;
-  list.querySelectorAll('.task-card:not(.done)').forEach(card=>{
-    card.setAttribute('draggable','true');
-    let pt=null,dragStarted=false;
-
-    // TOUCH
-    card.addEventListener('touchstart',e=>{
-      dragStarted=false;
-      pt=setTimeout(()=>{
-        dragStarted=true;dragSrc=card;card.classList.add('dragging');
-        navigator.vibrate&&navigator.vibrate([40,20,40]);
-      },650);
-    },{passive:true});
-
-    card.addEventListener('touchmove',e=>{
-      if(!dragStarted){
-        // If finger moved significantly before 650ms, cancel drag so scroll works
-        clearTimeout(pt);return;
-      }
-      e.preventDefault();
-      const t=e.touches[0];
-      autoScroll(t.clientY);
-      const el=document.elementFromPoint(t.clientX,t.clientY)?.closest('.task-card[data-id]');
-      setDragOver(el,t.clientY);
-    },{passive:false});
-
-    card.addEventListener('touchend',()=>{
-      clearTimeout(pt);clearInterval(scrollInterval);
-      if(dragStarted&&dragSrc)finishDrag();
-      else cleanDrag();
-      dragStarted=false;
-    });
-    card.addEventListener('touchcancel',()=>{clearTimeout(pt);clearInterval(scrollInterval);dragStarted=false;cleanDrag();});
-
-    // DESKTOP
-    card.addEventListener('dragstart',e=>{
-      dragSrc=card;card.classList.add('dragging');
-      e.dataTransfer.effectAllowed='move';
-      e.dataTransfer.setData('text/plain','');
-    });
-    card.addEventListener('dragend',()=>{clearInterval(scrollInterval);finishDrag();});
-    card.addEventListener('dragover',e=>{
-      e.preventDefault();e.dataTransfer.dropEffect='move';
-      autoScroll(e.clientY);
-      setDragOver(card,e.clientY);
-    });
-    card.addEventListener('drop',e=>{e.preventDefault();});
-  });
-  // Also allow dropping on the list container (for end of list)
-  list.addEventListener('dragover',e=>e.preventDefault());
-}
-
-function finishDrag(){
+function dragFinish(){
   clearInterval(scrollInterval);
-  if(!dragSrc||!dragOver||dragSrc===dragOver){cleanDrag();return;}
-  const list=document.getElementById('all-tasks-list');
-  // Snapshot refs BEFORE cleanDrag wipes them
+  if(!dragSrc||!dragOver||dragSrc===dragOver){dragClean();return;}
   const src=dragSrc,tgt=dragOver;
-  const isAbove=tgt.classList.contains('drag-over-above');
-  cleanDrag();
-  // Move in DOM
-  if(isAbove)tgt.before(src);else tgt.after(src);
-  // Rebuild sort_order in tasks array from new DOM order
+  const above=tgt.classList.contains('drag-over-above');
+  dragClean();
+  if(above)tgt.before(src);else tgt.after(src);
+  const list=document.getElementById('all-tasks-list');
   const newOrder=Array.from(list.querySelectorAll('.task-card[data-id]')).map(c=>parseInt(c.dataset.id));
-  newOrder.forEach((id,i)=>{
-    const t=tasks.find(x=>x.id===id);
-    if(t)t.sort_order=i+1;
-  });
+  newOrder.forEach((id,i)=>{const t=tasks.find(x=>x.id===id);if(t)t.sort_order=i+1;});
   tasks.sort((a,b)=>(a.sort_order||999)-(b.sort_order||999));
-  // Persist to Supabase (fire and forget)
   newOrder.forEach((id,i)=>api('bravochore_tasks','PATCH',{sort_order:i+1},`?id=eq.${id}`).catch(()=>{}));
 }
 
-function cleanDrag(){
+function dragClean(){
   clearInterval(scrollInterval);
+  clearTimeout(dragPressTimer);
+  dragStarted=false;dragSrc=null;dragOver=null;
   document.querySelectorAll('.task-card').forEach(c=>c.classList.remove('dragging','drag-over-above','drag-over-below'));
-  dragSrc=null;dragOver=null;
+}
+
+// Wire ONCE on document — survives any rerender
+function initDrag(){
+  const list=document.getElementById('all-tasks-list');
+  if(!list||list.dataset.dragInit)return;
+  list.dataset.dragInit='1';
+
+  // Mark cards draggable whenever list rerenders
+  const markDraggable=()=>list.querySelectorAll('.task-card:not(.done)').forEach(c=>c.setAttribute('draggable','true'));
+  new MutationObserver(markDraggable).observe(list,{childList:true,subtree:false});
+  markDraggable();
+
+  // ── TOUCH ──
+  list.addEventListener('touchstart',e=>{
+    const card=e.target.closest('.task-card:not(.done)[data-id]');
+    if(!card)return;
+    dragStarted=false;
+    dragPressTimer=setTimeout(()=>{
+      dragStarted=true;dragSrc=card;
+      card.classList.add('dragging');
+      navigator.vibrate&&navigator.vibrate([30,15,30]);
+    },600);
+  },{passive:true});
+
+  list.addEventListener('touchmove',e=>{
+    if(!dragStarted){clearTimeout(dragPressTimer);return;}
+    e.preventDefault();
+    const t=e.touches[0];
+    dragAutoScroll(t.clientY);
+    const el=document.elementFromPoint(t.clientX,t.clientY)?.closest('.task-card[data-id]');
+    dragSetOver(el,t.clientY);
+  },{passive:false});
+
+  list.addEventListener('touchend',()=>{
+    clearTimeout(dragPressTimer);
+    if(dragStarted)dragFinish();else dragClean();
+  });
+  list.addEventListener('touchcancel',()=>dragClean());
+
+  // ── DESKTOP ──
+  list.addEventListener('dragstart',e=>{
+    const card=e.target.closest('.task-card:not(.done)[data-id]');
+    if(!card){e.preventDefault();return;}
+    dragSrc=card;card.classList.add('dragging');
+    e.dataTransfer.effectAllowed='move';
+    e.dataTransfer.setData('text/plain','');
+  });
+  list.addEventListener('dragend',()=>{clearInterval(scrollInterval);dragFinish();});
+  list.addEventListener('dragover',e=>{
+    e.preventDefault();
+    const card=e.target.closest('.task-card[data-id]');
+    if(card){dragAutoScroll(e.clientY);dragSetOver(card,e.clientY);}
+  });
+  list.addEventListener('drop',e=>e.preventDefault());
 }
 
 // ================================================================
@@ -2392,12 +2487,26 @@ document.querySelectorAll('.modal-bd').forEach(el=>el.addEventListener('click',e
 // PDF / PRINT
 // ================================================================
 function generatePDF(){
-  const owner=prompt('Generate task sheet for:\nBW (Brent), BJ (Bernadette), Pete, or All','Pete');
-  if(!owner)return;
-  const code=owner.trim();
+  // Show in-app person picker
+  const picker=document.createElement('div');
+  picker.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;display:flex;align-items:flex-end;justify-content:center';
+  const sheet=document.createElement('div');
+  sheet.style.cssText='background:var(--surf);border-radius:20px 20px 0 0;width:100%;max-width:700px;padding:20px;padding-bottom:max(20px,env(safe-area-inset-bottom))';
+  const allPeople=[...people,{code:'All',name:'Everyone',bg:'#F4F3F0',color:'#5a5a56'}];
+  sheet.innerHTML='<div style="font-family:Playfair Display,serif;font-size:18px;font-weight:500;margin-bottom:16px">Generate task sheet for:</div>'+
+    allPeople.map(p=>`<button onclick="pdfPickPerson('${p.code}','${p.name}')" style="display:block;width:100%;text-align:left;padding:12px 14px;margin-bottom:8px;background:var(--surf2);border:1px solid var(--bdr);border-radius:var(--rs);font-family:DM Sans,sans-serif;font-size:14px;font-weight:600;cursor:pointer;color:var(--tx)">${p.name}</button>`).join('')+
+    '<button onclick="this.closest('+ JSON.stringify("[style*=position:fixed]") +').remove()" style="display:block;width:100%;padding:12px;margin-top:4px;background:none;border:1px solid var(--bdrm);border-radius:var(--rs);font-family:DM Sans,sans-serif;font-size:13px;cursor:pointer;color:var(--tx2)">Cancel</button>';
+  picker.appendChild(sheet);
+  picker.addEventListener('click',e=>{if(e.target===picker)picker.remove();});
+  document.body.appendChild(picker);
+  window._pdfPicker=picker;
+}
+
+function pdfPickPerson(code,name){
+  document.body.removeChild(window._pdfPicker||document.querySelector('[style*="position:fixed"][style*="z-index:900"]'));
   let filtered=tasks.filter(t=>!t.done);
   if(code!=='All')filtered=filtered.filter(t=>t.owner.includes(code)||getMs(t.id).some(m=>m.owner===code));
-  doPrint(filtered,code==='All'?'Everyone':getOwner(code).name);
+  doPrintForPerson(filtered,name,code);
 }
 function generatePDFForTask(){
   const task=tasks.find(t=>t.id===dpTaskId);if(!task)return;
@@ -2459,8 +2568,8 @@ async function startMic(){
     };
     mediaRecorder.start(250); // collect in 250ms chunks for reliability
     micActive=true;
-    document.getElementById('bb-mic').classList.add('listening');
-    document.getElementById('bb-mic').textContent='⏹';
+    document.getElementById('bb-mic')?.classList.add('listening');
+    const micBtn=document.getElementById('bb-mic');if(micBtn){micBtn.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';}
     document.getElementById('bb-rec-bar').classList.add('visible');
   }catch(e){
     if(e.name==='NotAllowedError'){
@@ -2476,8 +2585,8 @@ function stopMic(){
     mediaRecorder.stop();
   }
   micActive=false;
-  document.getElementById('bb-mic').classList.remove('listening');
-  document.getElementById('bb-mic').textContent='🎙';
+  document.getElementById('bb-mic')?.classList.remove('listening');
+  const micBtn2=document.getElementById('bb-mic');if(micBtn2){micBtn2.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';}
   document.getElementById('bb-rec-bar').classList.remove('visible');
 }
 
@@ -2489,9 +2598,9 @@ async function transcribeAudio(){
   audioChunks=[];
 
   // Show thinking state
-  document.getElementById('bb-mic').textContent='⏳';
-  document.getElementById('bb-mic').disabled=true;
-  document.getElementById('bb-fab').className='bb-thinking';
+  document.getElementById('bb-mic')?.setAttribute('style','opacity:.4');
+  if(document.getElementById('bb-mic'))document.getElementById('bb-mic').disabled=true;
+  const fabEl=document.getElementById('bb-fab');if(fabEl)fabEl.className='bb-thinking';
 
   try{
     const form=new FormData();
@@ -2518,9 +2627,9 @@ async function transcribeAudio(){
   }catch(e){
     bbMsg("Transcription failed — check your OpenAI API key in Supabase secrets.",'from-bb');
   }finally{
-    document.getElementById('bb-mic').textContent='🎙';
+    const micBtn2=document.getElementById('bb-mic');if(micBtn2){micBtn2.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';}
     document.getElementById('bb-mic').disabled=false;
-    document.getElementById('bb-fab').className='bb-idle';
+    const fabEl2=document.getElementById('bb-fab');if(fabEl2)fabEl2.className='bb-idle';
   }
 }
 
@@ -2537,7 +2646,7 @@ async function boot(){
     document.getElementById('bb-fab').style.display='flex';
     setupPill();renderExtraFilters();renderDashboard();
     setTimeout(()=>chirp("Loaded. 2 May is watching."),700);
-    bbMsg("Hey — I'm Blackbird. Tap 🐦‍⬛ on any task for advice, or ask me anything.",'from-bb');
+    setTimeout(()=>bbMsg("Hey — I'm Blackbird. Tap 🐦‍⬛ on any task for advice, or ask me anything.",'from-bb'),100);
   }else{
     document.getElementById('user-picker').style.display='flex';
   }
