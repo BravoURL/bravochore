@@ -214,10 +214,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 .task-date.ds{color:var(--amber);font-weight:700}
 .task-time-b{font-size:10px;color:var(--tx3)}
 .task-bucket-b{font-size:10px;padding:1px 5px;border-radius:100px;background:var(--surf2);color:var(--tx2)}
-.ms-dots{display:flex;align-items:center;gap:3px}
-.ms-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;border:1.5px solid transparent}
+.ms-dots{display:flex;align-items:center;gap:3px;flex-wrap:wrap}
+.ms-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;border:1.5px solid transparent}
 .ms-dot.d{background:var(--green);border-color:var(--gd)}
-.ms-dot.p{background:#fff;border-color:var(--bdrm)}
+.ms-dot.p{background:var(--surf2);border-color:var(--bdrm)}
 .task-acts{display:flex;gap:2px;flex-shrink:0}
 .icon-btn{width:34px;height:34px;border-radius:8px;background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--tx3);font-size:14px;flex-shrink:0}
 .icon-btn:active{background:var(--surf2)}
@@ -349,7 +349,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 .shop-list-note{font-size:11px;color:var(--tx3);margin-top:1px}
 
 /* SETTINGS PANEL */
-#settings-panel{position:fixed;inset:0;background:var(--bg);z-index:500;display:none;flex-direction:column;overflow:hidden}
+#settings-panel{position:fixed;inset:0;background:var(--bg);z-index:500;display:none;flex-direction:column;overflow:hidden;pointer-events:none}
+#settings-panel.open{display:flex;pointer-events:all}
 #settings-panel.open{display:flex}
 .sp-header{padding:16px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:12px;background:var(--surf)}
 .sp-header h2{font-family:'Playfair Display',serif;font-size:18px;font-weight:500}
@@ -539,8 +540,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 .jc-confirm-btn:active{background:var(--gd)}
 
 /* FULLSCREEN BLACKBIRD */
-#bb-fullscreen{position:fixed;inset:0;z-index:500;display:none;flex-direction:column;background:var(--bg)}
-#bb-fullscreen.open{display:flex}
+#bb-fullscreen{position:fixed;inset:0;z-index:500;display:none;flex-direction:column;background:var(--bg);pointer-events:none}
+#bb-fullscreen.open{display:flex;pointer-events:all}
 .bbfs-header{padding:14px 16px 10px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;background:var(--surf);flex-shrink:0}
 .bbfs-title{font-family:'Playfair Display',serif;font-size:17px;font-weight:500;display:flex;align-items:center;gap:8px}
 .bbfs-close{background:none;border:none;font-size:13px;cursor:pointer;color:var(--tx2);padding:6px 12px;border-radius:100px;border:1px solid var(--bdrm);font-family:'DM Sans',sans-serif;font-weight:600}
@@ -1108,6 +1109,11 @@ function showView(name,tab){
 }
 let focusMode=null,focusWho='all',focusBucket='all';
 
+function applyFilterForOwner(mode,ownerCode){
+  focusMode=mode;focusWho=ownerCode;focusBucket='all';
+  renderFocusSheet();
+  document.getElementById('focus-modal').classList.add('open');
+}
 function applyFilter(mode){
   focusMode=mode;focusWho='all';focusBucket='all';
   renderFocusSheet();
@@ -1260,10 +1266,10 @@ function renderDashboard(){
       <div class="lb-pbar"><div class="lb-pfill" style="width:${lb.pct}%;background:${lb.color}"></div></div>
       <div class="lb-pct">${lb.pct}% complete</div>
       <div class="lb-stats">
-        <div class="lb-stat"><div class="lb-stat-val">${lb.done}</div><div class="lb-stat-lbl">Done</div></div>
-        <div class="lb-stat"><div class="lb-stat-val">${lb.total-lb.done}</div><div class="lb-stat-lbl">To go</div></div>
-        <div class="lb-stat"><div class="lb-stat-val" style="font-size:13px">${fmtHours(lb.doneH)}</div><div class="lb-stat-lbl">Done</div></div>
-        <div class="lb-stat"><div class="lb-stat-val" style="font-size:13px">${fmtHours(lb.remH)}</div><div class="lb-stat-lbl">Left</div></div>
+        <div class="lb-stat"><div class="lb-stat-val" style="font-size:${String(lb.done).length>2?'16px':'18px'}">${lb.done}</div><div class="lb-stat-lbl">Done</div></div>
+        <div class="lb-stat"><div class="lb-stat-val" style="font-size:${String(lb.total-lb.done).length>2?'16px':'18px'}">${lb.total-lb.done}</div><div class="lb-stat-lbl">To go</div></div>
+        <div class="lb-stat"><div class="lb-stat-val" style="font-size:11px;letter-spacing:-.3px">${fmtHours(lb.doneH)}</div><div class="lb-stat-lbl">Done</div></div>
+        <div class="lb-stat"><div class="lb-stat-val" style="font-size:11px;letter-spacing:-.3px">${fmtHours(lb.remH)}</div><div class="lb-stat-lbl">Left</div></div>
       </div>
     </div>`).join('');
   renderPace(doneH,remH,daysLeft);
@@ -1282,7 +1288,7 @@ function renderDashboard(){
         const o=getOwner(ownerCode);
         const ts=byOwner[ownerCode];
         return `<div style="margin-bottom:10px">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;cursor:pointer" onclick="applyFilter('overdue');setFW(document.querySelector('[data-fw=\'${ownerCode}\']'),\'${ownerCode}\')">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;cursor:pointer" onclick="applyFilterForOwner('overdue','${ownerCode}')">
             <span class="task-tag" style="background:${o.bg};color:${o.color}">${o.name}</span>
             <span style="font-size:11px;color:var(--tx3)">${ts.length} overdue</span>
             <span style="font-size:11px;color:var(--green);margin-left:auto">See all →</span>
@@ -1355,7 +1361,7 @@ function taskCard(task){
           <span class="task-bucket-b">${task.bucket}</span>
           ${task.due?`<span class="task-date ${ov?'ov':ds?'ds':''}">${fmtDate(task.due)}</span>`:''}
           ${timeH?`<span class="task-time-b">${fmtHours(timeH)}</span>`:''}
-          ${ms.length?`<span class="task-time-b">${msDone}/${ms.length}</span>`:''}
+          ${ms.length?`<span class="task-time-b" style="color:${msDone===ms.length?'var(--green)':msDone>0?'var(--amber)':'var(--tx3)'}">${msDone}/${ms.length} steps</span>`:''}
           ${dots}
           ${(task.photo_urls||[]).length?`<span class="task-time-b">📷${task.photo_urls.length}</span>`:''}
         </div>
@@ -1371,7 +1377,7 @@ function taskCard(task){
 // ================================================================
 // TASKS VIEW
 // ================================================================
-function setFW(el,v){document.querySelectorAll('[data-fw]').forEach(e=>e.classList.remove('active'));el.classList.add('active');filterWho=v;renderTasksView();}
+function setFW(el,v){document.querySelectorAll('[data-fw]').forEach(e=>e.classList.remove('active'));if(el)el.classList.add('active');filterWho=v;renderTasksView();}
 function setFB(el,v){document.querySelectorAll('[data-fb]').forEach(e=>e.classList.remove('active'));el.classList.add('active');filterBucket=v;renderTasksView();}
 
 function renderTasksView(){
