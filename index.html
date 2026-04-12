@@ -645,12 +645,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
         <button class="qa-btn" onclick="applyFilter('quickwin')">⚡ Quick Wins</button>
         <button class="qa-btn" onclick="openDetail(null)">+ Add Task</button>
       </div>
-      <div class="sec-header">
+      <div class="sec-header" style="cursor:pointer" onclick="applyFilter('today')">
         <span class="sec-title">Your tasks</span>
         <span class="sec-count" id="my-done-ct"></span>
       </div>
       <div id="my-tasks-list"></div>
-      <div class="sec-header"><span class="sec-title">Overdue</span></div>
+      <div class="sec-header" style="cursor:pointer" onclick="applyFilter('overdue')">
+        <span class="sec-title">Overdue</span>
+        <span id="overdue-count" class="sec-count"></span>
+      </div>
       <div id="overdue-list"></div>
     </div>
 
@@ -1036,6 +1039,14 @@ async function loadData(){
 function tdStr(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 function fmtDate(s){return s?new Date(s+'T00:00:00').toLocaleDateString('en-AU',{day:'numeric',month:'short'}):''}
 function fmtSecs(s){const m=Math.floor(Math.abs(s)/60),se=Math.floor(Math.abs(s)%60);return `${s<0?'-':''}${String(m).padStart(2,'0')}:${String(se).padStart(2,'0')}`}
+function fmtHours(h){
+  if(!h||h===0)return '0m';
+  const totalMins=Math.round(h*60);
+  const hrs=Math.floor(totalMins/60),mins=totalMins%60;
+  if(hrs===0)return mins+'m';
+  if(mins===0)return hrs+'h';
+  return hrs+'h '+mins+'m';
+}
 function hToSecs(h){return Math.round((parseFloat(h)||0)*3600)}
 function getMs(tid){return milestones.filter(m=>m.task_id===tid).sort((a,b)=>a.sort_order-b.sort_order)}
 function calcTaskTime(tid){const ms=getMs(tid);return ms.length?ms.reduce((s,m)=>s+(parseFloat(m.time_hours)||0),0):0}
@@ -1169,7 +1180,7 @@ function renderFocusSheet(){
           <span class="task-tag" style="background:${o.bg};color:${o.color}">${o.name}</span>
           <span class="task-bucket-b">${task.bucket}</span>
           ${task.due?`<span class="task-date ${ov?'ov':ds?'ds':''}">${fmtDate(task.due)}</span>`:''}
-          ${timeH?`<span class="task-time-b">${timeH.toFixed(1)}h</span>`:''}
+          ${timeH?`<span class="task-time-b">${fmtHours(timeH)}</span>`:''}
         </div>
         ${msBar}
         <div class="focus-actions">
@@ -1213,16 +1224,22 @@ function renderDashboard(){
   document.getElementById('dash-greeting').textContent=`${hr<12?'Good morning':hr<17?'Good afternoon':'Good evening'}, ${CUN}`;
   document.getElementById('dash-date').textContent=new Date().toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   document.getElementById('today-hl').textContent=todayDue.length?`${todayDue.length} task${todayDue.length>1?'s':''} due today`:done.length?`${done.length} items done — keep going`:'Nothing due today — get ahead';
-  document.getElementById('today-sub').textContent=`${daysLeft} days to 2 May · ${Math.round(remH)}h remaining`;
+  document.getElementById('today-sub').textContent=`${daysLeft} days to 2 May · ${fmtHours(remH)} remaining`;
+  const remHPerDay=remH/Math.max(daysLeft,1);
   document.getElementById('metric-grid').innerHTML=`
-    <div class="metric-card ${done.length?'mc-green':''}"><div class="metric-label">Done</div><div class="metric-value">${done.length}</div><div class="metric-sub">of ${allI.length}</div></div>
-    <div class="metric-card ${overdue.length?'mc-red':''}"><div class="metric-label">Overdue</div><div class="metric-value">${overdue.length}</div><div class="metric-sub">tasks</div></div>
+    <div class="metric-card ${done.length?'mc-green':''}" style="cursor:pointer" onclick="showView('tasks',document.querySelectorAll('.nav-tab')[1])">
+      <div class="metric-label">Done</div><div class="metric-value">${done.length}</div><div class="metric-sub">of ${allI.length}</div></div>
+    <div class="metric-card ${overdue.length?'mc-red':''}" style="cursor:pointer" onclick="applyFilter('overdue')">
+      <div class="metric-label">Overdue</div><div class="metric-value">${overdue.length}</div><div class="metric-sub">tap to view</div></div>
     <div class="metric-card"><div class="metric-label">Days left</div><div class="metric-value">${daysLeft}</div><div class="metric-sub">to 2 May</div></div>
-    <div class="metric-card ${remH>daysLeft*4?'mc-amber':'mc-green'}"><div class="metric-label">Hours left</div><div class="metric-value">${Math.round(remH)}</div><div class="metric-sub">~${(remH/Math.max(daysLeft,1)).toFixed(1)}h/day</div></div>`;
+    <div class="metric-card ${remH>daysLeft*4?'mc-amber':'mc-green'}">
+      <div class="metric-label">Time left</div>
+      <div class="metric-value" style="font-size:${remH>=100?'16px':remH>=10?'18px':'22px'}">${fmtHours(remH)}</div>
+      <div class="metric-sub">${fmtHours(remHPerDay)}/day</div></div>`;
   const fill=document.getElementById('main-pfill');
   fill.style.width=pct+'%';fill.className='pfill'+(pct<expPct-20?' red':pct<expPct-10?' amber':'');
   document.getElementById('prog-done').textContent=`${done.length} of ${allI.length} items complete`;
-  document.getElementById('prog-rem').textContent=`${Math.round(remH)}h remaining`;
+  document.getElementById('prog-rem').textContent=`${fmtHours(remH)} remaining`;
   const b=document.getElementById('track-badge');
   b.className='track-badge '+(onTrack?'on-track':pct>=expPct-20?'at-risk':'off-track');
   b.textContent=onTrack?'✓ On track':pct>=expPct-20?'⚠ At risk':'✗ Off track';
@@ -1245,15 +1262,42 @@ function renderDashboard(){
       <div class="lb-stats">
         <div class="lb-stat"><div class="lb-stat-val">${lb.done}</div><div class="lb-stat-lbl">Done</div></div>
         <div class="lb-stat"><div class="lb-stat-val">${lb.total-lb.done}</div><div class="lb-stat-lbl">To go</div></div>
-        <div class="lb-stat"><div class="lb-stat-val">${Math.round(lb.doneH)}h</div><div class="lb-stat-lbl">Hrs done</div></div>
-        <div class="lb-stat"><div class="lb-stat-val">${Math.round(lb.remH)}h</div><div class="lb-stat-lbl">Hrs left</div></div>
+        <div class="lb-stat"><div class="lb-stat-val" style="font-size:13px">${fmtHours(lb.doneH)}</div><div class="lb-stat-lbl">Done</div></div>
+        <div class="lb-stat"><div class="lb-stat-val" style="font-size:13px">${fmtHours(lb.remH)}</div><div class="lb-stat-lbl">Left</div></div>
       </div>
     </div>`).join('');
   renderPace(doneH,remH,daysLeft);
   const myPending=tasks.filter(t=>t.owner&&t.owner.includes(CU)&&!t.done).sort((a,b)=>(a.due||'').localeCompare(b.due||'')).slice(0,8);
   document.getElementById('my-done-ct').textContent=`${tasks.filter(t=>t.owner&&t.owner.includes(CU)&&t.done).length} done`;
   document.getElementById('my-tasks-list').innerHTML=myPending.length?myPending.map(taskCard).join(''):'<div class="empty-state">All your tasks are done.</div>';
-  document.getElementById('overdue-list').innerHTML=overdue.length?overdue.map(taskCard).join(''):'<div class="empty-state">Nothing overdue.</div>';
+  document.getElementById('overdue-count').textContent=overdue.length?overdue.length+' tasks':'';
+  if(overdue.length){
+    // Group overdue by owner
+    const byOwner={};
+    overdue.forEach(t=>{const o=t.owner||'?';if(!byOwner[o])byOwner[o]=[];byOwner[o].push(t);});
+    const owners=Object.keys(byOwner);
+    if(owners.length>1){
+      // Show per-person breakdown with expand
+      let html=owners.map(ownerCode=>{
+        const o=getOwner(ownerCode);
+        const ts=byOwner[ownerCode];
+        return `<div style="margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;cursor:pointer" onclick="applyFilter('overdue');setFW(document.querySelector('[data-fw=\'${ownerCode}\']'),\'${ownerCode}\')">
+            <span class="task-tag" style="background:${o.bg};color:${o.color}">${o.name}</span>
+            <span style="font-size:11px;color:var(--tx3)">${ts.length} overdue</span>
+            <span style="font-size:11px;color:var(--green);margin-left:auto">See all →</span>
+          </div>
+          ${ts.slice(0,2).map(taskCard).join('')}
+          ${ts.length>2?`<div style="font-size:11px;color:var(--tx2);padding:6px 4px;cursor:pointer" onclick="applyFilter('overdue')">+${ts.length-2} more overdue →</div>`:''}
+        </div>`;
+      }).join('');
+      document.getElementById('overdue-list').innerHTML=html;
+    }else{
+      document.getElementById('overdue-list').innerHTML=overdue.map(taskCard).join('');
+    }
+  }else{
+    document.getElementById('overdue-list').innerHTML='<div class="empty-state">Nothing overdue — clear skies.</div>';
+  }
 }
 
 function renderPace(doneH,remH,daysLeft){
@@ -1264,8 +1308,8 @@ function renderPace(doneH,remH,daysLeft){
   let html='';
   if(paceView==='pace'){
     const eff=actualRate>0&&neededRate>0?Math.round((actualRate/neededRate)*100):0;
-    html=`<div class="pace-item"><div class="pace-val">${actualRate.toFixed(1)}h</div><div class="pace-lbl">Actual/day</div></div>
-    <div class="pace-item"><div class="pace-val">${neededRate.toFixed(1)}h</div><div class="pace-lbl">Needed/day</div></div>
+    html=`<div class="pace-item"><div class="pace-val">${fmtHours(actualRate)}</div><div class="pace-lbl">Actual/day</div></div>
+    <div class="pace-item"><div class="pace-val">${fmtHours(neededRate)}</div><div class="pace-lbl">Needed/day</div></div>
     <div class="pace-item"><div class="pace-val" style="color:${eff>=100?'var(--green)':'var(--red)'}">${eff}%</div><div class="pace-lbl">Efficiency</div></div>`;
   }else{
     const projDays=actualRate>0?Math.ceil(remH/actualRate):999;
@@ -1274,7 +1318,7 @@ function renderPace(doneH,remH,daysLeft){
     const diff=Math.abs(Math.ceil((projDate-TARGET)/86400000));
     html=`<div class="pace-item"><div class="pace-val">${projDate.toLocaleDateString('en-AU',{day:'numeric',month:'short'})}</div><div class="pace-lbl">Proj. finish</div></div>
     <div class="pace-item"><div class="pace-val" style="color:${onTime?'var(--green)':'var(--red)'}">${onTime?diff+'d early':diff+'d late'}</div><div class="pace-lbl">vs 2 May</div></div>
-    <div class="pace-item"><div class="pace-val">${Math.round(remH)}h</div><div class="pace-lbl">Remaining</div></div>`;
+    <div class="pace-item"><div class="pace-val">${fmtHours(remH)}</div><div class="pace-lbl">Remaining</div></div>`;
   }
   document.getElementById('pace-grid').innerHTML=html;
 }
@@ -1310,7 +1354,7 @@ function taskCard(task){
           <span class="task-tag" style="background:${o.bg};color:${o.color}">${o.name}</span>
           <span class="task-bucket-b">${task.bucket}</span>
           ${task.due?`<span class="task-date ${ov?'ov':ds?'ds':''}">${fmtDate(task.due)}</span>`:''}
-          ${timeH?`<span class="task-time-b">${timeH.toFixed(1)}h</span>`:''}
+          ${timeH?`<span class="task-time-b">${fmtHours(timeH)}</span>`:''}
           ${ms.length?`<span class="task-time-b">${msDone}/${ms.length}</span>`:''}
           ${dots}
           ${(task.photo_urls||[]).length?`<span class="task-time-b">📷${task.photo_urls.length}</span>`:''}
@@ -1409,7 +1453,7 @@ function openDetail(taskId){
     <span class="task-tag" style="background:${o.bg};color:${o.color}">${o.name}</span>
     <span class="task-bucket-b">${task.bucket}</span>
     ${task.due?`<span class="task-date">${fmtDate(task.due)}</span>`:''}
-    ${getEffectiveTime(task)?`<span class="task-time-b">${getEffectiveTime(task).toFixed(1)}h</span>`:''}
+    ${getEffectiveTime(task)?`<span class="task-time-b">${fmtHours(getEffectiveTime(task))}</span>`:''}
   `:'';
   renderDpBody(task,ms);
   document.getElementById('detail-backdrop').classList.add('open');
@@ -1686,7 +1730,7 @@ function startTimerInterval(){
     const sessNum=timerSessions.length+1;
     const totEl=document.getElementById('ts-total');
     if(totEl)totEl.textContent=sessNum>1?'Sess '+sessNum+' · '+fmtSecs(totalSoFar):'';
-    document.getElementById('ts-est').textContent=activeTimer.estimateSecs?'Est: '+fmtSecs(activeTimer.estimateSecs):'';
+    document.getElementById('ts-est').textContent=activeTimer.estimateSecs?'Est: '+fmtHours(activeTimer.estimateSecs/3600):'';
     const dd=document.getElementById('dp-timer-disp');
     if(dd){dd.textContent=fmtSecs(el);dd.className='timer-disp'+(rem<0?' over':'');}
   },1000);
@@ -2523,7 +2567,7 @@ function doPrint(filtered,ownerLabel){
     const photos=task.photo_urls||[];
     return `<div class="pv-task">
       <h3>${task.title}</h3>
-      <div class="pv-meta">Owner: ${getOwner(task.owner).name} · Due: ${fmtDate(task.due)} · Est: ${getEffectiveTime(task).toFixed(1)}h · ${task.bucket}</div>
+      <div class="pv-meta">Owner: ${getOwner(task.owner).name} · Due: ${fmtDate(task.due)} · Est: ${fmtHours(getEffectiveTime(task))} · ${task.bucket}</div>
       ${task.notes?`<div class="pv-notes">${task.notes}</div>`:''}
       ${photos.length?`<div class="pv-photos">${photos.map(u=>`<img src="${u}" onerror="this.style.display='none'">`).join('')}</div>`:''}
       ${ms.length?`<div class="pv-ms"><div class="pv-ms-ttl">Milestones</div>${ms.map(m=>`<div class="pv-ms-item"><div class="pv-ms-box ${m.done?'done':''}"></div><span>${m.title}</span>${m.time_hours?`<span style="color:#666;margin-left:auto">${parseFloat(m.time_hours).toFixed(1)}h</span>`:''}</div>`).join('')}</div>`:''}
