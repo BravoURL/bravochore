@@ -351,7 +351,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 /* SETTINGS PANEL */
 #settings-panel{position:fixed;inset:0;background:var(--bg);z-index:500;display:none;flex-direction:column;overflow:hidden;pointer-events:none}
 #settings-panel.open{display:flex;pointer-events:all}
-#settings-panel.open{display:flex}
 .sp-header{padding:16px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:12px;background:var(--surf)}
 .sp-header h2{font-family:'Playfair Display',serif;font-size:18px;font-weight:500}
 .sp-back{width:32px;height:32px;border:none;background:none;cursor:pointer;color:var(--tx2);font-size:18px;display:flex;align-items:center;justify-content:center;border-radius:6px}
@@ -788,6 +787,75 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 <div id="chirp-container"></div>
 <input type="file" id="photo-input-cam" accept="image/*" capture="environment" style="display:none">
 <input type="file" id="photo-input-lib" accept="image/*" multiple style="display:none">
+
+<!-- DETAIL PANEL -->
+<div id="detail-backdrop" onclick="closeDetail()"></div>
+<div id="detail-panel">
+  <div class="dp-drag-handle"></div>
+  <div class="dp-header">
+    <div class="dp-title-row">
+      <div id="dp-check" class="dp-check" onclick="dpToggleTask()"></div>
+      <div id="dp-title" class="dp-title" contenteditable="true" onblur="dpTitleBlur()">Task name</div>
+      <button class="dp-close" onclick="closeDetail()">✕</button>
+    </div>
+    <div class="dp-meta" id="dp-meta"></div>
+  </div>
+  <div class="dp-body" id="dp-body"></div>
+  <div class="dp-footer">
+    <button class="dp-pdf" onclick="generatePDFForTask()">🖨</button>
+    <button class="dp-del" onclick="dpDelete()">Delete</button>
+    <button class="dp-save" onclick="dpSave()">Save</button>
+  </div>
+</div>
+
+<!-- SHOPPING LIST SHEET -->
+<div class="shop-modal" id="shop-modal">
+  <div class="shop-sheet">
+    <div class="shop-sheet-hdr">
+      <h3 id="shop-sheet-title">Shopping List</h3>
+      <button onclick="closeShopList()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--tx3)">✕</button>
+    </div>
+    <div class="shop-sheet-body" id="shop-sheet-body"></div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div id="settings-panel">
+  <div class="sp-header">
+    <button class="sp-back" onclick="closeSettings()">←</button>
+    <h2>Settings</h2>
+  </div>
+  <div class="sp-body">
+    <div class="sp-section">
+      <h3>People</h3>
+      <div id="people-list"></div>
+      <div class="add-person-row">
+        <input class="add-person-input" id="new-person-name" placeholder="Full name">
+        <input class="add-person-input" id="new-person-code" placeholder="Code (e.g. LW)" style="width:80px;flex:none">
+        <button class="add-person-btn" onclick="addPerson()">Add</button>
+      </div>
+    </div>
+    <div class="sp-section">
+      <h3>Data</h3>
+      <button class="qa-btn" style="width:100%;justify-content:center;margin-bottom:8px" onclick="exportData()">📤 Export all tasks</button>
+      <button class="qa-btn urgent" style="width:100%;justify-content:center" onclick="resetData()">⚠ Reset all data</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div class="modal-bd" id="confirm-modal">
+  <div class="modal">
+    <h3 id="cm-title">Confirm</h3>
+    <p id="cm-body"></p>
+    <div class="modal-acts">
+      <button class="btn-cancel" onclick="closeModal('confirm-modal');cmReject&&cmReject()">Cancel</button>
+      <button id="cm-ok" class="btn-ok" onclick="closeModal('confirm-modal');cmResolve&&cmResolve()">OK</button>
+    </div>
+  </div>
+</div>
+
+<div id="print-view"></div>
 
 <script>
 // ================================================================
@@ -1502,7 +1570,7 @@ function renderDpBody(task,ms){
     <div class="timer-box">
       <div>
         <div id="dp-timer-disp" class="timer-disp ${isOn&&activeTimer.status==='running'&&elapsedSecs()>activeTimer.estimateSecs?'over':''}">${isOn?fmtSecs(elapsedSecs()):'00:00'}</div>
-        <div class="timer-est">Est: ${timeH?timeH.toFixed(1)+'h':'not set'}${actH?' · Last: '+actH.toFixed(1)+'h':''}</div>
+        <div class="timer-est">Est: ${timeH?fmtHours(timeH):'not set'}${actH?' · Last: '+fmtHours(actH):''}</div>
       </div>
       <div class="timer-ctrls">
         ${isOn&&activeTimer.status==='running'?`<button class="tcbtn" onclick="timerPause()">⏸</button><button class="tcbtn stop" onclick="timerStop(true)">✓ Done</button>`
@@ -1512,7 +1580,7 @@ function renderDpBody(task,ms){
     </div>
   </div>`:''}
   <div class="dp-sec">
-    <div class="dp-sec-title">Milestones <span>${ms.length?ms.filter(m=>m.done).length+'/'+ms.length+' · '+calcTaskTime(task?.id||0).toFixed(1)+'h':''}</span></div>
+    <div class="dp-sec-title">Milestones <span>${ms.length?ms.filter(m=>m.done).length+'/'+ms.length+' · '+fmtHours(calcTaskTime(task?.id||0)):''}</span></div>
     <div class="ms-list" id="dp-ms-list">
       ${ms.map(m=>{
         const mOn=activeTimer&&activeTimer.msId===m.id;
@@ -1981,7 +2049,7 @@ const sheetTicked=new Set(); // tracks ids ticked in current session
 
 function openShopList(store){
   const items=shopping.filter(i=>i.store===store&&!i.done);
-  if(!items.length){alert('Nothing pending for '+store+'!');return;}
+  if(!items.length){chirp('Nothing pending for '+store+'!');return;}
   activeShopStore=store;
   sheetTicked.clear();
   renderSheetItems(store,items);
@@ -2043,10 +2111,34 @@ document.addEventListener('DOMContentLoaded',()=>document.getElementById('shop-m
 
 async function toggleShop(id){const i=shopping.find(x=>x.id===id);if(!i)return;i.done=!i.done;renderShopping();try{await api('bravochore_shopping','PATCH',{done:i.done},`?id=eq.${id}`);}catch(e){}}
 async function removeShop(id){shopping=shopping.filter(x=>x.id!==id);renderShopping();try{await api('bravochore_shopping','DELETE',null,`?id=eq.${id}`);}catch(e){}}
-async function addShopItem(){
-  const name=prompt('Item name:');if(!name)return;
-  const store=prompt('Store (Bunnings/Coles/ABI/Other):','Bunnings')||'Other';
-  const note=prompt('Note (optional):','')||'';
+function addShopItem(){
+  const picker=document.createElement('div');
+  picker.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;display:flex;align-items:flex-end;justify-content:center';
+  picker.innerHTML=`<div style="background:var(--surf);border-radius:20px 20px 0 0;width:100%;max-width:700px;padding:20px;padding-bottom:max(20px,env(safe-area-inset-bottom))">
+    <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:500;margin-bottom:16px">Add shopping item</div>
+    <div class="dp-field"><label class="dp-label">Item</label><input class="dp-input" id="asi-name" placeholder="e.g. Boston ivy" style="margin-bottom:10px"></div>
+    <div class="dp-field"><label class="dp-label">Store</label>
+      <select class="dp-select" id="asi-store" style="margin-bottom:10px">
+        <option>Bunnings</option><option>Coles</option><option>ABI</option><option>Other</option>
+      </select>
+    </div>
+    <div class="dp-field"><label class="dp-label">Note (optional)</label><input class="dp-input" id="asi-note" placeholder="e.g. For courtyard fountain area" style="margin-bottom:16px"></div>
+    <div style="display:flex;gap:8px">
+      <button onclick="doAddShopItem()" style="flex:1;padding:13px;background:var(--green);color:#fff;border:none;border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-weight:700;font-size:14px;cursor:pointer">Add to list</button>
+      <button onclick="this.closest('[style*=position]').remove()" style="padding:13px 16px;background:none;border:1px solid var(--bdrm);border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;color:var(--tx2)">Cancel</button>
+    </div>
+  </div>`;
+  picker.addEventListener('click',e=>{if(e.target===picker)picker.remove();});
+  document.body.appendChild(picker);
+  setTimeout(()=>document.getElementById('asi-name')?.focus(),100);
+  window._shopPicker=picker;
+}
+async function doAddShopItem(){
+  const name=document.getElementById('asi-name')?.value.trim();
+  if(!name)return;
+  const store=document.getElementById('asi-store')?.value||'Other';
+  const note=document.getElementById('asi-note')?.value||'';
+  window._shopPicker?.remove();
   const ni={id:'si_'+Date.now(),name,store,note,done:false,sort_order:shopping.length+1};
   shopping.push(ni);renderShopping();
   try{await api('bravochore_shopping','POST',[ni]);}catch(e){}
@@ -2069,7 +2161,7 @@ function addPerson(){
   const name=document.getElementById('new-person-name').value.trim();
   const code=document.getElementById('new-person-code').value.trim().toUpperCase();
   if(!name||!code)return;
-  if(people.find(p=>p.code===code)){alert('Code already exists');return;}
+  if(people.find(p=>p.code===code)){chirp('That code is already in use.');return;}
   const colors=['#7B61FF','#E91E63','#FF6D00','#00796B','#C62828'];
   const bgs=['#EDE7FF','#FCE4EC','#FFF3E0','#E0F2F1','#FFEBEE'];
   const idx=people.length%5;
@@ -2559,26 +2651,35 @@ function pdfPickPerson(code,name){
   document.body.removeChild(window._pdfPicker||document.querySelector('[style*="position:fixed"][style*="z-index:900"]'));
   let filtered=tasks.filter(t=>!t.done);
   if(code!=='All')filtered=filtered.filter(t=>t.owner.includes(code)||getMs(t.id).some(m=>m.owner===code));
-  doPrintForPerson(filtered,name,code);
+  doPrint(filtered,name,code);
 }
 function generatePDFForTask(){
   const task=tasks.find(t=>t.id===dpTaskId);if(!task)return;
   doPrint([task],getOwner(task.owner).name);
 }
-function doPrint(filtered,ownerLabel){
+function doPrint(filtered,ownerLabel,code){
+  code=code||'All';
   const pv=document.getElementById('print-view');
-  pv.innerHTML=`<div class="pv-hdr"><h1>BravoChore — Task Sheet</h1><p>For: ${ownerLabel} · ${new Date().toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</p></div>
-  ${filtered.map(task=>{
-    const ms=getMs(task.id);
+  if(!pv)return;
+  const date=new Date().toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  let html=`<div class="pv-hdr"><h1>BravoChore — Task Sheet</h1><p>For: ${ownerLabel} · ${date}</p></div>`;
+  filtered.forEach(task=>{
+    const allMs=getMs(task.id);
     const photos=task.photo_urls||[];
-    return `<div class="pv-task">
-      <h3>${task.title}</h3>
-      <div class="pv-meta">Owner: ${getOwner(task.owner).name} · Due: ${fmtDate(task.due)} · Est: ${fmtHours(getEffectiveTime(task))} · ${task.bucket}</div>
-      ${task.notes?`<div class="pv-notes">${task.notes}</div>`:''}
-      ${photos.length?`<div class="pv-photos">${photos.map(u=>`<img src="${u}" onerror="this.style.display='none'">`).join('')}</div>`:''}
-      ${ms.length?`<div class="pv-ms"><div class="pv-ms-ttl">Milestones</div>${ms.map(m=>`<div class="pv-ms-item"><div class="pv-ms-box ${m.done?'done':''}"></div><span>${m.title}</span>${m.time_hours?`<span style="color:#666;margin-left:auto">${parseFloat(m.time_hours).toFixed(1)}h</span>`:''}</div>`).join('')}</div>`:''}
+    const taskOwned=code==='All'||task.owner.includes(code);
+    const msToShow=taskOwned?allMs:allMs.filter(m=>m.owner===code);
+    if(!taskOwned&&!msToShow.length)return;
+    const contextNote=!taskOwned?`<div class="pv-notes" style="background:#fff3e0;border-left:3px solid #BA7517;padding:6px 10px"><strong>Context:</strong> Part of "${task.title}" (${getOwner(task.owner).name}'s task)</div>`:'';
+    html+=`<div class="pv-task">
+      <h3>${taskOwned?task.title:msToShow[0]?.title||task.title}</h3>
+      <div class="pv-meta">${taskOwned?'Owner: '+getOwner(task.owner).name+' · ':''}Due: ${fmtDate(task.due)} · Est: ${fmtHours(getEffectiveTime(task))} · ${task.bucket}</div>
+      ${task.notes&&taskOwned?`<div class="pv-notes">${task.notes}</div>`:''}
+      ${contextNote}
+      ${photos.length&&taskOwned?`<div class="pv-photos">${photos.map(u=>`<img src="${u}" onerror="this.style.display='none'">`).join('')}</div>`:''}
+      ${msToShow.length?`<div class="pv-ms"><div class="pv-ms-ttl">Steps</div>${msToShow.map(m=>`<div class="pv-ms-item"><div class="pv-ms-box ${m.done?'done':''}"></div><span>${m.title}</span>${m.time_hours?`<span style="color:#666;margin-left:auto">${fmtHours(parseFloat(m.time_hours))}</span>`:''}</div>`).join('')}</div>`:''}
     </div>`;
-  }).join('')}`;
+  });
+  pv.innerHTML=html;
   window.print();
 }
 
