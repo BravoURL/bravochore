@@ -104,16 +104,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 .settings-btn:hover{background:var(--surf2)}
 
 /* TIMER STRIP */
-#timer-strip{position:sticky;top:52px;z-index:90;background:var(--tx);color:#fff;padding:8px 16px;display:none;align-items:center;gap:10px;font-size:12px}
+#timer-strip{position:sticky;top:50px;z-index:90;background:var(--surf);border-bottom:2px solid var(--green);color:var(--tx);padding:7px 14px;display:none;align-items:center;gap:8px;font-size:12px;box-shadow:0 2px 8px rgba(92,138,74,.12)}
 #timer-strip.visible{display:flex}
-.ts-label{flex:1;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;max-width:120px}
-.ts-time{font-family:'DM Mono',monospace;font-size:14px;font-weight:700;min-width:55px;text-align:center}
-.ts-time.over{color:#ff8080}
-.ts-btn{padding:5px 10px;border-radius:100px;border:1.5px solid rgba(255,255,255,.4);background:rgba(255,255,255,.15);color:#fff;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0}
-.ts-btn:hover{background:rgba(255,255,255,.15)}
-.ts-btn.stop{background:#E24B4A;border-color:#E24B4A}
-.ts-btn.cancel{opacity:.5}
-.ts-btn.cancel:hover{opacity:1}
+.ts-label{flex:1;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--tx)}
+.ts-time{font-family:'DM Mono',monospace;font-size:15px;font-weight:700;min-width:55px;text-align:center;color:var(--green)}
+.ts-time.over{color:var(--red)}
+.ts-btn{padding:5px 11px;border-radius:100px;border:1.5px solid var(--bdrm);background:var(--surf2);color:var(--tx);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .15s}
+.ts-btn:active{background:var(--surf)}
+.ts-btn.stop{background:var(--green);color:#fff;border-color:var(--green)}
+.ts-btn.cancel{color:var(--tx3);border-color:transparent;background:none}
 
 /* CONTENT */
 .content{max-width:700px;margin:0 auto;padding:16px 14px 120px}
@@ -837,7 +836,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
           <div class="filter-chip active" data-fw="all" onclick="setFW(this,'all')">All</div>
           <div class="filter-chip" data-fw="BW" onclick="setFW(this,'BW')">Brent</div>
           <div class="filter-chip" data-fw="BJ" onclick="setFW(this,'BJ')">Bernadette</div>
-          <div class="filter-chip" data-fw="Pete" onclick="setFW(this,'Pete')">Pete</div>
+          <!-- Pete filter available via search/overflow -->
           <div id="extra-person-filters"></div>
         </div>
         <div class="filter-group">
@@ -1455,7 +1454,7 @@ function selectUser(code,name){
   document.getElementById('bb-fab').style.display='flex';
   setupPill();renderExtraFilters();renderDashboard();initLottie();assignMissingCodes();document.getElementById('bn-dashboard')?.classList.add('active');
   setTimeout(()=>chirp("Let's get this done."),800);
-  bbMsg("Hey — I'm Blackbird. Tap 🐦‍⬛ on any task for advice, or just ask me anything.",'from-bb');
+  bbMsg("Hey — I'm Blackbird. Tap the bird icon on any task for advice, or just ask me anything.",'from-bb');
 }
 function switchUser(){document.getElementById('user-picker').style.display='flex';document.getElementById('app').style.display='none';buildUserPicker();}
 function setupPill(){
@@ -1481,7 +1480,7 @@ function bnNav(name){
   if(vEl)vEl.classList.add('active');
   const bEl=document.getElementById('bn-'+name);
   if(bEl)bEl.classList.add('active');
-  if(name==='tasks'){renderTasksView();setTimeout(()=>{initDrag();initTaskBirds();},80);}
+  if(name==='tasks'){renderTasksView();setTimeout(()=>{initDrag();},80);}
   else if(name==='shopping')renderShopping();
   else if(name==='events'){loadEvents().then(renderEvents);}
   else if(name==='shelved'){loadEvents().then(renderShelved);}
@@ -1691,7 +1690,7 @@ function renderDashboard(){
     }
   }else{
     document.getElementById('overdue-list').innerHTML='<div class="empty-state">Nothing overdue.</div>';
-  setTimeout(initTaskBirds,100);
+  
   }
 
   // Done this week
@@ -1776,11 +1775,9 @@ function taskCard(task){
       </div>
       <div class="task-acts">
         <button class="icon-btn ${isTimerOn?'timer-on':''}" onclick="startTaskTimer(${task.id},event)" title="Start timer" style="color:${isTimerOn?'var(--red)':'var(--tx3)'}">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${isTimerOn?'<circle cx="12" cy="12" r="10"/><rect x="9" y="9" width="6" height="6" fill="currentColor" stroke="none"/>':'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>'}</svg>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${isTimerOn?'<line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><path d="M7 4.5C4.5 6.5 3 9.1 3 12s1.5 5.5 4 7.5"/><path d="M17 4.5C19.5 6.5 21 9.1 21 12s-1.5 5.5-4 7.5"/>':'<path d="M6 2h12M6 22h12M6 2c0 4 2 6 6 10C8 16 6 18 6 22M18 2c0 4-2 6-6 10c4 4 6 6 6 10"/>'}</svg>
         </button>
-        <button class="icon-btn bb-task-btn" onclick="askBBTask(${task.id},event)" title="Ask Blackbird" style="width:28px;height:28px;border-radius:50%;background:var(--gl);border:1.5px solid var(--gm);display:flex;align-items:center;justify-content:center;overflow:hidden;padding:0">
-          <div class="bb-task-lottie" style="width:26px;height:26px;pointer-events:none"></div>
-        </button>
+        <button class="icon-btn bb-task-btn" onclick="askBBTask(${task.id},event)" title="Ask Blackbird" style="width:26px;height:26px;border-radius:50%;background:var(--gl);border:1.5px solid var(--gm);display:flex;align-items:center;justify-content:center;padding:0;font-size:13px;line-height:1">🐦‍⬛</button>
       </div>
     </div>
   </div>`;
@@ -1829,7 +1826,7 @@ function renderTasksView(){
       ${done.map(taskCard).join('')}
     </div>`;
   }else cs.innerHTML='';
-  setTimeout(()=>{initDrag();initTaskBirds();},80);
+  setTimeout(()=>{initDrag();},80);
 }
 
 function toggleDone(el){
@@ -1895,8 +1892,16 @@ function renderDpBody(task,ms){
       </div>
     </div>
     <div class="dp-row2">
-      <div class="dp-field"><label class="dp-label">Time (h)</label>
-        <input type="number" class="dp-input" id="dp-time" value="${task?parseFloat(task.time_hours||0)||'':''}" placeholder="auto from ms" min="0" step="0.25">
+      <div class="dp-field"><label class="dp-label">Time estimate</label>
+        <div style="display:flex;gap:5px;flex-wrap:wrap" id="dp-time-btns">
+          ${[0.25,0.5,1,1.5,2,3,4,6,8].map(v=>{
+            const cur=task?parseFloat(task.time_hours||0):0;
+            const active=Math.abs(cur-v)<0.01;
+            const lbl=v<1?(v*60)+'m':v%1===0?v+'h':v+'h';
+            return `<button type="button" onclick="dpSetTime(${v},this)" style="padding:6px 10px;border-radius:100px;border:1.5px solid ${active?'var(--green)':'var(--bdrm)'};background:${active?'var(--green)':'var(--surf)'};color:${active?'#fff':'var(--tx2)'};font-family:DM Sans,sans-serif;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0">${lbl}</button>`;
+          }).join('')}
+        </div>
+        <input type="hidden" id="dp-time" value="${task?parseFloat(task.time_hours||0)||0:0}">
       </div>
       <div class="dp-field"><label class="dp-label">Bucket</label>
         <select class="dp-select" id="dp-bucket">
@@ -2013,6 +2018,15 @@ async function dpToggleTask(){
   try{await api('bravochore_tasks','PATCH',{done:task.done},`?id=eq.${dpTaskId}`);}catch(e){}
 }
 
+function dpSetTime(val,btn){
+  document.getElementById('dp-time').value=val;
+  document.querySelectorAll('#dp-time-btns button').forEach(b=>{
+    const active=b===btn;
+    b.style.borderColor=active?'var(--green)':'var(--bdrm)';
+    b.style.background=active?'var(--green)':'var(--surf)';
+    b.style.color=active?'#fff':'var(--tx2)';
+  });
+}
 async function dpSave(){
   const title=document.getElementById('dp-title').textContent.trim();
   const owner=document.getElementById('dp-owner').value;
@@ -2479,7 +2493,7 @@ async function toggleShop(id){const i=shopping.find(x=>x.id===id);if(!i)return;i
 async function removeShop(id){shopping=shopping.filter(x=>x.id!==id);renderShopping();try{await api('bravochore_shopping','DELETE',null,`?id=eq.${id}`);}catch(e){}}
 function addShopItem(){
   const picker=document.createElement('div');
-  picker.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;display:flex;align-items:flex-end;justify-content:center';
+  picker.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;display:flex;align-items:flex-end;justify-content:center';picker.setAttribute('data-picker','1');
   picker.innerHTML=`<div style="background:var(--surf);border-radius:20px 20px 0 0;width:100%;max-width:700px;padding:20px;padding-bottom:max(20px,env(safe-area-inset-bottom))">
     <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:500;margin-bottom:16px">Add shopping item</div>
     <div class="dp-field"><label class="dp-label">Item</label><input class="dp-input" id="asi-name" placeholder="e.g. Boston ivy" style="margin-bottom:10px"></div>
@@ -3001,7 +3015,7 @@ document.addEventListener('DOMContentLoaded',()=>document.querySelectorAll('.mod
 function generatePDF(){
   // Show in-app person picker
   const picker=document.createElement('div');
-  picker.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;display:flex;align-items:flex-end;justify-content:center';
+  picker.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;display:flex;align-items:flex-end;justify-content:center';picker.setAttribute('data-picker','1');
   const sheet=document.createElement('div');
   sheet.style.cssText='background:var(--surf);border-radius:20px 20px 0 0;width:100%;max-width:700px;padding:20px;padding-bottom:max(20px,env(safe-area-inset-bottom))';
   const allPeople=[...people,{code:'All',name:'Everyone',bg:'#F4F3F0',color:'#5a5a56'}];
@@ -3174,16 +3188,10 @@ function initLottie(){
   if(hdrEl&&typeof lottie!=='undefined'&&!bbLottieHeader){
     bbLottieHeader=lottie.loadAnimation({container:hdrEl,renderer:'svg',loop:true,autoplay:true,animationData:animData});
   }
-  initTaskBirds();
+  
 }
 
-function initTaskBirds(){
-  if(typeof lottie==='undefined')return;
-  document.querySelectorAll('.bb-task-lottie:not([data-init])').forEach(el=>{
-    el.setAttribute('data-init','1');
-    lottie.loadAnimation({container:el,renderer:'svg',loop:true,autoplay:true,animationData:BLACKBIRD_ANIM});
-  });
-}
+function initTaskBirds(){}
 
 function bbSetState(state){
   // state: idle, thinking, success
@@ -3323,7 +3331,7 @@ function openAssignTasksSheet(eventId){
   const ev=events.find(e=>e.id===eventId);if(!ev)return;
   const unassigned=tasks.filter(t=>!t.done&&(!t.event_id||t.event_id===eventId));
   const picker=document.createElement('div');
-  picker.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;display:flex;align-items:flex-end;justify-content:center';
+  picker.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;display:flex;align-items:flex-end;justify-content:center';picker.setAttribute('data-picker','1');
   picker.innerHTML=`<div style="background:var(--bg);border-radius:20px 20px 0 0;width:100%;max-width:700px;max-height:80vh;display:flex;flex-direction:column;padding-bottom:max(16px,env(safe-area-inset-bottom))">
     <div style="padding:14px 16px 10px;border-bottom:1px solid var(--bdr);background:var(--surf);border-radius:20px 20px 0 0;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
       <span style="font-family:'Playfair Display',serif;font-size:17px;font-weight:500">Assign tasks to ${ev.title}</span>
@@ -3337,7 +3345,7 @@ function openAssignTasksSheet(eventId){
           <div style="width:22px;height:22px;border:2px solid ${assigned?'var(--green)':'var(--bdrm)'};border-radius:4px;background:${assigned?'var(--green)':'#fff'};cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center" onclick="toggleTaskEvent(${t.id},${eventId},this)">
             ${assigned?'<span style="color:#fff;font-size:12px;font-weight:700">✓</span>':''}
           </div>
-          <div style="flex:1;cursor:pointer" onclick="closeAllPickers();openDetail(${t.id})">
+          <div style="flex:1;cursor:pointer" onclick="event.stopPropagation();[...document.querySelectorAll('[data-picker]')].forEach(e=>e.remove());openDetail(${t.id})">
             <div style="font-size:13px;font-weight:500">${t.title}</div>
             <div style="display:flex;gap:5px;margin-top:3px;flex-wrap:wrap;align-items:center">
               <span class="task-tag" style="background:${o.bg};color:${o.color}">${o.name}</span>
@@ -3363,12 +3371,20 @@ async function toggleTaskEvent(taskId,eventId,el){
   if(t.event_id===eventId){
     t.event_id=null;
     el.style.borderColor='var(--bdrm)';el.style.background='#fff';el.innerHTML='';
+    try{await api('bravochore_tasks','PATCH',{event_id:null},`?id=eq.${taskId}`);}catch(e){}
   }else{
     t.event_id=eventId;
+    // Auto-set due date to event deadline if task has no due date
+    const ev=events.find(e=>e.id===eventId);
+    if(ev&&ev.due&&!t.due){
+      t.due=ev.due;
+      try{await api('bravochore_tasks','PATCH',{event_id:eventId,due:ev.due},`?id=eq.${taskId}`);}catch(e){}
+    }else{
+      try{await api('bravochore_tasks','PATCH',{event_id:eventId},`?id=eq.${taskId}`);}catch(e){}
+    }
     el.style.borderColor='var(--green)';el.style.background='var(--green)';
     el.innerHTML='<span style="color:#fff;font-size:12px;font-weight:700">✓</span>';
   }
-  try{await api('bravochore_tasks','PATCH',{event_id:t.event_id},`?id=eq.${taskId}`);}catch(e){}
 }
 
 function showEventScorecard(eventId){
@@ -3576,7 +3592,7 @@ async function boot(){
     document.getElementById('bb-fab').style.display='flex';
     setupPill();renderExtraFilters();renderDashboard();initLottie();assignMissingCodes();document.getElementById('bn-dashboard')?.classList.add('active');
     setTimeout(()=>chirp("Loaded. 2 May is watching."),700);
-    setTimeout(()=>bbMsg("Hey — I'm Blackbird. Tap 🐦‍⬛ on any task for advice, or ask me anything.",'from-bb'),100);
+    setTimeout(()=>bbMsg("Hey — I'm Blackbird. Tap the bird icon on any task for advice, or ask me anything.",'from-bb'),100);
   }else{
     document.getElementById('user-picker').style.display='flex';
   }
