@@ -104,15 +104,21 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 .settings-btn:hover{background:var(--surf2)}
 
 /* TIMER STRIP */
-#timer-strip{position:sticky;top:50px;z-index:90;background:var(--surf);border-bottom:2px solid var(--green);color:var(--tx);padding:7px 14px;display:none;align-items:center;gap:8px;font-size:12px;box-shadow:0 2px 8px rgba(92,138,74,.12)}
+#timer-strip{position:sticky;top:50px;z-index:90;background:var(--surf);border-bottom:2px solid var(--green);color:var(--tx);display:none;flex-direction:column;font-size:12px;box-shadow:0 2px 8px rgba(92,138,74,.12);cursor:pointer;transition:all .2s}
 #timer-strip.visible{display:flex}
-.ts-label{flex:1;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--tx)}
-.ts-time{font-family:'DM Mono',monospace;font-size:15px;font-weight:700;min-width:55px;text-align:center;color:var(--green)}
+.ts-collapsed{display:flex;align-items:center;gap:8px;padding:7px 14px}
+.ts-expanded{display:none;padding:4px 14px 10px;border-top:1px solid var(--bdr)}
+#timer-strip.expanded .ts-expanded{display:block}
+.ts-full-label{font-size:13px;font-weight:600;color:var(--tx);margin-bottom:6px;line-height:1.4}
+.ts-expand-hint{font-size:9px;color:var(--tx3);margin-left:auto;flex-shrink:0;padding-left:4px}
+.ts-label{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--tx);flex:1}
+.ts-time{font-family:'DM Mono',monospace;font-size:15px;font-weight:700;min-width:55px;text-align:center;color:var(--green);flex-shrink:0}
 .ts-time.over{color:var(--red)}
 .ts-btn{padding:5px 11px;border-radius:100px;border:1.5px solid var(--bdrm);background:var(--surf2);color:var(--tx);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .15s}
 .ts-btn:active{background:var(--surf)}
 .ts-btn.stop{background:var(--green);color:#fff;border-color:var(--green)}
 .ts-btn.cancel{color:var(--tx3);border-color:transparent;background:none}
+.ts-btns-row{display:flex;gap:6px;margin-top:6px}
 
 /* CONTENT */
 .content{max-width:700px;margin:0 auto;padding:16px 14px 120px}
@@ -227,7 +233,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 .ms-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;border:1.5px solid transparent}
 .ms-dot.d{background:var(--green);border-color:var(--gd)}
 .ms-dot.p{background:var(--surf2);border-color:var(--bdrm)}
-.task-acts{display:flex;gap:2px;flex-shrink:0}
+.task-acts{display:flex;gap:4px;flex-shrink:0;align-items:center}
 .icon-btn{width:34px;height:34px;border-radius:8px;background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--tx3);font-size:14px;flex-shrink:0}
 .icon-btn:active{background:var(--surf2)}
 .icon-btn.timer-on{color:var(--red)}
@@ -765,16 +771,26 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
     </button>
   </div>
 
-  <div id="timer-strip">
-    <span id="ts-label" class="ts-label">Task</span>
-    <div style="display:flex;flex-direction:column;align-items:center;min-width:80px">
+  <div id="timer-strip" onclick="toggleTimerExpand()">
+    <!-- Collapsed row — always visible -->
+    <div class="ts-collapsed">
+      <span id="ts-label" class="ts-label">Task</span>
       <span id="ts-time" class="ts-time">00:00</span>
-      <span id="ts-total" style="font-size:9px;opacity:.5;font-family:'DM Mono',monospace"></span>
+      <span id="ts-total" style="font-size:9px;opacity:.5;font-family:'DM Mono',monospace;flex-shrink:0"></span>
+      <span class="ts-expand-hint" id="ts-hint">▾</span>
     </div>
-    <span id="ts-est" style="font-size:10px;opacity:.55;white-space:nowrap"></span>
-    <button class="ts-btn" id="ts-pause-btn" onclick="timerPause()">⏸</button>
-    <button class="ts-btn stop" onclick="timerStop(true)">✓ Done</button>
-    <button class="ts-btn cancel" onclick="timerCancel()">✕</button>
+    <!-- Expanded area — tap strip to show -->
+    <div class="ts-expanded" onclick="event.stopPropagation()">
+      <div class="ts-full-label" id="ts-full-label"></div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span id="ts-est" style="font-size:11px;color:var(--tx2)"></span>
+      </div>
+      <div class="ts-btns-row">
+        <button class="ts-btn" id="ts-pause-btn" onclick="timerPause()">⏸ Pause</button>
+        <button class="ts-btn stop" onclick="timerStop(true)">✓ Done</button>
+        <button class="ts-btn cancel" onclick="timerCancel()">✕ Cancel</button>
+      </div>
+    </div>
   </div>
 
   <div class="content">
@@ -1480,7 +1496,7 @@ function bnNav(name){
   if(vEl)vEl.classList.add('active');
   const bEl=document.getElementById('bn-'+name);
   if(bEl)bEl.classList.add('active');
-  if(name==='tasks'){renderTasksView();setTimeout(()=>{initDrag();},80);}
+  if(name==='tasks'){renderTasksView();setTimeout(()=>{initDrag();initTaskBirds();},80);}
   else if(name==='shopping')renderShopping();
   else if(name==='events'){loadEvents().then(renderEvents);}
   else if(name==='shelved'){loadEvents().then(renderShelved);}
@@ -1690,6 +1706,7 @@ function renderDashboard(){
     }
   }else{
     document.getElementById('overdue-list').innerHTML='<div class="empty-state">Nothing overdue.</div>';
+  setTimeout(initTaskBirds,150);
   
   }
 
@@ -1777,7 +1794,9 @@ function taskCard(task){
         <button class="icon-btn ${isTimerOn?'timer-on':''}" onclick="startTaskTimer(${task.id},event)" title="Start timer" style="color:${isTimerOn?'var(--red)':'var(--tx3)'}">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${isTimerOn?'<line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><path d="M7 4.5C4.5 6.5 3 9.1 3 12s1.5 5.5 4 7.5"/><path d="M17 4.5C19.5 6.5 21 9.1 21 12s-1.5 5.5-4 7.5"/>':'<path d="M6 2h12M6 22h12M6 2c0 4 2 6 6 10C8 16 6 18 6 22M18 2c0 4-2 6-6 10c4 4 6 6 6 10"/>'}</svg>
         </button>
-        <button class="icon-btn bb-task-btn" onclick="askBBTask(${task.id},event)" title="Ask Blackbird" style="width:26px;height:26px;border-radius:50%;background:var(--gl);border:1.5px solid var(--gm);display:flex;align-items:center;justify-content:center;padding:0;font-size:13px;line-height:1">🐦‍⬛</button>
+        <button class="icon-btn bb-task-btn" onclick="askBBTask(${task.id},event)" title="Ask Blackbird" style="width:26px;height:26px;border-radius:50%;background:#fff;border:1.5px solid var(--gm);display:flex;align-items:center;justify-content:center;padding:0;overflow:hidden;flex-shrink:0">
+          <div class="bb-task-lottie" style="width:26px;height:26px;pointer-events:none"></div>
+        </button>
       </div>
     </div>
   </div>`;
@@ -1826,7 +1845,7 @@ function renderTasksView(){
       ${done.map(taskCard).join('')}
     </div>`;
   }else cs.innerHTML='';
-  setTimeout(()=>{initDrag();},80);
+  setTimeout(()=>{initDrag();initTaskBirds();},80);
 }
 
 function toggleDone(el){
@@ -1893,13 +1912,34 @@ function renderDpBody(task,ms){
     </div>
     <div class="dp-row2">
       <div class="dp-field"><label class="dp-label">Time estimate</label>
-        <div style="display:flex;gap:5px;flex-wrap:wrap" id="dp-time-btns">
-          ${[0.25,0.5,1,1.5,2,3,4,6,8].map(v=>{
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px" id="dp-time-btns">
+          ${[0.25,0.5,0.75,1,1.5,2,3,4].map(v=>{
             const cur=task?parseFloat(task.time_hours||0):0;
             const active=Math.abs(cur-v)<0.01;
-            const lbl=v<1?(v*60)+'m':v%1===0?v+'h':v+'h';
-            return `<button type="button" onclick="dpSetTime(${v},this)" style="padding:6px 10px;border-radius:100px;border:1.5px solid ${active?'var(--green)':'var(--bdrm)'};background:${active?'var(--green)':'var(--surf)'};color:${active?'#fff':'var(--tx2)'};font-family:DM Sans,sans-serif;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0">${lbl}</button>`;
+            const lbl=v<1?(v*60)+'m':v===1?'1h':v+'h';
+            return `<button type="button" onclick="dpSetTime(${v},this)" style="padding:6px 10px;border-radius:100px;border:1.5px solid ${active?'var(--green)':'var(--bdrm)'};background:${active?'var(--green)':'var(--surf)'};color:${active?'#fff':'var(--tx2)'};font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0;transition:all .15s">${lbl}</button>`;
           }).join('')}
+          <button type="button" onclick="dpShowCustomTime(this)" id="dp-time-custom-btn" style="padding:6px 10px;border-radius:100px;border:1.5px solid var(--bdrm);background:var(--surf);color:var(--tx2);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0">Custom</button>
+        </div>
+        <div id="dp-custom-time-row" style="display:none;align-items:center;gap:10px;background:var(--surf2);border-radius:var(--rs);padding:10px 12px">
+          <div style="display:flex;flex-direction:column;align-items:center;flex:1">
+            <label style="font-size:9px;text-transform:uppercase;letter-spacing:.4px;color:var(--tx3);margin-bottom:4px">Hours</label>
+            <div style="display:flex;align-items:center;gap:8px">
+              <button onclick="dpCustomAdjust('h',-1)" style="width:30px;height:30px;border-radius:50%;border:1px solid var(--bdrm);background:var(--surf);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--tx2)">−</button>
+              <span id="dp-custom-h" style="font-family:'DM Mono',monospace;font-size:20px;font-weight:700;min-width:30px;text-align:center">0</span>
+              <button onclick="dpCustomAdjust('h',1)" style="width:30px;height:30px;border-radius:50%;border:1px solid var(--bdrm);background:var(--surf);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--tx2)">+</button>
+            </div>
+          </div>
+          <div style="font-size:20px;color:var(--tx3);margin-top:12px">:</div>
+          <div style="display:flex;flex-direction:column;align-items:center;flex:1">
+            <label style="font-size:9px;text-transform:uppercase;letter-spacing:.4px;color:var(--tx3);margin-bottom:4px">Minutes</label>
+            <div style="display:flex;align-items:center;gap:8px">
+              <button onclick="dpCustomAdjust('m',-15)" style="width:30px;height:30px;border-radius:50%;border:1px solid var(--bdrm);background:var(--surf);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--tx2)">−</button>
+              <span id="dp-custom-m" style="font-family:'DM Mono',monospace;font-size:20px;font-weight:700;min-width:30px;text-align:center">0</span>
+              <button onclick="dpCustomAdjust('m',15)" style="width:30px;height:30px;border-radius:50%;border:1px solid var(--bdrm);background:var(--surf);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--tx2)">+</button>
+            </div>
+          </div>
+          <button onclick="dpConfirmCustomTime()" style="padding:8px 14px;background:var(--green);border:none;border-radius:var(--rs);color:#fff;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;margin-top:12px">Set</button>
         </div>
         <input type="hidden" id="dp-time" value="${task?parseFloat(task.time_hours||0)||0:0}">
       </div>
@@ -2020,11 +2060,54 @@ async function dpToggleTask(){
 
 function dpSetTime(val,btn){
   document.getElementById('dp-time').value=val;
+  const customRow=document.getElementById('dp-custom-time-row');
+  if(customRow)customRow.style.display='none';
   document.querySelectorAll('#dp-time-btns button').forEach(b=>{
     const active=b===btn;
     b.style.borderColor=active?'var(--green)':'var(--bdrm)';
     b.style.background=active?'var(--green)':'var(--surf)';
     b.style.color=active?'#fff':'var(--tx2)';
+  });
+}
+function dpShowCustomTime(btn){
+  const row=document.getElementById('dp-custom-time-row');
+  if(!row)return;
+  const cur=parseFloat(document.getElementById('dp-time').value)||0;
+  const h=Math.floor(cur);
+  const m=Math.round((cur-h)*60);
+  document.getElementById('dp-custom-h').textContent=h;
+  document.getElementById('dp-custom-m').textContent=String(m).padStart(2,'0');
+  row.style.display=row.style.display==='none'?'flex':'none';
+  // deselect presets
+  document.querySelectorAll('#dp-time-btns button:not(#dp-time-custom-btn)').forEach(b=>{
+    b.style.borderColor='var(--bdrm)';b.style.background='var(--surf)';b.style.color='var(--tx2)';
+  });
+  if(btn){btn.style.borderColor='var(--green)';btn.style.background='var(--green)';btn.style.color='#fff';}
+}
+function dpCustomAdjust(unit,delta){
+  const hEl=document.getElementById('dp-custom-h');
+  const mEl=document.getElementById('dp-custom-m');
+  if(!hEl||!mEl)return;
+  let h=parseInt(hEl.textContent)||0;
+  let m=parseInt(mEl.textContent)||0;
+  if(unit==='h'){h=Math.max(0,Math.min(12,h+delta));}
+  else{m=Math.max(0,Math.min(45,m+delta));m=Math.round(m/15)*15;}
+  hEl.textContent=h;
+  mEl.textContent=String(m).padStart(2,'0');
+}
+function dpConfirmCustomTime(){
+  const h=parseInt(document.getElementById('dp-custom-h').textContent)||0;
+  const m=parseInt(document.getElementById('dp-custom-m').textContent)||0;
+  const val=h+(m/60);
+  if(val===0)return;
+  document.getElementById('dp-time').value=val;
+  const lbl=h>0&&m>0?h+'h '+m+'m':h>0?h+'h':m+'m';
+  const btn=document.getElementById('dp-time-custom-btn');
+  if(btn){btn.textContent=lbl;btn.style.borderColor='var(--green)';btn.style.background='var(--green)';btn.style.color='#fff';}
+  document.getElementById('dp-custom-time-row').style.display='none';
+  // Deselect other buttons
+  document.querySelectorAll('#dp-time-btns button:not(#dp-time-custom-btn)').forEach(b=>{
+    b.style.borderColor='var(--bdrm)';b.style.background='var(--surf)';b.style.color='var(--tx2)';
   });
 }
 async function dpSave(){
@@ -2157,6 +2240,14 @@ async function startMsTimer(msId,taskId){
   if(task&&dpTaskId===taskId)renderDpBody(task,getMs(taskId));
 }
 
+
+function toggleTimerExpand(){
+  const strip=document.getElementById('timer-strip');
+  const hint=document.getElementById('ts-hint');
+  if(!strip)return;
+  strip.classList.toggle('expanded');
+  if(hint)hint.textContent=strip.classList.contains('expanded')?'▴':'▾';
+}
 let alarmInterval=null;
 function stopAlarm(){clearInterval(alarmInterval);alarmInterval=null;}
 function startAlarm(){
@@ -2176,6 +2267,8 @@ function startTimerInterval(){
     if(!activeTimer||activeTimer.status==='paused')return;
     const el=elapsedSecs();const rem=activeTimer.estimateSecs-el;
     document.getElementById('ts-label').textContent=activeTimer.label;
+    const fl=document.getElementById('ts-full-label');
+    if(fl)fl.textContent=activeTimer.label;
     const tt=document.getElementById('ts-time');tt.textContent=fmtSecs(el);
     const wasOver=tt.classList.contains('over');
     tt.className='ts-time'+(rem<0?' over':'');
@@ -3191,7 +3284,18 @@ function initLottie(){
   
 }
 
-function initTaskBirds(){}
+function initTaskBirds(){
+  if(typeof lottie==='undefined')return;
+  document.querySelectorAll('.bb-task-lottie:not([data-init])').forEach(el=>{
+    el.setAttribute('data-init','1');
+    const anim=lottie.loadAnimation({
+      container:el,renderer:'svg',loop:false,autoplay:false,
+      animationData:BLACKBIRD_ANIM
+    });
+    // Pause on a mid-frame so it looks natural, not mid-flap
+    anim.addEventListener('DOMLoaded',()=>anim.goToAndStop(8,true));
+  });
+}
 
 function bbSetState(state){
   // state: idle, thinking, success
@@ -3341,19 +3445,22 @@ function openAssignTasksSheet(eventId){
       ${unassigned.map(t=>{
         const assigned=t.event_id===eventId;
         const o=getOwner(t.owner);
-        return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bdr)">
-          <div style="width:22px;height:22px;border:2px solid ${assigned?'var(--green)':'var(--bdrm)'};border-radius:4px;background:${assigned?'var(--green)':'#fff'};cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center" onclick="toggleTaskEvent(${t.id},${eventId},this)">
-            ${assigned?'<span style="color:#fff;font-size:12px;font-weight:700">✓</span>':''}
-          </div>
-          <div style="flex:1;cursor:pointer" onclick="event.stopPropagation();[...document.querySelectorAll('[data-picker]')].forEach(e=>e.remove());openDetail(${t.id})">
-            <div style="font-size:13px;font-weight:500">${t.title}</div>
-            <div style="display:flex;gap:5px;margin-top:3px;flex-wrap:wrap;align-items:center">
-              <span class="task-tag" style="background:${o.bg};color:${o.color}">${o.name}</span>
-              ${t.due?`<span class="task-date ${t.due<tdStr()?'ov':t.due===tdStr()?'ds':''}">${fmtDate(t.due)}</span>`:''}
-              ${t.task_code?`<span class="task-code">${t.task_code}</span>`:''}
+        // Store eventId on picker for reference
+        return `<div style="display:flex;align-items:center;gap:0;padding:0;border-bottom:1px solid var(--bdr)" id="atr-${t.id}">
+          <div style="flex:1;display:flex;align-items:center;gap:10px;padding:12px 10px;cursor:pointer" onclick="toggleTaskEventRow(${t.id},${eventId})">
+            <div id="atc-${t.id}" style="width:22px;height:22px;border:2px solid ${assigned?'var(--green)':'var(--bdrm)'};border-radius:4px;background:${assigned?'var(--green)':'#fff'};flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s">
+              ${assigned?'<span style="color:#fff;font-size:12px;font-weight:700">✓</span>':''}
+            </div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:500;color:var(--tx)">${t.title}</div>
+              <div style="display:flex;gap:5px;margin-top:3px;flex-wrap:wrap;align-items:center">
+                <span class="task-tag" style="background:${o.bg};color:${o.color}">${o.name}</span>
+                ${t.due?`<span class="task-date ${t.due<tdStr()?'ov':t.due===tdStr()?'ds':''}">${fmtDate(t.due)}</span>`:''}
+                ${t.task_code?`<span class="task-code">${t.task_code}</span>`:''}
+              </div>
             </div>
           </div>
-          <span style="font-size:18px;color:var(--tx3);padding:4px">›</span>
+          <div style="padding:12px 10px;cursor:pointer;color:var(--tx3);font-size:20px;border-left:1px solid var(--bdr)" onclick="event.stopPropagation();[...document.querySelectorAll('[data-picker]')].forEach(e=>e.remove());openDetail(${t.id})">›</div>
         </div>`;
       }).join('')}
     </div>
@@ -3366,6 +3473,11 @@ function openAssignTasksSheet(eventId){
 }
 
 async function closeAllPickers(){document.querySelectorAll('[style*="position:fixed"][style*="z-index:900"]').forEach(e=>e.remove());}
+async function toggleTaskEventRow(taskId,eventId){
+  // Find the checkbox element and toggle
+  const chk=document.getElementById('atc-'+taskId);
+  if(chk)await toggleTaskEvent(taskId,eventId,chk);
+}
 async function toggleTaskEvent(taskId,eventId,el){
   const t=tasks.find(x=>x.id===taskId);if(!t)return;
   if(t.event_id===eventId){
@@ -3385,6 +3497,9 @@ async function toggleTaskEvent(taskId,eventId,el){
     el.style.borderColor='var(--green)';el.style.background='var(--green)';
     el.innerHTML='<span style="color:#fff;font-size:12px;font-weight:700">✓</span>';
   }
+  // Also update row background
+  const row=document.getElementById('atr-'+taskId);
+  if(row)row.style.background=t.event_id?'rgba(92,138,74,.04)':'';
 }
 
 function showEventScorecard(eventId){
