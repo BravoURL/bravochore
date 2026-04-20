@@ -91,16 +91,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 
 /* BOTTOM TAB BAR */
 #bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--surf);border-top:1px solid var(--bdr);display:flex;align-items:flex-end;z-index:150;height:60px;padding-bottom:env(safe-area-inset-bottom)}
-.bn-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px;cursor:pointer;color:var(--tx3);transition:all .2s;padding:0 4px 7px;border:none;background:none;font-family:'DM Sans',sans-serif;height:100%;position:relative}
+.bn-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;cursor:pointer;color:var(--tx3);transition:all .2s;padding:0 2px 6px;border:none;background:none;font-family:'DM Sans',sans-serif;height:100%;position:relative;overflow:visible}
 .bn-tab:active{background:var(--surf2)}
 .bn-tab svg{width:21px;height:21px;flex-shrink:0;transition:transform .2s}
 .bn-tab span{font-size:9px;font-weight:600;letter-spacing:.2px;text-transform:uppercase;transition:all .2s}
 /* Active tab gets the raised circle */
 .bn-tab.active{color:var(--green)}
-.bn-tab.active .bn-icon-wrap{width:46px;height:46px;background:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 -3px 14px rgba(92,138,74,.35);border:3px solid var(--surf);margin-bottom:1px;position:relative;bottom:4px}
+.bn-tab.active .bn-icon-wrap{width:44px;height:44px;min-width:44px;min-height:44px;background:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 -3px 14px rgba(92,138,74,.35);border:3px solid var(--surf);margin-bottom:0;position:relative;bottom:6px}
 .bn-tab.active .bn-icon-wrap svg{stroke:#fff;width:22px;height:22px}
 .bn-tab.active span{color:var(--green);font-weight:700}
-.bn-icon-wrap{width:21px;height:21px;display:flex;align-items:center;justify-content:center;margin-bottom:4px}
+.bn-icon-wrap{width:21px;height:21px;min-width:21px;min-height:21px;display:flex;align-items:center;justify-content:center;margin-bottom:4px}
 /* Push content above bottom nav */
 .content{padding-bottom:82px!important}
 .user-pill{display:flex;align-items:center;gap:6px;padding:4px 10px 4px 5px;background:var(--surf2);border-radius:100px;cursor:pointer;font-size:12px;font-weight:600;flex-shrink:0}
@@ -740,6 +740,21 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
   align-self:flex-start;
   flex-shrink:0;
 }
+
+/* REMINDERS */
+.reminder-banner{background:var(--surf);border-bottom:1px solid var(--bdr);padding:10px 14px;display:flex;align-items:center;gap:10px;cursor:pointer}
+.reminder-banner-icon{font-size:16px;flex-shrink:0}
+.reminder-banner-text{flex:1;font-size:12px;color:var(--tx2)}
+.reminder-banner-text strong{color:var(--tx);font-weight:600}
+.reminder-banner-badge{background:var(--amber);color:#fff;font-size:10px;font-weight:700;border-radius:100px;padding:2px 7px;flex-shrink:0}
+/* Reminder sheet */
+.reminder-card{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rs);padding:13px 14px;margin-bottom:8px}
+.reminder-card-title{font-size:14px;font-weight:500;margin-bottom:6px}
+.reminder-card-meta{font-size:11px;color:var(--tx2);margin-bottom:10px}
+.reminder-card-actions{display:flex;gap:7px}
+.rm-btn{padding:6px 13px;border-radius:100px;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid var(--bdrm);background:none;color:var(--tx2)}
+.rm-btn.done{background:var(--green);color:#fff;border-color:var(--green)}
+.rm-btn.snooze{background:var(--al);color:var(--amber);border-color:var(--amber)}
 </style>
 </head>
 <body>
@@ -762,6 +777,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
   <nav class="topnav">
     <div class="brand" onclick="bnNav('dashboard')">Bravo<span style="color:var(--tx);font-weight:400">Chore</span></div>
     <div class="nav-right">
+      <button onclick="openRemindersSheet()" title="Routines" style="background:none;border:none;cursor:pointer;font-size:16px;padding:4px 6px;color:var(--tx2);position:relative" id="reminder-bell">🔔<span id="reminder-badge" style="display:none;position:absolute;top:2px;right:2px;width:8px;height:8px;background:var(--amber);border-radius:50%"></span></button>
       <button class="settings-btn" onclick="openSettings()" title="Settings">⚙</button>
       <div class="user-pill" onclick="switchUser()">
         <div id="pill-av" class="pill-av"></div>
@@ -823,6 +839,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
         <h2 id="dash-greeting">Good morning</h2>
         <p id="dash-date"></p>
       </div>
+      <div id="reminder-banner" style="display:none;background:var(--al);border:1px solid var(--amber);border-radius:var(--rs);padding:10px 13px;margin-bottom:10px;display:none;align-items:center;gap:10px;cursor:pointer" onclick="openRemindersSheet()">
+        <span style="font-size:16px;flex-shrink:0">🔔</span>
+        <span id="reminder-banner-text" style="flex:1;font-size:12px;font-weight:500;color:var(--amber)"></span>
+        <span style="font-size:11px;color:var(--amber);font-weight:700">View →</span>
+      </div>
 
       <!-- HOUSEHOLD SNAPSHOT — 4 tappable tiles -->
       <div class="metric-grid" id="metric-grid" style="margin-bottom:14px"></div>
@@ -830,7 +851,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
       <!-- QUICK ACTIONS -->
       <div class="quick-actions">
         <button class="qa-btn accent" onclick="applyFilter('today')" style="display:flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Due Today</button>
-        <button class="qa-btn urgent" onclick="applyFilter('overdue')" style="display:flex;align-items:center;gap:5px"><svg width="14" height="14" viewBox="0 0 32 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="15" cy="10" rx="8" ry="6"/><path d="M23 10 Q28 8 29 10 Q28 12 23 10"/><path d="M9 6 Q6 2 4 3 Q3 5 6 7"/><path d="M9 14 Q6 18 4 17 Q3 15 6 13"/><path d="M13 16 Q12 20 11 19"/><path d="M17 16 Q16 20 15 19"/><path d="M12 6 Q10 2 9 3"/><path d="M15 5 Q14 1 13 2"/><path d="M10 10 Q8 9 7 10 Q8 11 10 10"/><ellipse cx="15" cy="10" rx="5" ry="4" stroke-dasharray="2 1.5"/></svg> Overdue</button>
+        <button class="qa-btn urgent" onclick="applyFilter('overdue')" style="display:flex;align-items:center;gap:5px">🐢 Overdue</button>
         <button class="qa-btn" onclick="applyFilter('quickwin')" style="display:flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A4.5 4.5 0 0 0 17 12c0-3-2-5-4-7-2 2-3 4-3 6-.5-1-1.5-2-2-3-1 2-1 4 .5 6.5"/><path d="M12 21a6 6 0 0 0 6-6c0-4-3-6-6-8-3 2-6 4-6 8a6 6 0 0 0 6 6z"/></svg> Quick Wins</button>
         <button class="qa-btn" onclick="openDetail(null)">+ Add Task</button>
       </div>
@@ -1141,6 +1162,68 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
   </div>
 </div>
 
+
+<!-- REMINDERS SHEET -->
+<div class="modal-bd" id="reminders-modal">
+  <div class="modal" style="max-width:440px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-shrink:0">
+      <h3 style="margin:0">Routines</h3>
+      <button class="qa-btn accent" style="font-size:11px;padding:5px 10px" onclick="openNewReminderSheet()">+ Add</button>
+    </div>
+    <div id="reminders-list" style="flex:1;overflow-y:auto"></div>
+    <div style="margin-top:10px;flex-shrink:0">
+      <button onclick="closeModal('reminders-modal')" style="width:100%;padding:11px;background:none;border:1px solid var(--bdrm);border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;color:var(--tx2)">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- NEW REMINDER SHEET -->
+<div class="modal-bd" id="new-reminder-modal">
+  <div class="modal" style="max-width:420px">
+    <h3>New Routine</h3>
+    <div class="dp-field" style="margin-top:12px">
+      <label class="dp-label">What should I remind you?</label>
+      <input class="dp-input" id="nr-title" placeholder="e.g. Put bins out">
+    </div>
+    <div class="dp-field">
+      <label class="dp-label">Recurrence</label>
+      <select class="dp-select" id="nr-recurrence" onchange="nrRecurrenceChange()">
+        <option value="once">Once</option>
+        <option value="daily">Daily</option>
+        <option value="weekly" selected>Weekly</option>
+        <option value="monthly">Monthly</option>
+      </select>
+    </div>
+    <div id="nr-day-row" class="dp-field">
+      <label class="dp-label">Days of week <span style="font-weight:400;color:var(--tx3)">(tap multiple)</span></label>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">
+        <button type="button" id="nrd-0" onclick="toggleRoutineDay(0)" style="padding:6px 9px;border-radius:100px;border:1.5px solid var(--bdrm);background:var(--surf);color:var(--tx2);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">Sun</button>
+        <button type="button" id="nrd-1" onclick="toggleRoutineDay(1)" style="padding:6px 9px;border-radius:100px;border:1.5px solid var(--bdrm);background:var(--surf);color:var(--tx2);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">Mon</button>
+        <button type="button" id="nrd-2" onclick="toggleRoutineDay(2)" style="padding:6px 9px;border-radius:100px;border:1.5px solid var(--bdrm);background:var(--surf);color:var(--tx2);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">Tue</button>
+        <button type="button" id="nrd-3" onclick="toggleRoutineDay(3)" style="padding:6px 9px;border-radius:100px;border:1.5px solid var(--bdrm);background:var(--surf);color:var(--tx2);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">Wed</button>
+        <button type="button" id="nrd-4" onclick="toggleRoutineDay(4)" style="padding:6px 9px;border-radius:100px;border:1.5px solid var(--bdrm);background:var(--surf);color:var(--tx2);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">Thu</button>
+        <button type="button" id="nrd-5" onclick="toggleRoutineDay(5)" style="padding:6px 9px;border-radius:100px;border:1.5px solid var(--bdrm);background:var(--surf);color:var(--tx2);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">Fri</button>
+        <button type="button" id="nrd-6" onclick="toggleRoutineDay(6)" style="padding:6px 9px;border-radius:100px;border:1.5px solid var(--bdrm);background:var(--surf);color:var(--tx2);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">Sat</button>
+      </div>
+      <input type="hidden" id="nr-days" value="4">
+    </div>
+    <div class="dp-field">
+      <label class="dp-label">Date (for once-off)</label>
+      <input type="date" class="dp-input" id="nr-date">
+    </div>
+    <div class="dp-field">
+      <label class="dp-label">Owner</label>
+      <select class="dp-select" id="nr-owner">
+        ${people.map(p=>`<option value="${p.code}">${p.name}</option>`).join('')}
+      </select>
+    </div>
+    <div class="modal-acts" style="margin-top:16px">
+      <button class="btn-cancel" onclick="closeModal('new-reminder-modal')">Cancel</button>
+      <button class="btn-ok" onclick="saveReminder()">Save</button>
+    </div>
+  </div>
+</div>
+
 <!-- DETAIL PANEL -->
 <div id="detail-backdrop" onclick="closeDetail()"></div>
 <div id="detail-panel">
@@ -1157,7 +1240,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
   <div class="dp-footer">
     <button class="dp-pdf" onclick="generatePDFForTask()">🖨</button>
     <button class="dp-del" onclick="dpDelete()">Delete</button>
-    <button class="dp-shelve" onclick="dpShelveTask()" title="Move to Shelved" style="padding:0 14px;height:36px;background:none;border:1.5px solid var(--bdrm);border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;color:var(--tx2);cursor:pointer;white-space:nowrap">Shelve</button>
+    <button class="dp-del" onclick="dpShelveTask()" title="Move to Shelved">Shelve</button>
     <button class="dp-save" onclick="dpSave()">Save</button>
   </div>
 </div>
@@ -1422,6 +1505,7 @@ async function loadData(){
   try{
     badge('sy','↻ Loading...');
     await loadEvents();
+    await loadReminders();
     const[t,m,s,tim]=await Promise.all([
       api('bravochore_tasks','GET',null,'?order=sort_order.asc'),
       api('bravochore_milestones','GET',null,'?order=sort_order.asc'),
@@ -1532,7 +1616,8 @@ function bnNav(name){
   document.querySelectorAll('.bn-tab').forEach(t=>t.classList.remove('active'));
   const vEl=document.getElementById('view-'+name);
   if(vEl)vEl.classList.add('active');
-  
+  const bEl=document.getElementById('bn-'+name);
+  if(bEl)bEl.classList.add('active');
   if(name==='tasks'){renderTasksView();setTimeout(()=>{initDrag();initTaskBirds();},80);}
   else if(name==='shopping')renderShopping();
   else if(name==='events'){loadEvents().then(renderEvents);}
@@ -2805,7 +2890,7 @@ async function sendToBB(){
   const myPending=tasks.filter(t=>!t.done&&t.owner&&t.owner.includes(CU)).sort((a,b)=>(a.due||'9').localeCompare(b.due||'9')).slice(0,10);
   const doneCount=tasks.filter(t=>t.done).length;
 
-  const taskSummary=`Deadline: 2 May 2026 (${daysLeft} days away). ${doneCount}/${tasks.length} tasks done.
+  const taskSummary=`${doneCount}/${tasks.length} tasks done.
 OVERDUE: ${overdueTasks.length?overdueTasks.map(t=>`"${t.title}" was due ${fmtDate(t.due)}`).join(', '):'none'}.
 ${CUN}'s upcoming: ${myPending.map(t=>`"${t.title}" due ${fmtDate(t.due)||'no date'} ${getEffectiveTime(t).toFixed(1)}h`).join(' | ')}`;
 
@@ -2821,7 +2906,7 @@ ${CUN}'s upcoming: ${myPending.map(t=>`"${t.title}" due ${fmtDate(t.due)||'no da
 
   if(addIntent||hasPhotos){
     // TASK CREATION MODE — ask Claude to return structured JSON
-    const sys=`You are Blackbird inside BravoChore, a household task app for ${CUN} in Perth, WA. Goal: 2 May 2026 deadline.
+    const sys=`You are Blackbird, the AI inside BravoChore. Be warm, direct and genuinely helpful — like a smart friend who knows the household inside out. User: ${CUN}, Perth WA. Respond conversationally. Use bullet points only for steps. Don't be corporate.
 ${taskSummary}
 ${taskCtx}
 
@@ -2864,7 +2949,7 @@ Rules:
     }catch(e){bbMsg("Connection issue — try again.",'from-bb');}
   }else{
     // GENERAL CHAT MODE
-    const sys=`You are Blackbird inside BravoChore, a household task app for Brent (BW) and Bernadette (BJ) Wallis in Perth, WA. User logged in: ${CUN}. Deadline: 2 May 2026.
+    const sys=`You are Blackbird, the AI inside BravoChore. Warm, direct, genuinely helpful — like a smart friend who knows the house. Brent (BW) and Bernadette (BJ), Perth WA. User: ${CUN}. Conversational tone, not corporate.
 ${taskSummary}
 ${taskCtx}
 Be direct, warm, practical. 2-4 sentences max. Suggest specific Bunnings Perth or ABI Interiors products where relevant.`;
@@ -3448,6 +3533,213 @@ function bbSetState(state){
 }
 
 
+
+// ================================================================
+// REMINDERS
+// ================================================================
+let reminders=[];
+
+async function loadReminders(){
+  try{reminders=await api('bravochore_reminders','GET',null,'?status=neq.dismissed&order=next_remind.asc');}
+  catch(e){reminders=[];}
+}
+
+function checkReminders(){
+  const today=tdStr();
+  const due=reminders.filter(r=>{
+    if(r.status==='snoozed'&&r.snooze_until&&r.snooze_until>today)return false;
+    return r.next_remind&&r.next_remind<=today;
+  });
+  const banner=document.getElementById('reminder-banner');
+  const bannerTxt=document.getElementById('reminder-banner-text');
+  const bellBadge=document.getElementById('reminder-badge');
+  if(bellBadge)bellBadge.style.display=due.length?'block':'none';
+  if(banner&&bannerTxt){
+    if(due.length){
+      banner.style.display='flex';
+      bannerTxt.textContent=due.length===1
+        ?`Routine: ${due[0].title}`
+        :`${due.length} routines due`;
+    }else{
+      banner.style.display='none';
+    }
+  }
+}
+
+function openRemindersSheet(){
+  closeModal('reminders-modal');
+  const list=document.getElementById('reminders-list');
+  if(!list)return;
+  const today=tdStr();
+  const due=reminders.filter(r=>{
+    if(r.status==='snoozed'&&r.snooze_until&&r.snooze_until>today)return false;
+    return r.next_remind&&r.next_remind<=today;
+  });
+  const upcoming=reminders.filter(r=>r.next_remind>today||r.status==='snoozed');
+  const renderCard=(r,isDue)=>`
+    <div class="reminder-card" id="rmc-${r.id}">
+      <div class="reminder-card-title">${r.title}</div>
+      <div class="reminder-card-meta">${r.recurrence==='weekly'?(r.recurrence_days?r.recurrence_days.split(',').map(n=>['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][n]).join(', '):''+['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][r.recurrence_day]):r.recurrence==='daily'?'Daily':r.recurrence==='monthly'?'Monthly':fmtDate(r.next_remind)}${r.owner?' · '+getOwner(r.owner).name:''}</div>
+      ${isDue?`<div class="reminder-card-actions">
+        <button class="rm-btn done" onclick="reminderDone(${r.id})">✓ Done</button>
+        <button class="rm-btn snooze" onclick="reminderSnooze(${r.id})">Snooze</button>
+        <button class="rm-btn" onclick="reminderDismiss(${r.id})">Dismiss</button>
+      </div>`:''}
+    </div>`;
+  list.innerHTML=
+    (due.length?`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--amber);margin-bottom:8px">Due now</div>${due.map(r=>renderCard(r,true)).join('')}`:'')
+    +(upcoming.length?`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--tx3);margin:12px 0 8px">Upcoming</div>${upcoming.map(r=>renderCard(r,false)).join('')}`:'')
+    +(due.length===0&&upcoming.length===0?'<p style="color:var(--tx2);font-size:13px;text-align:center;padding:20px 0">No active routines.</p>':'');
+  openModal('reminders-modal');
+}
+
+async function reminderDone(id){
+  const r=reminders.find(x=>x.id===id);if(!r)return;
+  // Advance to next occurrence
+  const next=getNextReminderDate(r);
+  if(next){
+    r.next_remind=next;r.status='active';
+    try{await api('bravochore_reminders','PATCH',{next_remind:next,status:'active'},`?id=eq.${id}`);}catch(e){}
+  }else{
+    r.status='dismissed';
+    try{await api('bravochore_reminders','PATCH',{status:'dismissed'},`?id=eq.${id}`);}catch(e){}
+  }
+  document.getElementById('rmc-'+id)?.remove();
+  checkReminders();
+}
+
+async function reminderSnooze(id){
+  const r=reminders.find(x=>x.id===id);if(!r)return;
+  // Show snooze picker
+  const options=['1 hour','3 hours','Tomorrow','3 days','1 week'];
+  const today=new Date();
+  const getSnoozeDate=(opt)=>{
+    const d=new Date();
+    if(opt==='1 hour'){d.setHours(d.getHours()+1);}
+    else if(opt==='3 hours'){d.setHours(d.getHours()+3);}
+    else if(opt==='Tomorrow'){d.setDate(d.getDate()+1);}
+    else if(opt==='3 days'){d.setDate(d.getDate()+3);}
+    else if(opt==='1 week'){d.setDate(d.getDate()+7);}
+    return d.toISOString().slice(0,10);
+  };
+  const picker=document.createElement('div');
+  picker.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;display:flex;align-items:flex-end;justify-content:center';
+  picker.innerHTML=`<div style="background:var(--surf);border-radius:20px 20px 0 0;width:100%;max-width:500px;padding:20px;padding-bottom:max(20px,env(safe-area-inset-bottom))">
+    <div style="font-family:'Playfair Display',serif;font-size:17px;font-weight:500;margin-bottom:14px">Snooze until...</div>
+    ${options.map(o=>`<button onclick="doSnooze(${id},'${getSnoozeDate(o)}');this.closest('[style*=position]').remove()" style="display:block;width:100%;text-align:left;padding:12px 14px;margin-bottom:6px;background:var(--surf2);border:1px solid var(--bdr);border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:14px;cursor:pointer;color:var(--tx)">${o}</button>`).join('')}
+    <button onclick="this.closest('[style*=position]').remove()" style="display:block;width:100%;padding:11px;margin-top:4px;background:none;border:1px solid var(--bdrm);border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;color:var(--tx2)">Cancel</button>
+  </div>`;
+  picker.addEventListener('click',e=>{if(e.target===picker)picker.remove();});
+  document.body.appendChild(picker);
+}
+
+async function doSnooze(id,until){
+  const r=reminders.find(x=>x.id===id);if(!r)return;
+  r.status='snoozed';r.snooze_until=until;
+  try{await api('bravochore_reminders','PATCH',{status:'snoozed',snooze_until:until},`?id=eq.${id}`);}catch(e){}
+  document.getElementById('rmc-'+id)?.remove();
+  checkReminders();
+  chirp('Snoozed until '+fmtDate(until));
+}
+
+async function reminderDismiss(id){
+  reminders=reminders.filter(r=>r.id!==id);
+  try{await api('bravochore_reminders','PATCH',{status:'dismissed'},`?id=eq.${id}`);}catch(e){}
+  document.getElementById('rmc-'+id)?.remove();
+  checkReminders();
+}
+
+function getNextReminderDate(r){
+  const d=new Date();
+  if(r.recurrence==='once')return null;
+  if(r.recurrence==='daily'){d.setDate(d.getDate()+1);return d.toISOString().slice(0,10);}
+  if(r.recurrence==='weekly'){
+    const allDays=r.recurrence_days?r.recurrence_days.split(',').map(Number):[r.recurrence_day||4];
+    const today=d.getDay();
+    const sorted=[...allDays].sort((a,b)=>a-b);
+    const next=sorted.find(day=>day>today)??sorted[0];
+    const diff=(next-today+7)%7||7;
+    d.setDate(d.getDate()+diff);return d.toISOString().slice(0,10);
+  }
+  if(r.recurrence==='monthly'){d.setMonth(d.getMonth()+1);return d.toISOString().slice(0,10);}
+  return null;
+}
+
+function openNewReminderSheet(){
+  document.getElementById('nr-title').value='';
+  document.getElementById('nr-recurrence').value='weekly';
+  document.getElementById('nr-days').value='4';
+  document.getElementById('nr-date').value='';
+  nrRecurrenceChange();
+  setTimeout(()=>initRoutineDayBtns('4'),50);
+  closeModal('reminders-modal');
+  openModal('new-reminder-modal');
+  setTimeout(()=>document.getElementById('nr-title')?.focus(),100);
+}
+
+function nrRecurrenceChange(){
+  const rec=document.getElementById('nr-recurrence')?.value;
+  const dayRow=document.getElementById('nr-day-row');
+  const dateField=document.querySelector('#new-reminder-modal input[type="date"]')?.closest('.dp-field');
+  if(dayRow)dayRow.style.display=rec==='weekly'?'block':'none';
+  if(dateField)dateField.style.display=rec==='once'?'block':'none';
+}
+function toggleRoutineDay(idx){
+  const inp=document.getElementById('nr-days');if(!inp)return;
+  let days=inp.value?inp.value.split(',').map(Number).filter(n=>!isNaN(n)):[];
+  const btn=document.getElementById('nrd-'+idx);
+  if(days.includes(idx)){
+    days=days.filter(d=>d!==idx);
+    if(btn){btn.style.background='var(--surf)';btn.style.borderColor='var(--bdrm)';btn.style.color='var(--tx2)';}
+  }else{
+    days.push(idx);days.sort();
+    if(btn){btn.style.background='var(--green)';btn.style.borderColor='var(--green)';btn.style.color='#fff';}
+  }
+  inp.value=days.join(',');
+}
+function initRoutineDayBtns(daysStr){
+  const days=daysStr?daysStr.split(',').map(Number):[];
+  [0,1,2,3,4,5,6].forEach(i=>{
+    const btn=document.getElementById('nrd-'+i);if(!btn)return;
+    const on=days.includes(i);
+    btn.style.background=on?'var(--green)':'var(--surf)';
+    btn.style.borderColor=on?'var(--green)':'var(--bdrm)';
+    btn.style.color=on?'#fff':'var(--tx2)';
+  });
+}
+
+async function saveReminder(){
+  const title=document.getElementById('nr-title')?.value.trim();
+  if(!title){chirp('Please enter a routine.');return;}
+  const rec=document.getElementById('nr-recurrence')?.value||'weekly';
+  const daysStr=document.getElementById('nr-days')?.value||'4';const days=daysStr.split(',').map(Number).filter(n=>!isNaN(n));const day=days[0]||4;
+  const dateVal=document.getElementById('nr-date')?.value||null;
+  const owner=document.getElementById('nr-owner')?.value||CU;
+  // Calculate first reminder date
+  let nextRemind=dateVal;
+  if(!nextRemind){
+    const d=new Date();
+    if(rec==='daily'){nextRemind=d.toISOString().slice(0,10);}
+    else if(rec==='weekly'){
+      const diff=(day-d.getDay()+7)%7||7;
+      d.setDate(d.getDate()+diff);nextRemind=d.toISOString().slice(0,10);
+    }else if(rec==='monthly'){
+      d.setDate(d.getDate()+1);nextRemind=d.toISOString().slice(0,10);
+    }
+  }
+  closeModal('new-reminder-modal');
+  const nr={title,owner,recurrence:rec,recurrence_day:day,recurrence_days:daysStr,next_remind:nextRemind,status:'active'};
+  try{
+    const res=await api('bravochore_reminders','POST',[nr]);
+    if(res&&res[0])reminders.push(res[0]);else reminders.push({...nr,id:Date.now()});
+  }catch(e){reminders.push({...nr,id:Date.now()});}
+  chirp('Routine set: '+title);
+  checkReminders();
+}
+
+// Blackbird can also set reminders via natural language
+// (detected in BB response handling — see system prompt)
+
 // ================================================================
 // SELECT MODE (multi-shelve)
 // ================================================================
@@ -3889,7 +4181,7 @@ async function boot(){
     document.getElementById('app').style.display='block';
     document.getElementById('bb-fab').style.display='flex';
     setupPill();renderExtraFilters();renderDashboard();initLottie();assignMissingCodes();document.getElementById('bn-dashboard')?.classList.add('active');
-    setTimeout(()=>chirp("Loaded. 2 May is watching."),700);
+    setTimeout(()=>checkReminders(),700);
     setTimeout(()=>bbMsg("Hey — I'm Blackbird. Tap the bird icon on any task for advice, or ask me anything.",'from-bb'),100);
   }else{
     document.getElementById('user-picker').style.display='flex';
