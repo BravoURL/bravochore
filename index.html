@@ -700,6 +700,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 .shelved-promote-btn:active{background:var(--gm)}
 .shelved-del{width:28px;height:28px;background:none;border:none;color:var(--tx3);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;border-radius:6px}
 .shelved-del:active{background:var(--rl);color:var(--red)}
+
+/* EVENTS STRIP ON DASHBOARD */
+.dash-event-strip{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer;position:relative;overflow:hidden}
+.dash-event-strip::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--green)}
+.dash-event-strip:active{background:var(--surf2)}
+.dash-event-info{flex:1;min-width:0}
+.dash-event-name{font-size:13px;font-weight:600;color:var(--tx);margin-bottom:2px}
+.dash-event-meta{font-size:11px;color:var(--tx2)}
+.dash-event-pct{font-family:'DM Mono',monospace;font-size:18px;font-weight:700;color:var(--green);flex-shrink:0}
+.dash-no-events{background:var(--surf);border:1px dashed var(--bdrm);border-radius:var(--r);padding:14px;text-align:center;margin-bottom:14px;cursor:pointer}
+.dash-no-events p{font-size:12px;color:var(--tx3)}
+.dash-no-events span{font-size:12px;color:var(--green);font-weight:600}
 </style>
 </head>
 <body>
@@ -773,52 +785,41 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
         <h2 id="dash-greeting">Good morning</h2>
         <p id="dash-date"></p>
       </div>
-      <div class="today-strip">
-        <div class="today-icon">📋</div>
-        <div class="today-info">
-          <h3 id="today-hl">Loading...</h3>
-          <p id="today-sub"></p>
-        </div>
-      </div>
-      <div class="metric-grid" id="metric-grid"></div>
-      <div class="progress-section">
-        <div class="progress-header">
-          <span class="progress-title">Overall progress to 2 May</span>
-          <span id="track-badge" class="track-badge on-track">On track</span>
-        </div>
-        <div class="pbar"><div id="main-pfill" class="pfill" style="width:0%"></div></div>
-        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--tx3);margin-top:3px">
-          <span id="prog-done">0 items complete</span>
-          <span id="prog-rem">0h remaining</span>
-        </div>
-      </div>
-      <div class="leaderboard" id="leaderboard"></div>
-      <div class="pace-section">
-        <div class="pace-header">
-          <span class="pace-title">Pace tracker</span>
-          <div class="toggle-row">
-            <button class="tog-btn active" onclick="setPaceView('pace',this)">Current</button>
-            <button class="tog-btn" onclick="setPaceView('proj',this)">Projected</button>
-          </div>
-        </div>
-        <div class="pace-grid" id="pace-grid"></div>
-      </div>
+
+      <!-- HOUSEHOLD SNAPSHOT — 4 tappable tiles -->
+      <div class="metric-grid" id="metric-grid" style="margin-bottom:14px"></div>
+
+      <!-- QUICK ACTIONS -->
       <div class="quick-actions">
         <button class="qa-btn accent" onclick="applyFilter('today')">📅 Due Today</button>
-        <button class="qa-btn urgent" onclick="applyFilter('overdue')">🔥 Pressure On</button>
+        <button class="qa-btn urgent" onclick="applyFilter('overdue')">🔥 Overdue</button>
         <button class="qa-btn" onclick="applyFilter('quickwin')">⚡ Quick Wins</button>
         <button class="qa-btn" onclick="openDetail(null)">+ Add Task</button>
       </div>
-      <div class="sec-header" style="cursor:pointer" onclick="applyFilter('today')">
+
+      <!-- ACTIVE EVENTS STRIP -->
+      <div id="dash-events-strip"></div>
+
+      <!-- YOUR TASKS -->
+      <div class="sec-header" style="cursor:pointer" onclick="bnNav('tasks')">
         <span class="sec-title">Your tasks</span>
         <span class="sec-count" id="my-done-ct"></span>
       </div>
       <div id="my-tasks-list"></div>
-      <div class="sec-header" style="cursor:pointer" onclick="applyFilter('overdue')">
+
+      <!-- OVERDUE -->
+      <div class="sec-header" style="cursor:pointer;margin-top:4px" onclick="applyFilter('overdue')">
         <span class="sec-title">Overdue</span>
         <span id="overdue-count" class="sec-count"></span>
       </div>
       <div id="overdue-list"></div>
+
+      <!-- DONE THIS WEEK -->
+      <div class="sec-header" style="cursor:pointer;margin-top:4px" onclick="showDoneList()">
+        <span class="sec-title">Done this week</span>
+        <span id="done-week-count" class="sec-count"></span>
+      </div>
+      <div id="done-week-list"></div>
     </div>
 
     <!-- ALL TASKS -->
@@ -887,11 +888,17 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 
     <!-- EVENTS -->
     <div id="view-events" class="view">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <h2 style="font-family:'Playfair Display',serif;font-size:20px;font-weight:500">Events</h2>
-        <button class="qa-btn accent" style="font-size:11px;padding:6px 12px" onclick="openAddEvent()">+ New Event</button>
+        <button class="qa-btn accent" style="font-size:11px;padding:7px 12px" onclick="openNewEventSheet()">+ New Event</button>
       </div>
+      <p style="font-size:13px;color:var(--tx2);margin-bottom:16px">Deadlines that matter — a wedding, a valuation, visitors. Assign tasks to an event, track progress, then close it when it's done.</p>
       <div id="events-list"></div>
+      <div id="events-empty" style="display:none;text-align:center;padding:32px 20px">
+        <div style="font-size:32px;margin-bottom:10px">📅</div>
+        <p style="font-size:15px;font-weight:500;margin-bottom:6px">No events yet</p>
+        <p style="font-size:13px;color:var(--tx2)">Create one to focus your tasks around a deadline.</p>
+      </div>
     </div>
 
     <!-- SHELVED -->
@@ -908,8 +915,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 </div>
 
 <!-- BLACKBIRD FAB -->
-<div id="bb-fab" onclick="openBBFullscreen()" style="position:fixed;bottom:70px;right:16px;width:56px;height:56px;background:var(--gl);border:2px solid var(--gm);border-radius:50%;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:200;box-shadow:0 4px 20px rgba(92,138,74,.25);overflow:hidden">
-  <div id="bb-lottie-fab" style="width:56px;height:56px;margin:-2px"></div>
+<div id="bb-fab" onclick="openBBFullscreen()" style="position:fixed;bottom:70px;right:14px;width:46px;height:46px;background:var(--gl);border:1.5px solid var(--gm);border-radius:50%;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:200;box-shadow:0 2px 12px rgba(92,138,74,.18);overflow:hidden">
+  <div id="bb-lottie-fab" style="width:38px;height:38px"></div>
 </div>
 
 <!-- FULLSCREEN BLACKBIRD -->
@@ -1591,94 +1598,119 @@ function renderDashboard(){
   const done=allI.filter(i=>i.done);
   const overdue=tasks.filter(t=>t.due&&t.due<today&&!t.done);
   const todayDue=tasks.filter(t=>t.due===today&&!t.done);
-  const totalH=allI.reduce((s,i)=>s+i.timeH,0);
-  const doneH=done.reduce((s,i)=>s+i.timeH,0);
-  const remH=totalH-doneH;
-  const daysLeft=Math.max(0,Math.ceil((TARGET-new Date())/86400000));
-  const pct=allI.length?Math.round((done.length/allI.length)*100):0;
-  const totalDays=Math.ceil((TARGET-new Date('2026-04-01'))/86400000);
-  const daysPassed=totalDays-daysLeft;
-  const expPct=Math.min(100,Math.round((daysPassed/totalDays)*100));
-  const onTrack=pct>=expPct-10;
+  const doneThisWeek=tasks.filter(t=>{
+    if(!t.done||!t.actual_time_hours)return t.done;
+    return t.done;
+  }).slice(0,10); // approximate — no updated_at on tasks yet
+  const doneCount=tasks.filter(t=>t.done).length;
+  const totalCount=tasks.length;
+  const myPending=tasks.filter(t=>t.owner&&t.owner.includes(CU)&&!t.done)
+    .sort((a,b)=>(a.sort_order||999)-(b.sort_order||999)).slice(0,6);
+
+  // Greeting
   const hr=new Date().getHours();
   document.getElementById('dash-greeting').textContent=`${hr<12?'Good morning':hr<17?'Good afternoon':'Good evening'}, ${CUN}`;
   document.getElementById('dash-date').textContent=new Date().toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  document.getElementById('today-hl').textContent=todayDue.length?`${todayDue.length} task${todayDue.length>1?'s':''} due today`:done.length?`${done.length} items done — keep going`:'Nothing due today — get ahead';
-  document.getElementById('today-sub').textContent=`${daysLeft} days to 2 May · ${fmtHours(remH)} remaining`;
-  const remHPerDay=remH/Math.max(daysLeft,1);
+
+  // 4 household snapshot tiles
   document.getElementById('metric-grid').innerHTML=`
-    <div class="metric-card ${done.length?'mc-green':''}" style="cursor:pointer" onclick="bnNav('tasks')">
-      <div class="metric-label">Done</div><div class="metric-value">${done.length}</div><div class="metric-sub">of ${allI.length}</div></div>
+    <div class="metric-card ${doneCount?'mc-green':''}" style="cursor:pointer" onclick="showDoneList()">
+      <div class="metric-label">Done</div>
+      <div class="metric-value">${doneCount}</div>
+      <div class="metric-sub">of ${totalCount} tasks</div>
+    </div>
     <div class="metric-card ${overdue.length?'mc-red':''}" style="cursor:pointer" onclick="applyFilter('overdue')">
-      <div class="metric-label">Overdue</div><div class="metric-value">${overdue.length}</div><div class="metric-sub">tap to view</div></div>
-    <div class="metric-card"><div class="metric-label">Days left</div><div class="metric-value">${daysLeft}</div><div class="metric-sub">to 2 May</div></div>
-    <div class="metric-card ${remH>daysLeft*4?'mc-amber':'mc-green'}">
-      <div class="metric-label">Time left</div>
-      <div class="metric-value" style="font-size:${remH>=100?'16px':remH>=10?'18px':'22px'}">${fmtHours(remH)}</div>
-      <div class="metric-sub">${fmtHours(remHPerDay)}/day</div></div>`;
-  const fill=document.getElementById('main-pfill');
-  fill.style.width=pct+'%';fill.className='pfill'+(pct<expPct-20?' red':pct<expPct-10?' amber':'');
-  document.getElementById('prog-done').textContent=`${done.length} of ${allI.length} items complete`;
-  document.getElementById('prog-rem').textContent=`${fmtHours(remH)} remaining`;
-  const b=document.getElementById('track-badge');
-  b.className='track-badge '+(onTrack?'on-track':pct>=expPct-20?'at-risk':'off-track');
-  b.textContent=onTrack?'✓ On track':pct>=expPct-20?'⚠ At risk':'✗ Off track';
-  // Leaderboard — only BW and BJ
-  const lbPeople=people.filter(p=>p.code==='BW'||p.code==='BJ');
-  const lbData=lbPeople.map(p=>{
-    const items=ownerItems(p.code);
-    const d=items.filter(i=>i.done);
-    const dH=d.reduce((s,i)=>s+i.timeH,0);
-    const rH=items.reduce((s,i)=>s+i.timeH,0)-dH;
-    return{...p,pct:items.length?Math.round((d.length/items.length)*100):0,done:d.length,total:items.length,doneH:dH,remH:rH};
-  });
-  const winner=lbData.reduce((a,b)=>a.pct>b.pct?a:b.pct>a.pct?b:a.done>=b.done?a:b,lbData[0]);
-  document.getElementById('leaderboard').innerHTML=lbData.map(lb=>`
-    <div class="lb-card ${lb.code===winner.code?'winning':''}">
-      ${lb.code===winner.code?'<div class="lb-crown">👑</div>':''}
-      <div class="lb-name"><div class="lb-av" style="background:${lb.bg};color:${lb.color}">${lb.code}</div>${lb.name}</div>
-      <div class="lb-pbar"><div class="lb-pfill" style="width:${lb.pct}%;background:${lb.color}"></div></div>
-      <div class="lb-pct">${lb.pct}% complete</div>
-      <div class="lb-stats">
-        <div class="lb-stat"><div class="lb-stat-val" style="font-size:${String(lb.done).length>2?'16px':'18px'}">${lb.done}</div><div class="lb-stat-lbl">Done</div></div>
-        <div class="lb-stat"><div class="lb-stat-val" style="font-size:${String(lb.total-lb.done).length>2?'16px':'18px'}">${lb.total-lb.done}</div><div class="lb-stat-lbl">To go</div></div>
-        <div class="lb-stat"><div class="lb-stat-val" style="font-size:11px;letter-spacing:-.3px">${fmtHours(lb.doneH)}</div><div class="lb-stat-lbl">Done</div></div>
-        <div class="lb-stat"><div class="lb-stat-val" style="font-size:11px;letter-spacing:-.3px">${fmtHours(lb.remH)}</div><div class="lb-stat-lbl">Left</div></div>
-      </div>
-    </div>`).join('');
-  renderPace(doneH,remH,daysLeft);
-  const myPending=tasks.filter(t=>t.owner&&t.owner.includes(CU)&&!t.done).sort((a,b)=>(a.due||'').localeCompare(b.due||'')).slice(0,8);
+      <div class="metric-label">Overdue</div>
+      <div class="metric-value">${overdue.length}</div>
+      <div class="metric-sub">${overdue.length?'tap to view':'all clear'}</div>
+    </div>
+    <div class="metric-card ${todayDue.length?'mc-amber':''}" style="cursor:pointer" onclick="applyFilter('today')">
+      <div class="metric-label">Due today</div>
+      <div class="metric-value">${todayDue.length}</div>
+      <div class="metric-sub">${todayDue.length?'tap to view':'nothing due'}</div>
+    </div>
+    <div class="metric-card" style="cursor:pointer" onclick="bnNav('tasks')">
+      <div class="metric-label">Active</div>
+      <div class="metric-value">${tasks.filter(t=>!t.done).length}</div>
+      <div class="metric-sub">tasks in progress</div>
+    </div>`;
+
+  // Active events strip
+  const activeEvents=events.filter(e=>e.status!=='completed');
+  const evStrip=document.getElementById('dash-events-strip');
+  if(evStrip){
+    if(activeEvents.length){
+      evStrip.innerHTML=activeEvents.map(ev=>{
+        const evTasks=tasks.filter(t=>t.event_id===ev.id);
+        const evDone=evTasks.filter(t=>t.done).length;
+        const pct=evTasks.length?Math.round((evDone/evTasks.length)*100):0;
+        const daysLeft=ev.due?Math.ceil((new Date(ev.due+'T00:00:00')-new Date())/86400000):null;
+        const color=ev.color||'var(--green)';
+        return `<div class="dash-event-strip" onclick="bnNav('events')" style="--ec:${color}">
+          <div class="dash-event-info">
+            <div class="dash-event-name">${ev.title}</div>
+            <div class="dash-event-meta">${daysLeft!==null?(daysLeft<0?Math.abs(daysLeft)+'d overdue':daysLeft===0?'Today':daysLeft+'d away'):'No date'} · ${evDone}/${evTasks.length} tasks done</div>
+          </div>
+          <div class="dash-event-pct" style="color:${color}">${pct}%</div>
+        </div>`;
+      }).join('');
+    }else{
+      evStrip.innerHTML=`<div class="dash-no-events" onclick="bnNav('events')">
+        <p>No active events — <span>create one →</span></p>
+      </div>`;
+    }
+  }
+
+  // Your tasks
   document.getElementById('my-done-ct').textContent=`${tasks.filter(t=>t.owner&&t.owner.includes(CU)&&t.done).length} done`;
-  document.getElementById('my-tasks-list').innerHTML=myPending.length?myPending.map(taskCard).join(''):'<div class="empty-state">All your tasks are done.</div>';
+  document.getElementById('my-tasks-list').innerHTML=myPending.length
+    ?myPending.map(taskCard).join('')
+    :'<div class="empty-state">All your tasks are done. 🎉</div>';
+
+  // Overdue
   document.getElementById('overdue-count').textContent=overdue.length?overdue.length+' tasks':'';
   if(overdue.length){
-    // Group overdue by owner
     const byOwner={};
     overdue.forEach(t=>{const o=t.owner||'?';if(!byOwner[o])byOwner[o]=[];byOwner[o].push(t);});
     const owners=Object.keys(byOwner);
     if(owners.length>1){
-      // Show per-person breakdown with expand
-      let html=owners.map(ownerCode=>{
-        const o=getOwner(ownerCode);
-        const ts=byOwner[ownerCode];
+      document.getElementById('overdue-list').innerHTML=owners.map(code=>{
+        const o=getOwner(code);const ts=byOwner[code];
         return `<div style="margin-bottom:10px">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;cursor:pointer" onclick="applyFilterForOwner('overdue','${ownerCode}')">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;cursor:pointer" onclick="applyFilterForOwner('overdue','${code}')">
             <span class="task-tag" style="background:${o.bg};color:${o.color}">${o.name}</span>
             <span style="font-size:11px;color:var(--tx3)">${ts.length} overdue</span>
             <span style="font-size:11px;color:var(--green);margin-left:auto">See all →</span>
           </div>
           ${ts.slice(0,2).map(taskCard).join('')}
-          ${ts.length>2?`<div style="font-size:11px;color:var(--tx2);padding:6px 4px;cursor:pointer" onclick="applyFilter('overdue')">+${ts.length-2} more overdue →</div>`:''}
+          ${ts.length>2?`<div style="font-size:11px;color:var(--tx2);padding:6px 4px;cursor:pointer" onclick="applyFilter('overdue')">+${ts.length-2} more →</div>`:''}
         </div>`;
       }).join('');
-      document.getElementById('overdue-list').innerHTML=html;
     }else{
       document.getElementById('overdue-list').innerHTML=overdue.map(taskCard).join('');
     }
   }else{
-    document.getElementById('overdue-list').innerHTML='<div class="empty-state">Nothing overdue — clear skies.</div>';
+    document.getElementById('overdue-list').innerHTML='<div class="empty-state">Nothing overdue.</div>';
   }
+
+  // Done this week
+  const doneAll=tasks.filter(t=>t.done);
+  document.getElementById('done-week-count').textContent=doneAll.length?doneAll.length+' tasks':'';
+  document.getElementById('done-week-list').innerHTML=doneAll.length
+    ?`<div class="completed-list">${doneAll.slice(0,5).map(taskCard).join('')}${doneAll.length>5?`<div style="font-size:11px;color:var(--tx2);padding:6px 4px;cursor:pointer" onclick="showDoneList()">+${doneAll.length-5} more completed tasks →</div>`:''}</div>`
+    :'';
 }
+
+function showDoneList(){
+  // Navigate to all tasks with completed section expanded
+  bnNav('tasks');
+  setTimeout(()=>{
+    const ct=document.querySelector('.completed-toggle');
+    if(ct&&!ct.nextElementSibling?.classList.contains('open'))ct.click();
+    ct?.scrollIntoView({behavior:'smooth',block:'start'});
+  },200);
+}
+
 
 function renderPace(doneH,remH,daysLeft){
   const totalDays=Math.ceil((TARGET-new Date('2026-04-01'))/86400000);
@@ -2997,8 +3029,12 @@ function doPrint(filtered,ownerLabel,code){
 function rerender(){
   const v=document.querySelector('.view.active')?.id;
   if(v==='view-dashboard')renderDashboard();
-  else if(v==='view-tasks'){renderTasksView();}
+  else if(v==='view-tasks')renderTasksView();
   else if(v==='view-shopping')renderShopping();
+  else if(v==='view-events')renderEvents();
+  else if(v==='view-shelved')renderShelved();
+  // Always refresh dashboard event strip if events changed
+  if(v!=='view-dashboard'&&document.getElementById('dash-events-strip'))renderDashboard();
 }
 
 
@@ -3157,7 +3193,8 @@ function renderEvents(){
   }
   if(empty)empty.style.display='none';
   list.innerHTML=active.map(ev=>eventCard(ev)).join('')+
-    (completed.length?`<div class="sec-header" style="margin-top:16px"><span class="sec-title">Completed</span></div>`+completed.map(ev=>eventCard(ev,true)).join(''):'');
+    (completed.length?`<div class="sec-header" style="margin-top:20px"><span class="sec-title">Completed</span><span class="sec-count">${completed.length}</span></div>`+
+    completed.map(ev=>eventCard(ev,true)).join(''):'');
 }
 
 function eventCard(ev,done=false){
