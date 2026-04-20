@@ -91,16 +91,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 
 /* BOTTOM TAB BAR */
 #bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--surf);border-top:1px solid var(--bdr);display:flex;align-items:flex-end;z-index:150;height:60px;padding-bottom:env(safe-area-inset-bottom)}
-.bn-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:var(--tx3);transition:color .15s;padding:6px 4px 6px;border:none;background:none;font-family:'DM Sans',sans-serif;height:100%}
+.bn-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px;cursor:pointer;color:var(--tx3);transition:all .2s;padding:0 4px 7px;border:none;background:none;font-family:'DM Sans',sans-serif;height:100%;position:relative}
 .bn-tab:active{background:var(--surf2)}
+.bn-tab svg{width:21px;height:21px;flex-shrink:0;transition:transform .2s}
+.bn-tab span{font-size:9px;font-weight:600;letter-spacing:.2px;text-transform:uppercase;transition:all .2s}
+/* Active tab gets the raised circle */
 .bn-tab.active{color:var(--green)}
-.bn-tab svg{width:21px;height:21px;flex-shrink:0}
-.bn-tab span{font-size:9px;font-weight:600;letter-spacing:.2px;text-transform:uppercase}
-/* Central add task button */
-.bn-tab-add{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px;cursor:pointer;color:var(--tx3);padding:0 4px 6px;border:none;background:none;font-family:'DM Sans',sans-serif;position:relative;height:100%}
-.bn-add-circle{width:48px;height:48px;background:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 -2px 12px rgba(92,138,74,.35);position:absolute;bottom:8px;border:3px solid var(--surf)}
-.bn-add-circle svg{width:22px;height:22px;stroke:#fff;flex-shrink:0}
-.bn-add-label{font-size:9px;font-weight:700;letter-spacing:.2px;text-transform:uppercase;color:var(--green);position:absolute;bottom:-2px;padding-bottom:env(safe-area-inset-bottom)}
+.bn-tab.active .bn-icon-wrap{width:46px;height:46px;background:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 -3px 14px rgba(92,138,74,.35);border:3px solid var(--surf);margin-bottom:1px;position:relative;bottom:4px}
+.bn-tab.active .bn-icon-wrap svg{stroke:#fff;width:22px;height:22px}
+.bn-tab.active span{color:var(--green);font-weight:700}
+.bn-icon-wrap{width:21px;height:21px;display:flex;align-items:center;justify-content:center;margin-bottom:4px}
 /* Push content above bottom nav */
 .content{padding-bottom:82px!important}
 .user-pill{display:flex;align-items:center;gap:6px;padding:4px 10px 4px 5px;background:var(--surf2);border-radius:100px;cursor:pointer;font-size:12px;font-weight:600;flex-shrink:0}
@@ -773,24 +773,23 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
   <!-- BOTTOM NAV -->
   <div id="bottom-nav">
     <button class="bn-tab active" id="bn-dashboard" onclick="bnNav('dashboard')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      <div class="bn-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div>
       <span>Home</span>
     </button>
-    <button class="bn-tab-add" id="bn-tasks" onclick="bnNav('tasks')">
-      <div class="bn-add-circle">
-        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><polyline points="3 6 4 7 6 5"/><polyline points="3 12 4 13 6 11"/><polyline points="3 18 4 19 6 17"/></svg>
-      </div>
+    <button class="bn-tab" id="bn-tasks" onclick="bnNav('tasks')">
+      <div class="bn-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><polyline points="3 6 4 7 6 5"/><polyline points="3 12 4 13 6 11"/><polyline points="3 18 4 19 6 17"/></svg></div>
+      <span>Tasks</span>
     </button>
     <button class="bn-tab" id="bn-events" onclick="bnNav('events')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="12" cy="16" r="2" fill="currentColor"/></svg>
+      <div class="bn-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="12" cy="16" r="2" fill="currentColor"/></svg></div>
       <span>Events</span>
     </button>
     <button class="bn-tab" id="bn-shelved" onclick="bnNav('shelved')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v4H4z"/><path d="M4 12h16v4H4z"/><path d="M4 20h16v2H4z"/><circle cx="8" cy="6" r="1" fill="currentColor"/><circle cx="8" cy="14" r="1" fill="currentColor"/></svg>
+      <div class="bn-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v4H4z"/><path d="M4 12h16v4H4z"/><path d="M4 20h16v2H4z"/><circle cx="8" cy="6" r="1" fill="currentColor"/><circle cx="8" cy="14" r="1" fill="currentColor"/></svg></div>
       <span>Shelved</span>
     </button>
     <button class="bn-tab" id="bn-shopping" onclick="bnNav('shopping')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+      <div class="bn-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>
       <span>Shop</span>
     </button>
   </div>
@@ -867,7 +866,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
         <h2 style="font-family:'Playfair Display',serif;font-size:20px;font-weight:500">All Tasks</h2>
         <div style="display:flex;gap:7px">
           <button class="qa-btn" style="font-size:11px;padding:6px 10px" onclick="generatePDF()">🖨 Sheet</button>
+          <button class="qa-btn" id="select-mode-btn" style="font-size:11px;padding:6px 10px" onclick="toggleSelectMode()">Select</button>
           <button class="qa-btn accent" style="font-size:11px;padding:6px 10px" onclick="openDetail(null)">+ Add</button>
+        </div>
+      </div>
+      <div id="select-action-bar" style="display:none;background:var(--gl);border:1px solid var(--gm);border-radius:var(--rs);padding:10px 12px;margin-bottom:10px;display:none;align-items:center;justify-content:space-between">
+        <span id="select-count" style="font-size:13px;font-weight:600;color:var(--gd)">0 selected</span>
+        <div style="display:flex;gap:8px">
+          <button onclick="shelveSelected()" style="padding:6px 14px;background:var(--green);color:#fff;border:none;border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer">Shelve selected</button>
+          <button onclick="toggleSelectMode()" style="padding:6px 10px;background:none;border:1px solid var(--bdrm);border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;color:var(--tx2)">Cancel</button>
         </div>
       </div>
       <div class="filter-bar" id="task-filter-bar">
@@ -1102,7 +1109,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
   <div class="modal" style="max-width:420px">
     <h3 id="nem-title">New Event</h3>
     <div class="dp-field" style="margin-top:12px"><label class="dp-label">Event name</label>
-      <input class="dp-input" id="nem-name" placeholder="e.g. Bryony's Wedding">
+      <input class="dp-input" id="nem-name" placeholder="e.g. House Valuation, Weekend Visitors">
     </div>
     <div class="dp-field"><label class="dp-label">Date</label>
       <input type="date" class="dp-input" id="nem-date">
@@ -1150,6 +1157,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
   <div class="dp-footer">
     <button class="dp-pdf" onclick="generatePDFForTask()">🖨</button>
     <button class="dp-del" onclick="dpDelete()">Delete</button>
+    <button class="dp-shelve" onclick="dpShelveTask()" title="Move to Shelved" style="padding:0 14px;height:36px;background:none;border:1.5px solid var(--bdrm);border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;color:var(--tx2);cursor:pointer;white-space:nowrap">Shelve</button>
     <button class="dp-save" onclick="dpSave()">Save</button>
   </div>
 </div>
@@ -2138,6 +2146,27 @@ function dpConfirmCustomTime(){
   document.querySelectorAll('#dp-time-btns button:not(#dp-time-custom-btn)').forEach(b=>{
     b.style.borderColor='var(--bdrm)';b.style.background='var(--surf)';b.style.color='var(--tx2)';
   });
+}
+async function dpShelveTask(){
+  const task=tasks.find(t=>t.id===dpTaskId);
+  if(!task)return;
+  const confirmed=await confirm2('Shelve this task?','It will move to your Shelved list and can be activated later.','btn-ok');
+  if(!confirmed)return;
+  // Add to shelved
+  const ns={title:task.title,notes:task.notes||'',sort_order:shelved.length+1};
+  try{
+    const res=await api('bravochore_shelved','POST',[ns]);
+    if(res&&res[0])shelved.push(res[0]);else shelved.push({...ns,id:Date.now()});
+  }catch(e){shelved.push({...ns,id:Date.now()});}
+  // Delete from tasks
+  tasks=tasks.filter(t=>t.id!==dpTaskId);
+  milestones=milestones.filter(m=>m.task_id!==dpTaskId);
+  try{
+    await api('bravochore_tasks','DELETE',null,`?id=eq.${dpTaskId}`);
+    await api('bravochore_milestones','DELETE',null,`?task_id=eq.${dpTaskId}`);
+  }catch(e){}
+  closeDetail();rerender();
+  chirp('"'+task.title+'" moved to Shelved.');
 }
 async function dpSave(){
   const title=document.getElementById('dp-title').textContent.trim();
@@ -3317,15 +3346,19 @@ function initLottie(){
 
 function initTaskBirds(){
   if(typeof lottie==='undefined')return;
-  document.querySelectorAll('.bb-task-lottie:not([data-init])').forEach(el=>{
-    el.setAttribute('data-init','1');
-    const anim=lottie.loadAnimation({
-      container:el,renderer:'svg',loop:false,autoplay:false,
-      animationData:BLACKBIRD_ANIM
+  // Use requestIdleCallback to avoid blocking render
+  const init=()=>{
+    document.querySelectorAll('.bb-task-lottie:not([data-init])').forEach(el=>{
+      el.setAttribute('data-init','1');
+      const anim=lottie.loadAnimation({
+        container:el,renderer:'canvas',loop:false,autoplay:false,
+        animationData:BLACKBIRD_ANIM
+      });
+      anim.addEventListener('DOMLoaded',()=>anim.goToAndStop(8,true));
     });
-    // Pause on a mid-frame so it looks natural, not mid-flap
-    anim.addEventListener('DOMLoaded',()=>anim.goToAndStop(8,true));
-  });
+  };
+  if('requestIdleCallback' in window)requestIdleCallback(init,{timeout:500});
+  else setTimeout(init,100);
 }
 
 let bbLottieFlyer=null;
@@ -3341,7 +3374,8 @@ function initFlyer(){
   });
 }
 
-function bbFlyDown(){
+function bbFlyDown(){return;// disabled
+
   // Get header bird position
   const hdrEl=document.getElementById('bb-lottie-header');
   const flyer=document.getElementById('bb-flyer');
@@ -3379,7 +3413,8 @@ function bbFlyDown(){
   if(hdrEl)hdrEl.style.opacity='0.3';
 }
 
-function bbFlyBack(){
+function bbFlyBack(){return;// disabled
+
   const hdrEl=document.getElementById('bb-lottie-header');
   const flyer=document.getElementById('bb-flyer');
   if(!flyer||!bbFlyerActive)return;
@@ -3401,15 +3436,58 @@ function bbFlyBack(){
 
 function bbSetState(state){
   if(state==='thinking'){
-    if(bbLottieFab)bbLottieFab.setSpeed(2.5);
-    bbFlyDown();
+    // Play header bird at normal speed when thinking
+    if(bbLottieHeader){bbLottieHeader.setSpeed(1);bbLottieHeader.loop=true;bbLottieHeader.play();}
+    if(bbLottieFab)bbLottieFab.play();
   }else{
-    if(bbLottieFab){
-      if(state==='success'){bbLottieFab.setSpeed(1.5);setTimeout(()=>bbLottieFab&&bbLottieFab.setSpeed(1),1500);}
-      else bbLottieFab.setSpeed(1);
-    }
-    bbFlyBack();
+    // Return to static perch
+    if(bbLottieHeader){bbLottieHeader.setSpeed(1);bbLottieHeader.loop=false;
+      setTimeout(()=>bbLottieHeader&&bbLottieHeader.goToAndStop(8,true),state==='success'?600:0);}
+    if(bbLottieFab){bbLottieHeader&&bbLottieFab.goToAndStop(8,true);}
   }
+}
+
+
+// ================================================================
+// SELECT MODE (multi-shelve)
+// ================================================================
+let selectMode=false;
+let selectedTaskIds=new Set();
+
+function toggleSelectMode(){
+  selectMode=!selectMode;
+  selectedTaskIds.clear();
+  const btn=document.getElementById('select-mode-btn');
+  const bar=document.getElementById('select-action-bar');
+  if(btn)btn.textContent=selectMode?'Cancel':'Select';
+  if(btn)btn.style.background=selectMode?'var(--rl)':'';
+  if(btn)btn.style.color=selectMode?'var(--red)':'';
+  if(bar)bar.style.display=selectMode?'flex':'none';
+  renderTasksView();
+}
+
+function toggleSelectTask(taskId,el){
+  if(!selectMode)return;
+  if(selectedTaskIds.has(taskId)){selectedTaskIds.delete(taskId);el.style.background='';}
+  else{selectedTaskIds.add(taskId);el.style.background='var(--gl)';}
+  const ct=document.getElementById('select-count');
+  if(ct)ct.textContent=selectedTaskIds.size+' selected';
+}
+
+async function shelveSelected(){
+  if(!selectedTaskIds.size)return;
+  const ids=[...selectedTaskIds];
+  for(const id of ids){
+    const task=tasks.find(t=>t.id===id);
+    if(!task)continue;
+    const ns={title:task.title,notes:task.notes||'',sort_order:shelved.length+1};
+    try{const res=await api('bravochore_shelved','POST',[ns]);if(res&&res[0])shelved.push(res[0]);}catch(e){}
+    tasks=tasks.filter(t=>t.id!==id);
+    try{await api('bravochore_tasks','DELETE',null,`?id=eq.${id}`);}catch(e){}
+  }
+  toggleSelectMode();
+  rerender();
+  chirp(ids.length+' task'+(ids.length>1?'s':'')+' moved to Shelved.');
 }
 
 // ================================================================
