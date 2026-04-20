@@ -722,6 +722,24 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 .dash-no-events{background:var(--surf);border:1px dashed var(--bdrm);border-radius:var(--r);padding:14px;text-align:center;margin-bottom:14px;cursor:pointer}
 .dash-no-events p{font-size:12px;color:var(--tx3)}
 .dash-no-events span{font-size:12px;color:var(--green);font-weight:600}
+
+/* BLACKBIRD FLYING ANIMATION */
+#bb-flyer{
+  position:fixed;
+  z-index:9999;
+  pointer-events:none;
+  width:36px;height:36px;
+  transition:none;
+}
+#bb-flyer.flying{
+  transition:top .45s cubic-bezier(.4,0,.2,1), left .45s cubic-bezier(.4,0,.2,1), opacity .3s;
+}
+/* Thinking bird that appears in message stream */
+.bb-thinking-inline{
+  width:36px;height:36px;
+  align-self:flex-start;
+  flex-shrink:0;
+}
 </style>
 </head>
 <body>
@@ -1048,6 +1066,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 </div>
 
 <div id="chirp-container"></div>
+<div id="bb-flyer" style="display:none"><div id="bb-lottie-flyer" style="width:36px;height:36px"></div></div>
 <input type="file" id="photo-input-cam" accept="image/*" capture="environment" style="display:none">
 <input type="file" id="photo-input-lib" accept="image/*" multiple style="display:none">
 
@@ -3286,10 +3305,12 @@ function initLottie(){
   const fabEl=document.getElementById('bb-lottie-fab');
   const hdrEl=document.getElementById('bb-lottie-header');
   if(fabEl&&typeof lottie!=='undefined'&&!bbLottieFab){
-    bbLottieFab=lottie.loadAnimation({container:fabEl,renderer:'svg',loop:true,autoplay:true,animationData:animData});
+    bbLottieFab=lottie.loadAnimation({container:fabEl,renderer:'svg',loop:false,autoplay:false,animationData:animData});
+    bbLottieFab.addEventListener('DOMLoaded',()=>bbLottieFab.goToAndStop(8,true));
   }
   if(hdrEl&&typeof lottie!=='undefined'&&!bbLottieHeader){
-    bbLottieHeader=lottie.loadAnimation({container:hdrEl,renderer:'svg',loop:true,autoplay:true,animationData:animData});
+    bbLottieHeader=lottie.loadAnimation({container:hdrEl,renderer:'svg',loop:false,autoplay:false,animationData:animData});
+    bbLottieHeader.addEventListener('DOMLoaded',()=>bbLottieHeader.goToAndStop(8,true));
   }
   
 }
@@ -3307,20 +3328,88 @@ function initTaskBirds(){
   });
 }
 
+let bbLottieFlyer=null;
+let bbFlyerActive=false;
+
+function initFlyer(){
+  if(bbLottieFlyer||typeof lottie==='undefined')return;
+  const el=document.getElementById('bb-lottie-flyer');
+  if(!el)return;
+  bbLottieFlyer=lottie.loadAnimation({
+    container:el,renderer:'svg',loop:true,autoplay:false,
+    animationData:BLACKBIRD_ANIM
+  });
+}
+
+function bbFlyDown(){
+  // Get header bird position
+  const hdrEl=document.getElementById('bb-lottie-header');
+  const flyer=document.getElementById('bb-flyer');
+  const msgs=document.getElementById('bb-msgs');
+  if(!flyer||!msgs||!hdrEl)return;
+  initFlyer();
+
+  // Source: header bird position
+  const hRect=hdrEl.getBoundingClientRect();
+  const startTop=hRect.top;
+  const startLeft=hRect.left;
+
+  // Destination: bottom of message list
+  const mRect=msgs.getBoundingClientRect();
+  const endTop=mRect.bottom-44;
+  const endLeft=mRect.left+8;
+
+  // Place at start, no transition
+  flyer.style.cssText=`position:fixed;z-index:9999;pointer-events:none;width:36px;height:36px;top:${startTop}px;left:${startLeft}px;display:block;opacity:1`;
+
+  // Start playing fast
+  if(bbLottieFlyer){bbLottieFlyer.setSpeed(3);bbLottieFlyer.play();}
+
+  // Fly down with transition
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
+      flyer.style.transition='top .5s cubic-bezier(.4,0,.2,1), left .5s cubic-bezier(.4,0,.2,1)';
+      flyer.style.top=endTop+'px';
+      flyer.style.left=endLeft+'px';
+    });
+  });
+
+  bbFlyerActive=true;
+  // Fade header bird slightly while thinking
+  if(hdrEl)hdrEl.style.opacity='0.3';
+}
+
+function bbFlyBack(){
+  const hdrEl=document.getElementById('bb-lottie-header');
+  const flyer=document.getElementById('bb-flyer');
+  if(!flyer||!bbFlyerActive)return;
+
+  const hRect=hdrEl?hdrEl.getBoundingClientRect():null;
+  if(hRect){
+    flyer.style.transition='top .4s cubic-bezier(.4,0,.2,1), left .4s cubic-bezier(.4,0,.2,1), opacity .3s';
+    flyer.style.top=hRect.top+'px';
+    flyer.style.left=hRect.left+'px';
+    flyer.style.opacity='0';
+  }
+  setTimeout(()=>{
+    flyer.style.display='none';
+    if(bbLottieFlyer){bbLottieFlyer.stop();}
+    if(hdrEl){hdrEl.style.opacity='1';bbLottieHeader&&bbLottieHeader.goToAndStop(8,true);}
+    bbFlyerActive=false;
+  },420);
+}
+
 function bbSetState(state){
-  // state: idle, thinking, success
-  if(bbLottieFab){
-    if(state==='thinking'){bbLottieFab.setSpeed(2.5);}
-    else if(state==='success'){bbLottieFab.setSpeed(1.5);setTimeout(()=>bbLottieFab&&bbLottieFab.setSpeed(1),1500);}
-    else{bbLottieFab.setSpeed(1);}
+  if(state==='thinking'){
+    if(bbLottieFab)bbLottieFab.setSpeed(2.5);
+    bbFlyDown();
+  }else{
+    if(bbLottieFab){
+      if(state==='success'){bbLottieFab.setSpeed(1.5);setTimeout(()=>bbLottieFab&&bbLottieFab.setSpeed(1),1500);}
+      else bbLottieFab.setSpeed(1);
+    }
+    bbFlyBack();
   }
-  if(bbLottieHeader){
-    if(state==='thinking')bbLottieHeader.setSpeed(2.5);
-    else bbLottieHeader.setSpeed(1);
-  }
-  // Legacy class for any remaining refs
-  const fab=document.getElementById('bb-fab');
-  if(fab)fab.className=state==='thinking'?'bb-thinking':'bb-idle';
 }
 
 // ================================================================
