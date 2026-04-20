@@ -81,14 +81,23 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 
 /* NAV */
 #app{display:none;min-height:100vh}
-.topnav{background:var(--surf);border-bottom:1px solid var(--bdr);padding:0 16px;display:flex;align-items:center;height:52px;position:sticky;top:0;z-index:100}
-.brand{font-family:'Playfair Display',serif;font-size:16px;font-weight:600;color:var(--green);margin-right:16px;letter-spacing:-.3px;flex-shrink:0;white-space:nowrap;user-select:none;-webkit-user-select:none}
-.nav-tabs{display:flex;flex:1;overflow-x:auto;-webkit-overflow-scrolling:touch}
-.nav-tabs::-webkit-scrollbar{display:none}
-.nav-tab{padding:0 12px;height:52px;display:flex;align-items:center;font-size:13px;font-weight:500;color:var(--tx2);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;flex-shrink:0}
-.nav-tab:hover{color:var(--tx)}
-.nav-tab.active{color:var(--green);border-bottom-color:var(--green)}
+/* TOP BAR — brand + user only */
+.topnav{background:var(--surf);border-bottom:1px solid var(--bdr);padding:0 16px;display:flex;align-items:center;height:50px;position:sticky;top:0;z-index:100}
+.brand{font-family:'Playfair Display',serif;font-size:17px;font-weight:600;color:var(--green);letter-spacing:-.3px;flex-shrink:0;white-space:nowrap;user-select:none;-webkit-user-select:none;cursor:pointer}
 .nav-right{display:flex;align-items:center;gap:8px;margin-left:auto;flex-shrink:0}
+/* Hide old nav tabs */
+.nav-tabs{display:none}
+.nav-tab{display:none}
+
+/* BOTTOM TAB BAR */
+#bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--surf);border-top:1px solid var(--bdr);display:flex;z-index:150;height:58px;padding-bottom:env(safe-area-inset-bottom)}
+.bn-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:var(--tx3);transition:color .15s;padding:6px 4px 4px;border:none;background:none;font-family:'DM Sans',sans-serif}
+.bn-tab:active{background:var(--surf2)}
+.bn-tab.active{color:var(--green)}
+.bn-tab svg{width:22px;height:22px;flex-shrink:0}
+.bn-tab span{font-size:9px;font-weight:600;letter-spacing:.2px;text-transform:uppercase}
+/* Push content above bottom nav */
+.content{padding-bottom:80px!important}
 .user-pill{display:flex;align-items:center;gap:6px;padding:4px 10px 4px 5px;background:var(--surf2);border-radius:100px;cursor:pointer;font-size:12px;font-weight:600;flex-shrink:0}
 .pill-av{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700}
 .settings-btn{width:32px;height:32px;border-radius:50%;background:none;border:none;cursor:pointer;color:var(--tx3);font-size:16px;display:flex;align-items:center;justify-content:center}
@@ -548,13 +557,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 .bbfs-msgs{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:8px;-webkit-overflow-scrolling:touch}
 .bbfs-photo-strip{display:none;padding:6px 14px;gap:6px;flex-wrap:wrap;border-top:1px solid var(--bdr);background:var(--surf2)}
 .bbfs-photo-strip.visible{display:flex}
-.bbfs-input-row{padding:10px 14px;border-top:1px solid var(--bdr);display:flex;gap:8px;align-items:center;background:var(--surf);flex-shrink:0;padding-bottom:max(10px,env(safe-area-inset-bottom))}
-.bbfs-input{flex:1;padding:10px 14px;border:1px solid var(--bdrm);border-radius:100px;font-family:'DM Sans',sans-serif;font-size:15px;outline:none;background:var(--bg);color:var(--tx)}
+.bbfs-input-row{padding:8px 10px;border-top:1px solid var(--bdr);display:flex;gap:6px;align-items:center;background:var(--surf);flex-shrink:0;padding-bottom:max(8px,env(safe-area-inset-bottom))}
+.bbfs-input{flex:1;padding:9px 13px;border:1px solid var(--bdrm);border-radius:100px;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;background:var(--bg);color:var(--tx);min-width:0}
 .bbfs-input:focus{border-color:var(--green)}
-.bbfs-icon-btn{width:38px;height:38px;border-radius:50%;background:none;border:1px solid var(--bdrm);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--tx2);transition:all .15s}
+.bbfs-icon-btn{width:36px;height:36px;border-radius:50%;background:none;border:1px solid var(--bdrm);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--tx2);transition:all .15s}
 .bbfs-icon-btn:active{background:var(--surf2)}
 .bbfs-icon-btn.listening{background:var(--rl);border-color:var(--red);animation:micPulse .8s ease-in-out infinite}
-.bbfs-send{width:38px;height:38px;background:var(--green);border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.bbfs-send{width:36px;height:36px;background:var(--green);border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;flex-basis:36px}
 .bbfs-send:active{background:var(--gd)}
 
 /* EVENTS */
@@ -711,16 +720,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 
 <div id="app">
   <nav class="topnav">
-    <div class="brand" onclick="showView('dashboard',document.querySelectorAll('.nav-tab')[0])" style="cursor:pointer;user-select:none">Bravo<span style="color:var(--tx);font-weight:400">Chore</span></div>
-    <div class="nav-tabs">
-      <div class="nav-tab active" onclick="showView('dashboard',this)">Dashboard</div>
-      <div class="nav-tab" onclick="showView('tasks',this)">All Tasks</div>
-      <div class="nav-tab" onclick="showView('events',this)">Events</div>
-      <div class="nav-tab" onclick="showView('shelved',this)">Shelved</div>
-      <div class="nav-tab" onclick="showView('shopping',this)">Shopping</div>
-      <div class="nav-tab" onclick="showView('events',this)">Events</div>
-      <div class="nav-tab" onclick="showView('shelved',this)">Shelved</div>
-    </div>
+    <div class="brand" onclick="bnNav('dashboard')">Bravo<span style="color:var(--tx);font-weight:400">Chore</span></div>
     <div class="nav-right">
       <button class="settings-btn" onclick="openSettings()" title="Settings">⚙</button>
       <div class="user-pill" onclick="switchUser()">
@@ -729,6 +729,30 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
       </div>
     </div>
   </nav>
+
+  <!-- BOTTOM NAV -->
+  <div id="bottom-nav">
+    <button class="bn-tab active" id="bn-dashboard" onclick="bnNav('dashboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      <span>Home</span>
+    </button>
+    <button class="bn-tab" id="bn-tasks" onclick="bnNav('tasks')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><polyline points="3 6 4 7 6 5"/><polyline points="3 12 4 13 6 11"/><polyline points="3 18 4 19 6 17"/></svg>
+      <span>Tasks</span>
+    </button>
+    <button class="bn-tab" id="bn-events" onclick="bnNav('events')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="12" cy="16" r="2" fill="currentColor"/></svg>
+      <span>Events</span>
+    </button>
+    <button class="bn-tab" id="bn-shelved" onclick="bnNav('shelved')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v4H4z"/><path d="M4 12h16v4H4z"/><path d="M4 20h16v2H4z"/><circle cx="8" cy="6" r="1" fill="currentColor"/><circle cx="8" cy="14" r="1" fill="currentColor"/></svg>
+      <span>Shelved</span>
+    </button>
+    <button class="bn-tab" id="bn-shopping" onclick="bnNav('shopping')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+      <span>Shop</span>
+    </button>
+  </div>
 
   <div id="timer-strip">
     <span id="ts-label" class="ts-label">Task</span>
@@ -884,8 +908,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 </div>
 
 <!-- BLACKBIRD FAB -->
-<div id="bb-fab" onclick="openBBFullscreen()" style="position:fixed;bottom:24px;right:16px;width:56px;height:56px;background:var(--gl);border:2px solid var(--gm);border-radius:50%;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:200;box-shadow:0 4px 20px rgba(92,138,74,.25)">
-  <div id="bb-lottie-fab" style="width:46px;height:46px"></div>
+<div id="bb-fab" onclick="openBBFullscreen()" style="position:fixed;bottom:70px;right:16px;width:56px;height:56px;background:var(--gl);border:2px solid var(--gm);border-radius:50%;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:200;box-shadow:0 4px 20px rgba(92,138,74,.25);overflow:hidden">
+  <div id="bb-lottie-fab" style="width:56px;height:56px;margin:-2px"></div>
 </div>
 
 <!-- FULLSCREEN BLACKBIRD -->
@@ -1383,7 +1407,12 @@ function fmtSecs(s){const m=Math.floor(Math.abs(s)/60),se=Math.floor(Math.abs(s)
 function fmtHours(h){
   if(!h||h===0)return '0m';
   const totalMins=Math.round(h*60);
-  const hrs=Math.floor(totalMins/60),mins=totalMins%60;
+  const days=Math.floor(totalMins/1440);
+  const hrs=Math.floor((totalMins%1440)/60);
+  const mins=totalMins%60;
+  if(days>0&&hrs===0&&mins===0)return days+'d';
+  if(days>0&&mins===0)return days+'d '+hrs+'h';
+  if(days>0)return days+'d '+hrs+'h '+mins+'m';
   if(hrs===0)return mins+'m';
   if(mins===0)return hrs+'h';
   return hrs+'h '+mins+'m';
@@ -1417,7 +1446,7 @@ function selectUser(code,name){
   document.getElementById('user-picker').style.display='none';
   document.getElementById('app').style.display='block';
   document.getElementById('bb-fab').style.display='flex';
-  setupPill();renderExtraFilters();renderDashboard();initLottie();assignMissingCodes();
+  setupPill();renderExtraFilters();renderDashboard();initLottie();assignMissingCodes();document.getElementById('bn-dashboard')?.classList.add('active');
   setTimeout(()=>chirp("Let's get this done."),800);
   bbMsg("Hey — I'm Blackbird. Tap 🐦‍⬛ on any task for advice, or just ask me anything.",'from-bb');
 }
@@ -1438,17 +1467,20 @@ function renderExtraFilters(){
 // ================================================================
 // NAV
 // ================================================================
-function showView(name,tab){
+function bnNav(name){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById('view-'+name).classList.add('active');
-  if(tab)tab.classList.add('active');
+  document.querySelectorAll('.bn-tab').forEach(t=>t.classList.remove('active'));
+  const vEl=document.getElementById('view-'+name);
+  if(vEl)vEl.classList.add('active');
+  const bEl=document.getElementById('bn-'+name);
+  if(bEl)bEl.classList.add('active');
   if(name==='tasks'){renderTasksView();setTimeout(initDrag,50);}
   else if(name==='shopping')renderShopping();
   else if(name==='events'){loadEvents().then(renderEvents);}
   else if(name==='shelved'){loadEvents().then(renderShelved);}
   else renderDashboard();
 }
+function showView(name,tab){bnNav(name);}
 let focusMode=null,focusWho='all',focusBucket='all';
 
 function applyFilterForOwner(mode,ownerCode){
@@ -1469,7 +1501,7 @@ function focusSeeAll(){
   filterMode=focusMode;filterWho=focusWho;filterBucket=focusBucket;
   document.querySelectorAll('[data-fw]').forEach(e=>e.classList.toggle('active',e.dataset.fw===focusWho||(focusWho==='all'&&e.dataset.fw==='all')));
   document.querySelectorAll('[data-fb]').forEach(e=>e.classList.toggle('active',e.dataset.fb===focusBucket||(focusBucket==='all'&&e.dataset.fb==='all')));
-  showView('tasks',document.querySelectorAll('.nav-tab')[1]);
+  bnNav('tasks');
 }
 
 function setFocusWho(code,el){
@@ -1575,7 +1607,7 @@ function renderDashboard(){
   document.getElementById('today-sub').textContent=`${daysLeft} days to 2 May · ${fmtHours(remH)} remaining`;
   const remHPerDay=remH/Math.max(daysLeft,1);
   document.getElementById('metric-grid').innerHTML=`
-    <div class="metric-card ${done.length?'mc-green':''}" style="cursor:pointer" onclick="showView('tasks',document.querySelectorAll('.nav-tab')[1])">
+    <div class="metric-card ${done.length?'mc-green':''}" style="cursor:pointer" onclick="bnNav('tasks')">
       <div class="metric-label">Done</div><div class="metric-value">${done.length}</div><div class="metric-sub">of ${allI.length}</div></div>
     <div class="metric-card ${overdue.length?'mc-red':''}" style="cursor:pointer" onclick="applyFilter('overdue')">
       <div class="metric-label">Overdue</div><div class="metric-value">${overdue.length}</div><div class="metric-sub">tap to view</div></div>
@@ -3466,7 +3498,7 @@ async function boot(){
   if(CU){
     document.getElementById('app').style.display='block';
     document.getElementById('bb-fab').style.display='flex';
-    setupPill();renderExtraFilters();renderDashboard();initLottie();assignMissingCodes();
+    setupPill();renderExtraFilters();renderDashboard();initLottie();assignMissingCodes();document.getElementById('bn-dashboard')?.classList.add('active');
     setTimeout(()=>chirp("Loaded. 2 May is watching."),700);
     setTimeout(()=>bbMsg("Hey — I'm Blackbird. Tap 🐦‍⬛ on any task for advice, or ask me anything.",'from-bb'),100);
   }else{
@@ -3482,7 +3514,7 @@ async function boot(){
     if(CU){
       document.getElementById('app').style.display='block';
       document.getElementById('bb-fab').style.display='flex';
-      setupPill();renderExtraFilters();renderDashboard();initLottie();assignMissingCodes();
+      setupPill();renderExtraFilters();renderDashboard();initLottie();assignMissingCodes();document.getElementById('bn-dashboard')?.classList.add('active');
     }else{
       document.getElementById('user-picker').style.display='flex';
     }
