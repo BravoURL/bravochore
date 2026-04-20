@@ -106,10 +106,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 /* TIMER STRIP */
 #timer-strip{position:sticky;top:52px;z-index:90;background:var(--tx);color:#fff;padding:8px 16px;display:none;align-items:center;gap:10px;font-size:12px}
 #timer-strip.visible{display:flex}
-.ts-label{flex:1;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
+.ts-label{flex:1;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;max-width:120px}
 .ts-time{font-family:'DM Mono',monospace;font-size:14px;font-weight:700;min-width:55px;text-align:center}
 .ts-time.over{color:#ff8080}
-.ts-btn{padding:5px 10px;border-radius:100px;border:1.5px solid rgba(255,255,255,.3);background:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.ts-btn{padding:5px 10px;border-radius:100px;border:1.5px solid rgba(255,255,255,.4);background:rgba(255,255,255,.15);color:#fff;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0}
 .ts-btn:hover{background:rgba(255,255,255,.15)}
 .ts-btn.stop{background:#E24B4A;border-color:#E24B4A}
 .ts-btn.cancel{opacity:.5}
@@ -279,7 +279,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 
 /* MILESTONES */
 .ms-list{margin-bottom:8px}
-.ms-item{display:flex;align-items:center;gap:8px;padding:10px 10px;border:1px solid var(--bdr);border-radius:var(--rs);margin-bottom:6px;background:var(--bg)}
+.ms-item{display:flex;align-items:center;gap:8px;padding:11px 12px;border:1.5px solid var(--bdr);border-radius:var(--rs);margin-bottom:7px;background:var(--bg);box-shadow:0 1px 3px rgba(0,0,0,.04)}
 .ms-chk{width:18px;height:18px;border:1.5px solid var(--bdrm);border-radius:4px;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .ms-chk:active{transform:scale(.9)}
 .ms-chk.checked{background:var(--green);border-color:var(--green)}
@@ -892,7 +892,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
         <h2 style="font-family:'Playfair Display',serif;font-size:20px;font-weight:500">Events</h2>
         <button class="qa-btn accent" style="font-size:11px;padding:7px 12px" onclick="openNewEventSheet()">+ New Event</button>
       </div>
-      <p style="font-size:13px;color:var(--tx2);margin-bottom:16px">Deadlines that matter — a wedding, a valuation, visitors. Assign tasks to an event, track progress, then close it when it's done.</p>
+      <p style="font-size:13px;color:var(--tx2);margin-bottom:16px">Deadlines with focus. Assign existing tasks to an event, track progress together, then close it when it's done.</p>
       <div id="events-list"></div>
       <div id="events-empty" style="display:none;text-align:center;padding:32px 20px">
         <div style="font-size:32px;margin-bottom:10px">📅</div>
@@ -915,8 +915,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 </div>
 
 <!-- BLACKBIRD FAB -->
-<div id="bb-fab" onclick="openBBFullscreen()" style="position:fixed;bottom:70px;right:14px;width:46px;height:46px;background:var(--gl);border:1.5px solid var(--gm);border-radius:50%;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:200;box-shadow:0 2px 12px rgba(92,138,74,.18);overflow:hidden">
-  <div id="bb-lottie-fab" style="width:38px;height:38px"></div>
+<div id="bb-fab" onclick="openBBFullscreen()" style="position:fixed;bottom:70px;right:14px;width:44px;height:44px;background:#fff;border:1.5px solid var(--gm);border-radius:50%;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:200;box-shadow:0 2px 10px rgba(0,0,0,.1);overflow:hidden">
+  <div id="bb-lottie-fab" style="width:36px;height:36px"></div>
 </div>
 
 <!-- FULLSCREEN BLACKBIRD -->
@@ -1481,7 +1481,7 @@ function bnNav(name){
   if(vEl)vEl.classList.add('active');
   const bEl=document.getElementById('bn-'+name);
   if(bEl)bEl.classList.add('active');
-  if(name==='tasks'){renderTasksView();setTimeout(initDrag,50);}
+  if(name==='tasks'){renderTasksView();setTimeout(()=>{initDrag();initTaskBirds();},80);}
   else if(name==='shopping')renderShopping();
   else if(name==='events'){loadEvents().then(renderEvents);}
   else if(name==='shelved'){loadEvents().then(renderShelved);}
@@ -1691,6 +1691,7 @@ function renderDashboard(){
     }
   }else{
     document.getElementById('overdue-list').innerHTML='<div class="empty-state">Nothing overdue.</div>';
+  setTimeout(initTaskBirds,100);
   }
 
   // Done this week
@@ -1774,8 +1775,12 @@ function taskCard(task){
         </div>
       </div>
       <div class="task-acts">
-        <button class="icon-btn ${isTimerOn?'timer-on':''}" onclick="startTaskTimer(${task.id},event)">${isTimerOn?'⏱':'▷'}</button>
-        <button class="icon-btn" onclick="askBBTask(${task.id},event)">🐦‍⬛</button>
+        <button class="icon-btn ${isTimerOn?'timer-on':''}" onclick="startTaskTimer(${task.id},event)" title="Start timer" style="color:${isTimerOn?'var(--red)':'var(--tx3)'}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${isTimerOn?'<circle cx="12" cy="12" r="10"/><rect x="9" y="9" width="6" height="6" fill="currentColor" stroke="none"/>':'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>'}</svg>
+        </button>
+        <button class="icon-btn bb-task-btn" onclick="askBBTask(${task.id},event)" title="Ask Blackbird" style="width:28px;height:28px;border-radius:50%;background:var(--gl);border:1.5px solid var(--gm);display:flex;align-items:center;justify-content:center;overflow:hidden;padding:0">
+          <div class="bb-task-lottie" style="width:26px;height:26px;pointer-events:none"></div>
+        </button>
       </div>
     </div>
   </div>`;
@@ -1824,7 +1829,7 @@ function renderTasksView(){
       ${done.map(taskCard).join('')}
     </div>`;
   }else cs.innerHTML='';
-  setTimeout(initDrag,50);
+  setTimeout(()=>{initDrag();initTaskBirds();},80);
 }
 
 function toggleDone(el){
@@ -1900,6 +1905,12 @@ function renderDpBody(task,ms){
         </select>
       </div>
     </div>
+    <div class="dp-field"><label class="dp-label">Event</label>
+      <select class="dp-select" id="dp-event">
+        <option value="">No event</option>
+        ${events.filter(e=>e.status!=='completed').map(e=>`<option value="${e.id}" ${task?.event_id==e.id?'selected':''}>${e.title}</option>`).join('')}
+      </select>
+    </div>
     <div class="dp-field"><label class="dp-label">Notes</label>
       <textarea class="dp-textarea" id="dp-notes" placeholder="Instructions, context, tips...">${task?.notes||''}</textarea>
     </div>
@@ -1919,7 +1930,7 @@ function renderDpBody(task,ms){
     </div>
   </div>`:''}
   <div class="dp-sec">
-    <div class="dp-sec-title">Milestones <span>${ms.length?ms.filter(m=>m.done).length+'/'+ms.length+' · '+fmtHours(calcTaskTime(task?.id||0)):''}</span></div>
+    <div class="dp-sec-title" style="font-size:12px;font-weight:800;color:var(--tx);letter-spacing:.3px;border-bottom:2px solid var(--green);padding-bottom:6px;margin-bottom:10px">Milestones <span style="font-weight:500;color:var(--tx2)">${ms.length?ms.filter(m=>m.done).length+'/'+ms.length+' · '+fmtHours(calcTaskTime(task?.id||0)):''}</span></div>
     <div class="ms-list" id="dp-ms-list">
       ${ms.map(m=>{
         const mOn=activeTimer&&activeTimer.msId===m.id;
@@ -1946,7 +1957,9 @@ function renderDpBody(task,ms){
     <div class="dp-sec-title">Photos</div>
     <div class="photo-actions">
       <label class="photo-action-btn" for="photo-input-cam">📷 Take photo</label>
-      <label class="photo-action-btn" for="photo-input-lib">🖼 Choose from album</label>
+      <label class="photo-action-btn" for="photo-input-lib" style="gap:8px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      Choose from album</label>
     </div>
     <div class="photo-grid" id="dp-photo-grid">
       ${(task.photo_urls||[]).map((url,i)=>`<div class="photo-thumb">
@@ -2013,7 +2026,7 @@ async function dpSave(){
     if(dpTaskId){
       const task=tasks.find(t=>t.id===dpTaskId);
       if(task)Object.assign(task,{title,owner,due,time_hours,bucket,notes});
-      await api('bravochore_tasks','PATCH',{title,owner,due,time_hours,bucket,notes},`?id=eq.${dpTaskId}`);
+      const ev_id=document.getElementById('dp-event')?.value||null;if(task)task.event_id=ev_id?parseInt(ev_id):null;await api('bravochore_tasks','PATCH',{title,owner,due,time_hours,bucket,notes,event_id:ev_id?parseInt(ev_id):null},`?id=eq.${dpTaskId}`);
     }else{
       const nid=Date.now();
       const nt={id:nid,title,owner,due,time_hours,bucket,notes,done:false,sort_order:tasks.length+1,photo_urls:[],task_code:getNextCode(),event_id:getActiveEvent()||null};
@@ -2130,6 +2143,17 @@ async function startMsTimer(msId,taskId){
   if(task&&dpTaskId===taskId)renderDpBody(task,getMs(taskId));
 }
 
+let alarmInterval=null;
+function stopAlarm(){clearInterval(alarmInterval);alarmInterval=null;}
+function startAlarm(){
+  stopAlarm();
+  let beat=0;
+  alarmInterval=setInterval(()=>{
+    playChime(beat%3===0?'task':'ms');
+    beat++;
+    if(beat>12)stopAlarm(); // stop after ~8 seconds
+  },650);
+}
 function startTimerInterval(){
   clearInterval(timerInterval);
   timerSessions=[];
@@ -2138,7 +2162,10 @@ function startTimerInterval(){
     if(!activeTimer||activeTimer.status==='paused')return;
     const el=elapsedSecs();const rem=activeTimer.estimateSecs-el;
     document.getElementById('ts-label').textContent=activeTimer.label;
-    const tt=document.getElementById('ts-time');tt.textContent=fmtSecs(el);tt.className='ts-time'+(rem<0?' over':'');
+    const tt=document.getElementById('ts-time');tt.textContent=fmtSecs(el);
+    const wasOver=tt.classList.contains('over');
+    tt.className='ts-time'+(rem<0?' over':'');
+    if(rem<0&&!wasOver&&activeTimer?.estimateSecs>0){startAlarm();}
     const totalSoFar=timerSessions.reduce((s,x)=>s+x.secs,0)+el;
     const sessNum=timerSessions.length+1;
     const totEl=document.getElementById('ts-total');
@@ -3141,12 +3168,21 @@ function initLottie(){
   const animData=BLACKBIRD_ANIM;
   const fabEl=document.getElementById('bb-lottie-fab');
   const hdrEl=document.getElementById('bb-lottie-header');
-  if(fabEl&&typeof lottie!=='undefined'){
+  if(fabEl&&typeof lottie!=='undefined'&&!bbLottieFab){
     bbLottieFab=lottie.loadAnimation({container:fabEl,renderer:'svg',loop:true,autoplay:true,animationData:animData});
   }
-  if(hdrEl&&typeof lottie!=='undefined'){
+  if(hdrEl&&typeof lottie!=='undefined'&&!bbLottieHeader){
     bbLottieHeader=lottie.loadAnimation({container:hdrEl,renderer:'svg',loop:true,autoplay:true,animationData:animData});
   }
+  initTaskBirds();
+}
+
+function initTaskBirds(){
+  if(typeof lottie==='undefined')return;
+  document.querySelectorAll('.bb-task-lottie:not([data-init])').forEach(el=>{
+    el.setAttribute('data-init','1');
+    lottie.loadAnimation({container:el,renderer:'svg',loop:true,autoplay:true,animationData:BLACKBIRD_ANIM});
+  });
 }
 
 function bbSetState(state){
@@ -3301,13 +3337,15 @@ function openAssignTasksSheet(eventId){
           <div style="width:22px;height:22px;border:2px solid ${assigned?'var(--green)':'var(--bdrm)'};border-radius:4px;background:${assigned?'var(--green)':'#fff'};cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center" onclick="toggleTaskEvent(${t.id},${eventId},this)">
             ${assigned?'<span style="color:#fff;font-size:12px;font-weight:700">✓</span>':''}
           </div>
-          <div style="flex:1">
+          <div style="flex:1;cursor:pointer" onclick="closeAllPickers();openDetail(${t.id})">
             <div style="font-size:13px;font-weight:500">${t.title}</div>
-            <div style="display:flex;gap:5px;margin-top:3px">
+            <div style="display:flex;gap:5px;margin-top:3px;flex-wrap:wrap;align-items:center">
               <span class="task-tag" style="background:${o.bg};color:${o.color}">${o.name}</span>
+              ${t.due?`<span class="task-date ${t.due<tdStr()?'ov':t.due===tdStr()?'ds':''}">${fmtDate(t.due)}</span>`:''}
               ${t.task_code?`<span class="task-code">${t.task_code}</span>`:''}
             </div>
           </div>
+          <span style="font-size:18px;color:var(--tx3);padding:4px">›</span>
         </div>`;
       }).join('')}
     </div>
@@ -3319,6 +3357,7 @@ function openAssignTasksSheet(eventId){
   document.body.appendChild(picker);
 }
 
+async function closeAllPickers(){document.querySelectorAll('[style*="position:fixed"][style*="z-index:900"]').forEach(e=>e.remove());}
 async function toggleTaskEvent(taskId,eventId,el){
   const t=tasks.find(x=>x.id===taskId);if(!t)return;
   if(t.event_id===eventId){
