@@ -2483,21 +2483,19 @@ async function dpShelveTask(){
   if(!task)return;
   const confirmed=await confirm2('Shelve this task?','It will move to your Shelved list and can be activated later.','btn-ok');
   if(!confirmed)return;
-  // Add to shelved
   const ns={title:task.title,notes:task.notes||'',sort_order:shelved.length+1};
+  let saved=false;
   try{
     const res=await api('bravochore_shelved','POST',[ns]);
-    if(res&&res[0])shelved.push(res[0]);else shelved.push({...ns,id:Date.now()});
-  }catch(e){shelved.push({...ns,id:Date.now()});}
-  // Delete from tasks
-  tasks=tasks.filter(t=>t.id!==dpTaskId);
-  milestones=milestones.filter(m=>m.task_id!==dpTaskId);
-  try{
-    await api('bravochore_tasks','DELETE',null,`?id=eq.${dpTaskId}`);
-    await api('bravochore_milestones','DELETE',null,`?task_id=eq.${dpTaskId}`);
+    if(res&&res[0]){shelved.push(res[0]);saved=true;}
   }catch(e){}
+  if(!saved){chirp('Could not shelve — please try again.');return;}
+  const idToDelete=dpTaskId;
+  tasks=tasks.filter(t=>t.id!==idToDelete);
+  milestones=milestones.filter(m=>m.task_id!==idToDelete);
+  try{await api('bravochore_tasks','DELETE',null,`?id=eq.${idToDelete}`);}catch(e){}
+  try{await api('bravochore_milestones','DELETE',null,`?task_id=eq.${idToDelete}`);}catch(e){}
   closeDetail();
-  // Navigate to Shelved so she can see it landed
   bnNav('shelved');
   chirp('"'+task.title+'" shelved.');
 }
