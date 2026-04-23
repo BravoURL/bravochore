@@ -2144,8 +2144,8 @@ function taskCard(task){
   return `<div class="task-card ${ov?'overdue':ds?'due-soon':''} ${task.done?'done':''}" id="tc-${task.id}" data-id="${task.id}" draggable="true">
     ${ms.length&&!task.done?`<div class="task-wash" style="width:${Math.round(msPct*100)}%"></div>`:''}
     <div class="task-row">
-      <div class="task-check ${task.done?'checked':''}" onclick="quickTick(${task.id},event)"></div>
-      <div class="task-main" onclick="openDetail(${task.id})">
+      <div class="task-check ${task.done?'checked':''}" onclick="selectMode?toggleSelectTask(${task.id},document.getElementById('tc-'+${task.id})):quickTick(${task.id},event)"></div>
+      <div class="task-main" onclick="selectMode?toggleSelectTask(${task.id},document.getElementById('tc-'+${task.id})):openDetail(${task.id})">
         <div class="task-title ${task.done?'done-txt':''}">${task.title}</div>
         <div class="task-meta">
           <span class="task-tag" style="background:${o.bg};color:${o.color}">${o.name}</span>
@@ -2496,8 +2496,10 @@ async function dpShelveTask(){
     await api('bravochore_tasks','DELETE',null,`?id=eq.${dpTaskId}`);
     await api('bravochore_milestones','DELETE',null,`?task_id=eq.${dpTaskId}`);
   }catch(e){}
-  closeDetail();rerender();
-  chirp('"'+task.title+'" moved to Shelved.');
+  closeDetail();
+  // Navigate to Shelved so she can see it landed
+  bnNav('shelved');
+  chirp('"'+task.title+'" shelved.');
 }
 async function dpSave(){
   const title=document.getElementById('dp-title').textContent.trim();
@@ -4647,17 +4649,36 @@ function toggleSelectMode(){
   selectedTaskIds.clear();
   const btn=document.getElementById('select-mode-btn');
   const bar=document.getElementById('select-action-bar');
-  if(btn)btn.textContent=selectMode?'Cancel':'Select';
-  if(btn)btn.style.background=selectMode?'var(--rl)':'';
-  if(btn)btn.style.color=selectMode?'var(--red)':'';
+  if(btn)btn.textContent=selectMode?'Done':'Select';
+  if(btn)btn.style.background=selectMode?'var(--al)':'';
+  if(btn)btn.style.color=selectMode?'var(--amber)':'';
+  if(btn)btn.style.borderColor=selectMode?'var(--amber)':'';
   if(bar)bar.style.display=selectMode?'flex':'none';
+  // Clear any lingering visual selections
+  document.querySelectorAll('.task-card').forEach(c=>{
+    c.style.background='';c.style.outline='';
+    const chk=c.querySelector('.task-check:not(.checked)');
+    if(chk){chk.style.background='';chk.style.borderColor='';}
+  });
   renderTasksView();
 }
 
 function toggleSelectTask(taskId,el){
   if(!selectMode)return;
-  if(selectedTaskIds.has(taskId)){selectedTaskIds.delete(taskId);el.style.background='';}
-  else{selectedTaskIds.add(taskId);el.style.background='var(--gl)';}
+  const card=document.getElementById('tc-'+taskId);
+  if(selectedTaskIds.has(taskId)){
+    selectedTaskIds.delete(taskId);
+    if(card){card.style.background='';card.style.outline='';}
+    // Reset checkbox visual
+    const chk=card?.querySelector('.task-check');
+    if(chk)chk.style.background='';
+  }else{
+    selectedTaskIds.add(taskId);
+    if(card){card.style.background='var(--gl)';card.style.outline='2px solid var(--green)';}
+    // Show selected state on checkbox
+    const chk=card?.querySelector('.task-check');
+    if(chk){chk.style.background='var(--green)';chk.style.borderColor='var(--green)';}
+  }
   const ct=document.getElementById('select-count');
   if(ct)ct.textContent=selectedTaskIds.size+' selected';
 }
@@ -4674,8 +4695,8 @@ async function shelveSelected(){
     try{await api('bravochore_tasks','DELETE',null,`?id=eq.${id}`);}catch(e){}
   }
   toggleSelectMode();
-  rerender();
-  chirp(ids.length+' task'+(ids.length>1?'s':'')+' moved to Shelved.');
+  bnNav('shelved');
+  chirp(ids.length+' task'+(ids.length>1?'s':'')+' shelved.');
 }
 
 // ================================================================
