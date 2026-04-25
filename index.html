@@ -3082,7 +3082,8 @@ const COLES_CATS={
   'Deli & Cheese':['cheese','deli','ham','salami','prosciutto'],
   'Meat & Seafood':['beef','chicken','pork','lamb','fish','seafood','steak','mince'],
   'Fruit & Veg':['vegetable','fruit','salad','herb','onion','tomato','potato','apple','lemon'],
-  'Dairy & Eggs':['milk','egg','butter','cream','yoghurt','yogurt'],
+  'Personal Care':['shaving','shampoo','conditioner','deodorant','toothpaste','toothbrush','soap','body wash','face wash','moisturiser','sunscreen','razor','tampon','nappy','diaper','cotton bud','hand cream','face cream','body lotion'],
+  'Dairy & Eggs':['milk','egg','butter','yoghurt','yogurt','cream cheese','sour cream','thickened cream','double cream','pure cream'],
   'Frozen':['frozen','ice cream','pizza'],
   'Pantry':['oil','vinegar','sauce','pasta','rice','flour','sugar','spice','can','tin'],
   'Drinks':['wine','beer','juice','water','soft drink','coffee','tea'],
@@ -5948,216 +5949,139 @@ async function generateSprintTool(sprintTasks){
 }
 
 function buildSprintHTML(sprintTasks, allItems){
-  const items=allItems&&allItems.length?allItems:sprintTasks.map((t,i)=>({type:'task',title:t.title,hours:getEffectiveTime(t),id:t.id,num:i+1}));
-  const totalH=items.reduce((s,i)=>s+(i.hours||0),0);
-  const now=new Date();
-  const timeStr=now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
-  return `<!DOCTYPE html><html><head>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'DM Sans',system-ui,sans-serif;background:#FAFAF8;color:#2C2B28;padding:0}
-.sprint-wrap{max-width:600px;margin:0 auto;padding:16px}
-.sprint-banner{background:linear-gradient(135deg,#3d6b34,#5C8A4A);color:#fff;border-radius:16px;padding:18px 16px;margin-bottom:16px;text-align:center}
-.sprint-name{font-size:20px;font-weight:700;margin-bottom:4px}
-.sprint-sub{font-size:12px;opacity:.75}
-.progress-ring-wrap{margin:12px auto 0;position:relative;width:72px;height:72px}
-.progress-ring-wrap svg{transform:rotate(-90deg)}
-.prog-bg{stroke:#ffffff30;stroke-width:6;fill:none}
-.prog-fill{stroke:#fff;stroke-width:6;fill:none;stroke-linecap:round;transition:stroke-dashoffset .5s ease}
-.prog-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff}
-.task-item{background:#fff;border:1.5px solid #e8e4dc;border-radius:12px;margin-bottom:10px;overflow:hidden;transition:all .2s}
-.task-item.done-item{opacity:.5}
-.task-item-inner{display:flex;align-items:center;gap:12px;padding:14px 14px}
-.task-chk{width:28px;height:28px;border-radius:8px;border:2px solid #5C8A4A;background:#fff;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;tap-highlight-color:transparent}
-.task-chk.ticked{background:#5C8A4A;border-color:#5C8A4A}
-.task-title{font-size:14px;font-weight:500;flex:1;line-height:1.4}
-.task-title.struck{text-decoration:line-through;color:#999}
-.task-meta{font-size:11px;color:#888;margin-top:2px}
-.task-edit{padding:4px 8px;border:1px solid #e8e4dc;border-radius:100px;font-size:11px;color:#888;cursor:pointer;background:none;flex-shrink:0}
-.routine-item{background:#f0f8f2;border:1.5px solid #C0DD97;border-radius:12px;margin-bottom:10px}
-.section-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888;margin:14px 0 8px}
-.all-done{background:linear-gradient(135deg,#3d6b34,#5C8A4A);color:#fff;border-radius:16px;padding:20px;text-align:center;display:none;margin-top:8px}
-.all-done-title{font-size:22px;font-weight:800;margin-bottom:6px}
-.timer-strip{background:#fff;border:1px solid #e8e4dc;border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
-.timer-val{font-family:monospace;font-size:16px;font-weight:700;color:#5C8A4A}
-.timer-lbl{font-size:11px;color:#888}
-</style>
-</head><body>
-<div class="sprint-wrap">
-  <div class="sprint-banner">
-    <div class="sprint-name">⚡ Sprint</div>
-    <div class="sprint-sub">${CUN} · ${timeStr} · ${fmtHours(totalH)} total</div>
-    <div class="progress-ring-wrap">
-      <svg width="72" height="72" viewBox="0 0 72 72">
-        <circle class="prog-bg" cx="36" cy="36" r="30"/>
-        <circle class="prog-fill" id="prog-fill" cx="36" cy="36" r="30" stroke-dasharray="188" stroke-dashoffset="188"/>
-      </svg>
-      <div class="prog-text" id="prog-text">0/${items.filter(i=>i.type==='task').length}</div>
-    </div>
-  </div>
-  <div class="timer-strip">
-    <div><div class="timer-lbl">Elapsed</div><div class="timer-val" id="st-elapsed">0:00</div></div>
-    <div style="text-align:right"><div class="timer-lbl">Remaining</div><div class="timer-val" id="st-remain">${fmtHours(totalH)}</div></div>
-  </div>
-  ${items.filter(i=>i.type==='task').length?'<div class="section-label">BravoChore Tasks</div>':''}
-  ${items.filter(i=>i.type==='task').map(item=>`
-    <div class="task-item" id="sti-${item.id}" data-task-id="${item.id}">
-      <div class="task-item-inner">
-        <div class="task-chk" id="stc-${item.id}" onclick="window.sprintTickTask(${item.id})"></div>
-        <div style="flex:1;min-width:0">
-          <div class="task-title" id="stt-${item.id}">${item.title}</div>
-          <div class="task-meta">${item.hours?fmtHours(item.hours):''}</div>
-        </div>
-        <button class="task-edit" onclick="window.sprintEditTask(${item.id})">✏ Edit</button>
-      </div>
-    </div>`).join('')}
-  ${items.filter(i=>i.type==='routine').length?'<div class="section-label">Routines</div>':''}
-  ${items.filter(i=>i.type==='routine').map((item,i)=>`
-    <div class="routine-item task-item" id="sri-${i}">
-      <div class="task-item-inner">
-        <div class="task-chk" id="src-${i}" onclick="tickRoutine(${i})"></div>
-        <div style="flex:1;min-width:0">
-          <div class="task-title" id="srt-${i}">${item.title}</div>
-          <div class="task-meta">${item.section||'Routine'}</div>
-        </div>
-      </div>
-    </div>`).join('')}
-  <div id="sprint-added-tasks"></div>
-  <div class="all-done" id="all-done">
-    <div class="all-done-title">🎉 Sprint Complete!</div>
-    <div style="font-size:13px;opacity:.85">All ${items.filter(i=>i.type==='task').length} tasks done. Brilliant work.</div>
-  </div>
-</div>
-
-</body></html>`;
+  // Sprint tool is built from real BravoChore task cards — no generated HTML.
+  // The sprint-tool-inner div is populated in activateSprint using renderSprintTasks().
+  // This function just returns a simple scaffold.
+  const taskItems=allItems?allItems.filter(i=>i.type==='task'):sprintTasks.map(t=>({type:'task',id:t.id}));
+  const routineItems=allItems?allItems.filter(i=>i.type==='routine'):[];
+  return {taskItems, routineItems};
 }
 
-
-function activateSprint(sprintTasks, html, allItems){
-  hideSprintLoading();
-  sprintActive=true;
-  sprintElapsed=0;
-  const totalItems=(allItems||sprintTasks).length;
-  const title=totalItems===1?(allItems?allItems[0].title:sprintTasks[0].title):`${totalItems}-item sprint`;
-  sprintData={
-    taskIds:sprintTasks.map(t=>t.id),
-    doneTasks:new Set(),
-    title
-  };
-
-  // Save to DB
-  api('bravochore_sprints','POST',[{
-    user_code:CU,title,
-    task_ids:JSON.stringify(sprintTasks.map(t=>t.id)),
-    status:'active',
-    tasks_total:sprintTasks.length
-  }]).then(r=>{if(r&&r[0])sprintData.dbId=r[0].id;}).catch(()=>{});
-
-  // Render tool directly into div — plain HTML injection, no Shadow DOM
-  // Shadow DOM breaks window.sprintTickTask calls from generated scripts
+function renderSprintTasks(){
   const inner=document.getElementById('sprint-tool-inner');
-  if(inner){
-    inner.innerHTML=html;
-    // Re-run any scripts in the injected HTML
-    inner.querySelectorAll('script').forEach(oldScript=>{
-      const newScript=document.createElement('script');
-      newScript.textContent=oldScript.textContent;
-      oldScript.parentNode.replaceChild(newScript,oldScript);
-    });
+  if(!inner||!sprintData)return;
+
+  const taskItems=sprintData.allItems?sprintData.allItems.filter(i=>i.type==='task'):sprintData.taskIds.map(id=>({type:'task',id}));
+  const routineItems=sprintData.allItems?sprintData.allItems.filter(i=>i.type==='routine'):[];
+
+  let html='';
+
+  // ── TASKS ─────────────────────────────────────────────────────
+  if(taskItems.length){
+    html+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx3);margin-bottom:8px">Tasks</div>`;
+    html+=taskItems.map(item=>{
+      const t=tasks.find(x=>x.id===item.id);
+      if(!t)return '';
+      const isDone=sprintData.doneTasks.has(t.id);
+      const o=getOwner(t.owner);
+      const h=getEffectiveTime(t);
+      const ms=getMs(t.id);
+      const msDone=ms.filter(m=>m.done).length;
+      return `<div id="sti-${t.id}" data-task-id="${t.id}" style="background:var(--surf);border:1.5px solid var(--bdr);border-radius:var(--r);margin-bottom:8px;overflow:hidden;${isDone?'opacity:.55':''}">
+        <div style="display:flex;align-items:flex-start;gap:10px;padding:12px 14px;cursor:pointer" onclick="openDetail(${t.id})">
+          <div id="stc-${t.id}" onclick="event.stopPropagation();window.sprintTickTask(${t.id})" style="width:24px;height:24px;border-radius:50%;border:2px solid ${isDone?'var(--green)':'var(--bdrm)'};background:${isDone?'var(--green)':'var(--surf)'};flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s">
+            ${isDone?'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>':''}
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14px;font-weight:500;line-height:1.4;${isDone?'text-decoration:line-through;color:var(--tx3)':''}">${t.title}</div>
+            <div style="display:flex;gap:5px;margin-top:4px;flex-wrap:wrap;align-items:center">
+              <span class="task-tag" style="background:${o.bg};color:${o.color}">${o.name}</span>
+              ${t.due?`<span class="task-date ${t.due<tdStr()&&!t.done?'ov':''}">${fmtDate(t.due)}</span>`:''}
+              ${h?`<span style="font-size:10px;color:var(--tx3)">${fmtHours(h)}</span>`:''}
+              ${t.task_code?`<span class="task-code">${t.task_code}</span>`:''}
+              ${ms.length?`<span style="font-size:10px;color:var(--tx3)">${msDone}/${ms.length} steps</span>`:''}
+            </div>
+          </div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--tx3)" stroke-width="1.5" style="flex-shrink:0;margin-top:3px"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+        ${t.notes?`<div style="font-size:11px;color:var(--tx2);padding:0 14px 10px;font-style:italic;margin-top:-4px">${t.notes.slice(0,80)}${t.notes.length>80?'…':''}</div>`:''}
+      </div>`;
+    }).join('');
   }
 
-  // Expose tick function on window — accessible from generated scripts
-  window.sprintTickTask=async(taskId)=>{
-    const id=parseInt(taskId);
-    // Toggle: if already done, undo it
-    const inner=document.getElementById('sprint-tool-inner');
-    if(sprintData.doneTasks.has(id)){
-      sprintData.doneTasks.delete(id);
-      // Undo in BravoChore
-      const task=tasks.find(t=>t.id===id);
-      if(task){task.done=false;try{await api('bravochore_tasks','PATCH',{done:false},`?id=eq.${id}`);}catch(e){}}
-      updateSprintToolUI(id,false);
-      updateSprintProgress();
-      showSprintToast('Undone ↩','',id,false);
-      return;
-    }
-    // Mark done
-    sprintData.doneTasks.add(id);
-    // Update built-in template UI
-    const inner2=document.getElementById('sprint-tool-inner');
-    if(inner2&&inner2._sprintTick)inner2._sprintTick(id,true);
-    else if(inner2){const s=inner2.querySelector('script');try{inner2._stit=inner2._stit||new Function('id','isDone','el','el._sprintInternalTick&&el._sprintInternalTick(id,isDone)',inner2);}catch(e){}}
-    // Fallback: direct DOM update
-    const chkEl=document.getElementById('stc-'+id);
-    const txtEl=document.getElementById('stt-'+id);
-    if(chkEl){chkEl.className='task-chk ticked';chkEl.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>';}
-    if(txtEl)txtEl.classList.add('struck');
-    // Save to BravoChore
-    await quickTickSilent(id);
-    updateSprintProgress();
-    // Show toast confirmation with undo
-    const task=tasks.find(t=>t.id===id);
-    const m=Math.floor(sprintElapsed/60),s=sprintElapsed%60;
-    const elapsedStr=m+'m '+(s<10?'0':'')+s+'s elapsed';
-    showSprintToast('✓ Done',task?task.title+' · '+elapsedStr:'',id,true);
-  };
+  // ── ROUTINES ──────────────────────────────────────────────────
+  if(routineItems.length){
+    html+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx3);margin:14px 0 8px">Routines</div>`;
+    html+=routineItems.map((item,i)=>{
+      const isDone=sprintData.doneRoutines&&sprintData.doneRoutines.has(i);
+      return `<div id="sri-${i}" style="background:var(--gl);border:1.5px solid var(--gm);border-radius:var(--r);margin-bottom:8px;${isDone?'opacity:.55':''}">
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 14px">
+          <div id="src-${i}" onclick="window.sprintTickRoutine(${i})" style="width:24px;height:24px;border-radius:50%;border:2px solid ${isDone?'var(--green)':'var(--gm)'};background:${isDone?'var(--green)':'var(--surf)'};flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s">
+            ${isDone?'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>':''}
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14px;font-weight:500;${isDone?'text-decoration:line-through;color:var(--tx3)':''}">${item.title}</div>
+            <div style="font-size:11px;color:var(--gd);margin-top:2px">${item.section||'Routine'}</div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
 
-  window.sprintTickRoutine=(idx)=>{
-    const chk=document.getElementById('src-'+idx);
-    const txt=document.getElementById('srt-'+idx);
-    const row=document.getElementById('sri-'+idx);
-    const tick='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>';
-    const isDone=chk&&chk.innerHTML.includes('svg');
-    if(isDone){
-      if(chk){chk.style.background='#fff';chk.innerHTML='';}
-      if(txt){txt.style.textDecoration='';txt.style.color='';}
-      if(row)row.style.opacity='';
-    }else{
-      if(chk){chk.style.background='#5C8A4A';chk.style.borderColor='#5C8A4A';chk.innerHTML=tick;}
-      if(txt){txt.style.textDecoration='line-through';txt.style.color='#999';}
-      if(row)row.style.opacity='0.6';
-    }
-  };
-  window.sprintEditTask=(taskId)=>{
-    const id=parseInt(taskId);
-    // Open full detail panel without closing sprint
-    openDetail(id);
-  };
+  // ── ADDED TASKS container ─────────────────────────────────────
+  html+=`<div id="sprint-added-tasks"></div>`;
 
-  window.getSprintElapsed=()=>sprintElapsed;
-  window.getSprintElapsed=()=>sprintElapsed;
+  // ── ALL DONE ──────────────────────────────────────────────────
+  html+=`<div id="sprint-all-done" style="display:none;background:var(--green);color:#fff;border-radius:var(--r);padding:20px;text-align:center;margin-top:8px">
+    <div style="font-size:28px;margin-bottom:6px">🎉</div>
+    <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:500;margin-bottom:4px">Sprint complete!</div>
+    <div style="font-size:13px;opacity:.85">Brilliant work, ${CUN}.</div>
+  </div>`;
 
-  // Update UI
-  document.getElementById('sprint-title').textContent=title;
-  updateSprintProgress();
-
-  // Show overlay
-  document.getElementById('sprint-overlay').classList.add('active');
-
-  // Start timer
-  clearInterval(sprintTimer);
-  sprintTimer=setInterval(()=>{
-    sprintElapsed++;
-    const m=Math.floor(sprintElapsed/60),s=sprintElapsed%60;
-    const el=document.getElementById('sprint-elapsed');
-    if(el)el.textContent=m+':'+String(s).padStart(2,'0');
-    // Also update timer inside the sprint tool
-    const tmr=document.getElementById('sprint-tmr');
-    if(tmr)tmr.textContent=m+':'+(s<10?'0':'')+s;
-    if(sprintElapsed%30===0)saveSprintState(); // save every 30s
-  },1000);
-
-  // Populate drawer
-  renderSprintDrawer();
+  inner.innerHTML=html;
 }
 
-async function quickTickSilent(taskId){
-  const task=tasks.find(t=>t.id===taskId);if(!task||task.done)return;
-  task.done=true;
-  rerender();
-  try{await api('bravochore_tasks','PATCH',{done:true},`?id=eq.${taskId}`);}catch(e){}
-  playChime('task');
+
+
+function renderSprintTaskRow(taskId, isDone){
+  const row=document.getElementById('sti-'+taskId);
+  const chk=document.getElementById('stc-'+taskId);
+  const titleEl=row?.querySelector('[style*="font-size:14px;font-weight:500"]');
+  const tick='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>';
+  if(chk){
+    chk.style.background=isDone?'var(--green)':'var(--surf)';
+    chk.style.borderColor=isDone?'var(--green)':'var(--bdrm)';
+    chk.innerHTML=isDone?tick:'';
+  }
+  if(row)row.style.opacity=isDone?'0.55':'';
+  if(titleEl){
+    titleEl.style.textDecoration=isDone?'line-through':'';
+    titleEl.style.color=isDone?'var(--tx3)':'';
+  }
+  // Check if all done
+  if(isDone&&sprintData&&sprintData.doneTasks.size>=sprintData.taskIds.length){
+    setTimeout(()=>{const ad=document.getElementById('sprint-all-done');if(ad)ad.style.display='block';},600);
+  }
+}
+function updateSprintToolUI(taskId, isDone){
+  const chkEl=document.getElementById('stc-'+taskId);
+  const txtEl=document.getElementById('stt-'+taskId);
+  const rowEl=document.getElementById('sti-'+taskId);
+  const tick='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>';
+  if(isDone){
+    if(chkEl){chkEl.classList.add('checked');chkEl.innerHTML=tick;}
+    if(txtEl)txtEl.classList.add('done-txt');
+    if(rowEl)rowEl.classList.add('done');
+  }else{
+    if(chkEl){chkEl.classList.remove('checked');chkEl.innerHTML='';}
+    if(txtEl)txtEl.classList.remove('done-txt');
+    if(rowEl)rowEl.classList.remove('done');
+  }
+  if(!sprintData)return;
+  const total=sprintData.taskIds.length;
+  const done=sprintData.doneTasks.size;
+  const bar=document.getElementById('sprint-inner-bar');
+  const ringTxt=document.getElementById('sprint-ring-txt');
+  if(bar)bar.style.width=(total?done/total*100:0)+'%';
+  if(ringTxt)ringTxt.textContent=done+'/'+total;
+  const rem=document.getElementById('sprint-rem');
+  if(rem){
+    const doneH=sprintData.taskIds.filter(id=>sprintData.doneTasks.has(id)).reduce((s,id)=>{const t=tasks.find(x=>x.id===id);return s+(t?getEffectiveTime(t):0);},0);
+    const totalH2=sprintData.taskIds.reduce((s,id)=>{const t=tasks.find(x=>x.id===id);return s+(t?getEffectiveTime(t):0);},0);
+    const left=Math.max(0,totalH2-doneH);
+    rem.textContent=left>0?fmtHours(left):'Done!';
+  }
+  if(done>=total&&total>0)setTimeout(()=>{const ad=document.getElementById('sprint-all-done');if(ad)ad.style.display='block';},600);
 }
 
 function updateSprintProgress(){
@@ -6175,7 +6099,7 @@ function updateSprintProgress(){
     const remH=remaining.reduce((s,id)=>{const t=tasks.find(x=>x.id===id);return s+(t?getEffectiveTime(t):0);},0);
     stats.textContent=remH>0?`~${fmtHours(remH)} remaining`:'All done!';
   }
-  if(done===total&&total>0)setTimeout(()=>showSprintComplete(),1200);
+  // completion handled by updateSprintToolUI
 }
 
 function renderSprintDrawer(){
@@ -6230,28 +6154,15 @@ function addTaskToSprint(taskId){
   if(!sprintData)return;
   if(sprintData.taskIds.includes(taskId))return;
   sprintData.taskIds.push(taskId);
+  // Update allItems too so render knows about this task
+  if(!sprintData.allItems)sprintData.allItems=[];
+  const t=tasks.find(x=>x.id===taskId);
+  if(t)sprintData.allItems.push({type:'task',id:taskId,title:t.title,hours:getEffectiveTime(t)});
+  // Re-render the sprint tool and drawer
+  renderSprintTasks();
   renderSprintDrawer();
   updateSprintProgress();
-  // Inject into the #sprint-added-tasks container in the template
-  const task=tasks.find(t=>t.id===taskId);if(!task)return;
-  const added=document.getElementById('sprint-added-tasks');
-  if(added){
-    const row=document.createElement('div');
-    row.id='sti-'+taskId;
-    row.setAttribute('data-task-id',taskId);
-    row.style.cssText='background:#fff;border:1.5px solid #e8e4dc;border-radius:12px;margin-bottom:10px;overflow:hidden';
-    row.innerHTML=`<div style="display:flex;align-items:center;gap:12px;padding:14px;min-height:56px">
-      <div id="stc-${taskId}" onclick="window.sprintTickTask(${taskId})" style="width:28px;height:28px;border-radius:8px;border:2px solid #5C8A4A;background:#fff;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer"></div>
-      <div style="flex:1;min-width:0">
-        <div id="stt-${taskId}" style="font-size:14px;font-weight:500;line-height:1.4">${task.title}</div>
-        <div style="font-size:11px;color:#888;margin-top:2px">${task.time_hours?fmtHours(parseFloat(task.time_hours)):''}</div>
-      </div>
-      <button onclick="openDetail(${taskId})" style="padding:5px 10px;border:1px solid #e8e4dc;border-radius:100px;font-size:11px;color:#888;cursor:pointer;background:none;flex-shrink:0">✏</button>
-    </div>`;
-    added.appendChild(row);
-  }
-  updateSprintProgress();
-  chirp('"'+task.title+'" added to sprint.');
+  chirp('"'+(t?t.title:'Task')+'" added to sprint.');
 }
 
 function toggleSprintDrawer(){
@@ -6498,12 +6409,14 @@ async function checkForActiveSprint(){
   const saved=loadSprintState();
   if(!saved||!saved.taskIds||!saved.taskIds.length)return;
   // Show resume prompt
+  document.getElementById('sprint-resume-banner')?.remove();
   const banner=document.createElement('div');
+  banner.id='sprint-resume-banner';
   banner.style.cssText='position:fixed;bottom:70px;left:12px;right:12px;background:var(--tx);color:#fff;border-radius:var(--r);padding:14px 16px;z-index:700;display:flex;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.25)';
-  banner.innerHTML=`<div><div style="font-size:13px;font-weight:700">Sprint in progress</div><div style="font-size:11px;opacity:.7">${saved.title} · ${saved.doneTasks.length}/${saved.taskIds.length} done</div></div>
+  banner.innerHTML=`<div><div style="font-size:13px;font-weight:700">⚡ Sprint in progress</div><div style="font-size:11px;opacity:.7">${saved.title} · ${saved.doneTasks.length}/${saved.taskIds.length} done</div></div>
   <div style="display:flex;gap:8px">
-    <button onclick="resumeSprint();this.closest('[style*=position]').remove()" style="padding:7px 14px;background:var(--green);border:none;border-radius:var(--rs);color:#fff;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer">Resume</button>
-    <button onclick="clearSprintState();this.closest('[style*=position]').remove()" style="padding:7px 10px;border:1.5px solid rgba(255,255,255,.3);border-radius:var(--rs);background:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer">Dismiss</button>
+    <button onclick="resumeSprint();document.getElementById('sprint-resume-banner')?.remove()" style="padding:7px 14px;background:var(--green);border:none;border-radius:var(--rs);color:#fff;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer">Resume</button>
+    <button onclick="clearSprintState();document.getElementById('sprint-resume-banner')?.remove()" style="padding:7px 10px;border:1.5px solid rgba(255,255,255,.3);border-radius:var(--rs);background:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer">Dismiss</button>
   </div>`;
   document.body.appendChild(banner);
 }
@@ -6516,13 +6429,8 @@ async function resumeSprint(){
   // Restore done state
   sprintElapsed=saved.elapsed||0;
   sprintData.dbId=saved.dbId;
-  saved.doneTasks.forEach(id=>{
-    sprintData.doneTasks.add(id);
-    const chkEl=document.getElementById('stc-'+id);
-    const txtEl=document.getElementById('stt-'+id);
-    if(chkEl){chkEl.className='task-chk ticked';chkEl.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>';}
-    if(txtEl)txtEl.classList.add('struck');
-  });
+  saved.doneTasks.forEach(id=>{sprintData.doneTasks.add(id);});
+  renderSprintTasks(); // re-render with restored done state
   updateSprintProgress();
 }
 
