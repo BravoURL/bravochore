@@ -209,9 +209,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 .task-card.due-soon{border-left:3px solid var(--amber)}
 .task-card.done{opacity:.4}
 .task-card{transition:margin .2s ease,box-shadow .15s,opacity .15s,transform .15s}
-.task-card.dragging{opacity:.25;border:2px dashed var(--green) !important;transform:scale(.97)}
-.task-card.drag-over-above{border-top:3px solid var(--green)!important;margin-top:2px}
-.task-card.drag-over-below{border-bottom:3px solid var(--green)!important;margin-bottom:2px}
+/* DRAG — dragging card follows finger as ghost */
+.task-card.dragging{opacity:0.35 !important;pointer-events:none}
+.drag-placeholder{background:var(--gl);border:2px dashed var(--green);border-radius:var(--rs);margin-bottom:6px;transition:height .1s}
+#drag-ghost{position:fixed;z-index:9000;pointer-events:none;opacity:0.85;transform-origin:top left;background:var(--surf);border:1.5px solid var(--green);border-radius:var(--rs);box-shadow:0 8px 24px rgba(0,0,0,.18);max-width:calc(100vw - 32px)}
 /* MS progress wash */
 .task-wash{position:absolute;left:0;top:0;height:100%;background:linear-gradient(90deg,rgba(92,138,74,.1) 0%,transparent 100%);pointer-events:none;transition:width .5s ease;border-radius:var(--rs)}
 .task-row{display:flex;align-items:center;padding:12px 10px;gap:9px;position:relative;z-index:1;min-height:56px}
@@ -1454,6 +1455,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 </div>
 
 <div id="chirp-container"></div>
+<div id="drag-ghost" style="display:none"></div>
 <div id="bb-flyer" style="display:none"><div id="bb-lottie-flyer" style="width:36px;height:36px"></div></div>
 <input type="file" id="photo-input-cam" accept="image/*" capture="environment" style="display:none">
 <input type="file" id="photo-input-lib" accept="image/*" multiple style="display:none">
@@ -1725,7 +1727,7 @@ let bbOpen=false,bbCtx=null;
 let dpTaskId=null;
 let paceView='pace';
 let cmResolve=null,cmReject=null;
-let dragSrc=null,dragOver=null;
+let dragSrc=null,dragOver=null,dragGhost=null,dragPlaceholder=null,dragOffsetX=0,dragOffsetY=0;
 
 function savePeople(){localStorage.setItem('bc_people',JSON.stringify(people));}
 function getOwner(code){return people.find(p=>p.code===code)||{code,name:code,bg:'#F4F3F0',color:'#5a5a56'};}
@@ -1993,7 +1995,7 @@ function selectUser(code,name){
   document.getElementById('user-picker').style.display='none';
   document.getElementById('app').style.display='block';
   document.getElementById('bb-fab').style.display='flex';
-  setupPill();renderExtraFilters();renderDashboard();initLottie();assignMissingCodes();loadPrefs();document.getElementById('bn-dashboard')?.classList.add('active');
+  setupPill();renderExtraFilters();renderDashboard();initLottie();assignMissingCodes();loadPrefs();setTimeout(checkForActiveSprint,1500);document.getElementById('bn-dashboard')?.classList.add('active');
   setTimeout(()=>chirp("Let's get this done."),800);
   bbMsg("Hey — I'm Blackbird. Tap the bird icon on any task for advice, or just ask me anything.",'from-bb');
 }
@@ -3597,16 +3599,7 @@ let scrollInterval=null;
 let dragPressTimer=null;
 let dragStarted=false;
 
-function dragSetOver(el,clientY){
-  if(!el||el===dragSrc)return;
-  // Must be a task card (not a child element)
-  const card=el.classList.contains('task-card')?el:el.closest('.task-card');
-  if(!card||card===dragSrc)return;
-  document.querySelectorAll('.task-card').forEach(c=>c.classList.remove('drag-over-above','drag-over-below'));
-  dragOver=card;
-  const r=card.getBoundingClientRect();
-  card.classList.add(clientY<r.top+r.height/2?'drag-over-above':'drag-over-below');
-}
+function dragSetOver(el,clientY){} // legacy stub — placeholder approach handles this
 
 function dragAutoScroll(clientY){
   clearInterval(scrollInterval);
@@ -3628,108 +3621,192 @@ function dragFinish(){
 function dragClean(){
   clearInterval(scrollInterval);
   clearTimeout(dragPressTimer);
-  // Restore touch-action on all cards and list
+  dragStarted=false;
+  // Remove ghost
+  if(dragGhost){dragGhost.remove();dragGhost=null;}
+  // Remove placeholder
+  if(dragPlaceholder){dragPlaceholder.remove();dragPlaceholder=null;}
+  // Restore dragging card
+  if(dragSrc){dragSrc.classList.remove('dragging');dragSrc.style.touchAction='';}
+  // Restore list
   if(dragSrcList){
     dragSrcList.style.touchAction='';
     dragSrcList.style.overflowY='';
   }
   document.body.style.overflow='';
   document.body.style.userSelect='';
-  document.querySelectorAll('.task-card').forEach(c=>{
-    c.classList.remove('dragging','drag-over-above','drag-over-below');
-    c.style.touchAction='';
-  });
-  dragStarted=false;dragSrc=null;dragOver=null;dragSrcList=null;
+  dragSrc=null;dragOver=null;dragSrcList=null;
 }
 
 // Wire drag on any list container — call with list element
 function initDragList(list){
   if(!list||list.dataset.dragInit)return;
   list.dataset.dragInit='1';
-  const markDraggable=()=>list.querySelectorAll('.task-card:not(.done)').forEach(c=>c.setAttribute('draggable','true'));
+
+  // Mark all non-done cards as draggable (for desktop)
+  const markDraggable=()=>list.querySelectorAll('.task-card:not(.done)').forEach(c=>{
+    c.setAttribute('draggable','true');
+    c.style.touchAction='pan-y'; // allow scroll, JS takes over on hold
+  });
   new MutationObserver(markDraggable).observe(list,{childList:true,subtree:true});
   markDraggable();
 
-  // TOUCH — touchstart MUST be passive:false so preventDefault works on move
+  // ── TOUCH IMPLEMENTATION ──────────────────────────────────────────
+  // Strategy: 500ms hold activates drag. Card becomes a ghost that follows
+  // finger. A placeholder shows where card will land. On touchend, card
+  // moves to placeholder position.
+  // This is the ONLY approach that works reliably on Android Chrome.
+  // ─────────────────────────────────────────────────────────────────
+
   list.addEventListener('touchstart',e=>{
     const card=e.target.closest('.task-card:not(.done)');
     if(!card)return;
+    if(e.touches.length>1)return; // ignore multi-touch
+    const touch=e.touches[0];
+    const startX=touch.clientX;
+    const startY=touch.clientY;
     dragStarted=false;
-    const startY=e.touches[0].clientY;
-    const startX=e.touches[0].clientX;
-    // Cancel drag if user moves before hold completes
-    const cancelOnMove=(ev)=>{
-      const dy=Math.abs(ev.touches[0].clientY-startY);
-      const dx=Math.abs(ev.touches[0].clientX-startX);
-      if(dy>8||dx>8){clearTimeout(dragPressTimer);list.removeEventListener('touchmove',cancelOnMove);}
-    };
-    list.addEventListener('touchmove',cancelOnMove,{passive:true,once:false});
+
+    // Cancel if moved more than 8px before hold completes
+    function cancelOnScroll(ev){
+      const t=ev.touches[0];
+      if(Math.abs(t.clientX-startX)>8||Math.abs(t.clientY-startY)>8){
+        clearTimeout(dragPressTimer);
+        list.removeEventListener('touchmove',cancelOnScroll);
+      }
+    }
+    list.addEventListener('touchmove',cancelOnScroll,{passive:true});
+
     dragPressTimer=setTimeout(()=>{
-      list.removeEventListener('touchmove',cancelOnMove);
-      dragStarted=true;dragSrc=card;dragSrcList=list;
+      list.removeEventListener('touchmove',cancelOnScroll);
+      dragStarted=true;
+      dragSrc=card;
+      dragSrcList=list;
+
+      // Vibrate to confirm
+      navigator.vibrate&&navigator.vibrate([15,8,15]);
+
+      // Measure card before hiding it
+      const rect=card.getBoundingClientRect();
+      dragOffsetX=touch.clientX-rect.left;
+      dragOffsetY=touch.clientY-rect.top;
+
+      // Create placeholder with same height as card
+      dragPlaceholder=document.createElement('div');
+      dragPlaceholder.className='drag-placeholder';
+      dragPlaceholder.style.height=rect.height+'px';
+      card.parentNode.insertBefore(dragPlaceholder,card.nextSibling);
+
+      // Create ghost — clone of card that follows finger
+      dragGhost=card.cloneNode(true);
+      dragGhost.id='drag-ghost';
+      dragGhost.style.width=rect.width+'px';
+      dragGhost.style.height=rect.height+'px';
+      dragGhost.style.top=(touch.clientY-dragOffsetY)+'px';
+      dragGhost.style.left=(touch.clientX-dragOffsetX)+'px';
+      document.body.appendChild(dragGhost);
+
+      // Fade original
       card.classList.add('dragging');
       card.style.touchAction='none';
-      list.style.touchAction='none';
-      list.style.overflowY='hidden';
+
+      // Lock body scroll
       document.body.style.overflow='hidden';
       document.body.style.userSelect='none';
-      navigator.vibrate&&navigator.vibrate([20,10,20]);
     },500);
   },{passive:false});
 
   list.addEventListener('touchmove',e=>{
-    if(!dragStarted){
-      // If moved significantly before timer, cancel drag intent
-      clearTimeout(dragPressTimer);
-      return;
+    if(!dragStarted)return;
+    e.preventDefault(); // must prevent scroll while dragging
+    const touch=e.touches[0];
+
+    // Move ghost with finger
+    if(dragGhost){
+      dragGhost.style.top=(touch.clientY-dragOffsetY)+'px';
+      dragGhost.style.left=(touch.clientX-dragOffsetX)+'px';
     }
-    e.preventDefault(); // works because touchstart is passive:false
-    const t=e.touches[0];
-    dragAutoScroll(t.clientY);
-    const rawEl=document.elementFromPoint(t.clientX,t.clientY);
-    const el=rawEl?.closest('.task-card');
-    if(el)dragSetOver(el,t.clientY);
+
+    // Find which card the finger is over (hide ghost temporarily so elementFromPoint works)
+    if(dragGhost)dragGhost.style.display='none';
+    const elUnder=document.elementFromPoint(touch.clientX,touch.clientY);
+    if(dragGhost)dragGhost.style.display='';
+
+    if(!elUnder)return;
+    const targetCard=elUnder.closest('.task-card');
+    if(!targetCard||targetCard===dragSrc||targetCard===dragGhost)return;
+    if(!list.contains(targetCard))return;
+
+    // Move placeholder above or below target
+    const r=targetCard.getBoundingClientRect();
+    const isAbove=touch.clientY<r.top+r.height/2;
+    if(isAbove){
+      targetCard.parentNode.insertBefore(dragPlaceholder,targetCard);
+    }else{
+      targetCard.parentNode.insertBefore(dragPlaceholder,targetCard.nextSibling);
+    }
   },{passive:false});
 
-  list.addEventListener('touchend',e=>{
+  list.addEventListener('touchend',()=>{
     clearTimeout(dragPressTimer);
-    if(dragStarted)dragFinishInList(list);
-    else dragClean();
-  },{passive:true});
-
+    if(dragStarted){
+      dragFinishInList(list);
+    }else{
+      dragClean();
+    }
+  });
   list.addEventListener('touchcancel',()=>{clearTimeout(dragPressTimer);dragClean();});
 
-  // DESKTOP
+  // ── DESKTOP DRAG IMPLEMENTATION ──────────────────────────────────
   list.addEventListener('dragstart',e=>{
     const card=e.target.closest('.task-card:not(.done)');
     if(!card){e.preventDefault();return;}
-    dragSrc=card;dragSrcList=list;card.classList.add('dragging');
+    dragSrc=card;dragSrcList=list;
+    card.classList.add('dragging');
     e.dataTransfer.effectAllowed='move';
     e.dataTransfer.setData('text/plain',card.dataset.id||card.dataset.sid||'');
+    // Create placeholder for desktop too
+    const rect=card.getBoundingClientRect();
+    dragPlaceholder=document.createElement('div');
+    dragPlaceholder.className='drag-placeholder';
+    dragPlaceholder.style.height=rect.height+'px';
+    card.parentNode.insertBefore(dragPlaceholder,card.nextSibling);
   });
-  list.addEventListener('dragend',()=>{clearInterval(scrollInterval);dragFinishInList(list);});
+  list.addEventListener('dragend',()=>{
+    clearInterval(scrollInterval);
+    dragFinishInList(list);
+  });
   list.addEventListener('dragover',e=>{
     e.preventDefault();e.dataTransfer.dropEffect='move';
     const card=e.target.closest('.task-card');
-    if(card)dragSetOver(card,e.clientY);
+    if(!card||card===dragSrc)return;
+    if(!list.contains(card))return;
+    const r=card.getBoundingClientRect();
+    if(e.clientY<r.top+r.height/2){
+      card.parentNode.insertBefore(dragPlaceholder,card);
+    }else{
+      card.parentNode.insertBefore(dragPlaceholder,card.nextSibling);
+    }
   });
-  list.addEventListener('drop',e=>{e.preventDefault();dragFinishInList(list);});
+  list.addEventListener('drop',e=>{e.preventDefault();});
 }
 
 let dragSrcList=null;
 
 function dragFinishInList(list){
   clearInterval(scrollInterval);
-  if(!dragSrc||!dragOver||dragSrc===dragOver){dragClean();return;}
-  const src=dragSrc,tgt=dragOver;
-  const above=tgt.classList.contains('drag-over-above');
-  // Move DOM FIRST, then clean — order matters
-  if(above)tgt.before(src);else tgt.after(src);
+  if(!dragSrc||!dragPlaceholder){dragClean();return;}
+  const src=dragSrc;
+  // Insert card where placeholder is, then remove placeholder
+  if(dragPlaceholder.parentNode){
+    dragPlaceholder.parentNode.insertBefore(src,dragPlaceholder);
+  }
   dragClean();
-  // Update sort order based on which list
-  const isShelved=list.id==='shelved-list';
-  const newOrder=Array.from(list.querySelectorAll(isShelved?'.task-card[data-sid]':'.task-card[data-id]'))
-    .map(c=>parseInt(isShelved?c.dataset.sid:c.dataset.id));
+  // Save sort order
+  const isShelved=list&&list.id==='shelved-list';
+  const selector=isShelved?'.task-card[data-sid]':'.task-card[data-id]';
+  const newOrder=Array.from((list||document.getElementById('all-tasks-list')).querySelectorAll(selector))
+    .map(c=>parseInt(isShelved?c.dataset.sid:c.dataset.id)).filter(n=>!isNaN(n));
   if(isShelved){
     newOrder.forEach((id,i)=>{const s=shelved.find(x=>x.id===id);if(s)s.sort_order=i+1;});
     newOrder.forEach((id,i)=>api('bravochore_shelved','PATCH',{sort_order:i+1},`?id=eq.${id}`).catch(()=>{}));
@@ -5937,60 +6014,98 @@ function hideSprintLoading(){
 }
 
 async function generateSprintTool(sprintTasks){
-  const totalH=sprintTasks.reduce((s,t)=>s+getEffectiveTime(t),0);
-  const taskList=sprintTasks.map((t,i)=>`${i+1}. ${t.title} (${fmtHours(getEffectiveTime(t))}) [id:${t.id}]`).join('\n');
-  const now=new Date();
-  const timeOfDay=`${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
-
-  const sprintPrompt=`You are building a bespoke single-use sprint execution tool for a household task app called BravoChore.
-
-Current time: ${timeOfDay}
-User: ${CUN}
-Sprint tasks (${sprintTasks.length} tasks, ~${fmtHours(totalH)} total):
-${taskList}
-
-Generate a complete, self-contained HTML sprint tool. Requirements:
-- Beautiful, motivating design using these CSS variables: --green:#5C8A4A, --gl:#EAF3DE, --tx:#2C2B28, --surf:#ffffff, --bg:#FAFAF8, --bdr:#e8e4dc, --rs:10px, --r:14px
-- Font: use system-ui or 'DM Sans' from Google Fonts
-- Each task must have a checkbox/tick button. When ticked, call: window.sprintTickTask(taskId) where taskId is the numeric ID shown above
-- Show a motivating progress indicator (ring, bar, or counter)
-- Include a visible elapsed timer using setInterval — call window.parent.getSprintElapsed() to get seconds
-- Make it feel like a focused execution tool — not a list. Could be a sequential task guide, a visual board, a timer-driven flow, whatever fits these specific tasks
-- Must be mobile-optimised (max-width 100%, touch-friendly tap targets min 44px)
-- Add personality — Blackbird energy, warm but focused. Can include a motivating phrase or sprint name
-- Keep it under 200 lines of HTML
-- NO external dependencies except Google Fonts
-- The tool should feel premium and hand-crafted, not generic
-
-Respond with ONLY the complete HTML — no explanation, no markdown fences.`;
-
-  try{
-    const res=await fetch(BB_PROXY,{
-      method:'POST',
-      headers:{'Content-Type':'application/json','apikey':SK},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:4000,
-        system:'You are a world-class UI developer building a focused sprint tool. Return only clean HTML.',
-        messages:[{role:'user',content:sprintPrompt}]
-      })
-    });
-    const data=await res.json();
-    let html=data.content?.find(c=>c.type==='text')?.text||'';
-    // Strip markdown fences if present
-    html=html.replace(/^```html\n?/,'').replace(/^```\n?/,'').replace(/```$/,'').trim();
-    if(!html||html.length<100){
-      hideSprintLoading();
-      bbMsg('Couldn\'t generate the sprint tool — try again.','from-bb');
-      openBBFullscreen();
-      return;
-    }
-    activateSprint(sprintTasks, html);
-  }catch(e){
-    hideSprintLoading();
-    chirp('Sprint generation failed — check connection.');
-  }
+  // Build the sprint tool directly — no AI generation needed
+  // Fast, consistent, works offline
+  const html=buildSprintHTML(sprintTasks,[]);
+  activateSprint(sprintTasks,html,[]);
 }
+
+function buildSprintHTML(sprintTasks, allItems){
+  const items=allItems&&allItems.length?allItems:sprintTasks.map((t,i)=>({type:'task',title:t.title,hours:getEffectiveTime(t),id:t.id,num:i+1}));
+  const totalH=items.reduce((s,i)=>s+(i.hours||0),0);
+  const now=new Date();
+  const timeStr=now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
+  return `<!DOCTYPE html><html><head>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;background:#FAFAF8;color:#2C2B28;padding:0}
+.sprint-wrap{max-width:600px;margin:0 auto;padding:16px}
+.sprint-banner{background:linear-gradient(135deg,#3d6b34,#5C8A4A);color:#fff;border-radius:16px;padding:18px 16px;margin-bottom:16px;text-align:center}
+.sprint-name{font-size:20px;font-weight:700;margin-bottom:4px}
+.sprint-sub{font-size:12px;opacity:.75}
+.progress-ring-wrap{margin:12px auto 0;position:relative;width:72px;height:72px}
+.progress-ring-wrap svg{transform:rotate(-90deg)}
+.prog-bg{stroke:#ffffff30;stroke-width:6;fill:none}
+.prog-fill{stroke:#fff;stroke-width:6;fill:none;stroke-linecap:round;transition:stroke-dashoffset .5s ease}
+.prog-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff}
+.task-item{background:#fff;border:1.5px solid #e8e4dc;border-radius:12px;margin-bottom:10px;overflow:hidden;transition:all .2s}
+.task-item.done-item{opacity:.5}
+.task-item-inner{display:flex;align-items:center;gap:12px;padding:14px 14px}
+.task-chk{width:28px;height:28px;border-radius:8px;border:2px solid #5C8A4A;background:#fff;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;tap-highlight-color:transparent}
+.task-chk.ticked{background:#5C8A4A;border-color:#5C8A4A}
+.task-title{font-size:14px;font-weight:500;flex:1;line-height:1.4}
+.task-title.struck{text-decoration:line-through;color:#999}
+.task-meta{font-size:11px;color:#888;margin-top:2px}
+.task-edit{padding:4px 8px;border:1px solid #e8e4dc;border-radius:100px;font-size:11px;color:#888;cursor:pointer;background:none;flex-shrink:0}
+.routine-item{background:#f0f8f2;border:1.5px solid #C0DD97;border-radius:12px;margin-bottom:10px}
+.section-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888;margin:14px 0 8px}
+.all-done{background:linear-gradient(135deg,#3d6b34,#5C8A4A);color:#fff;border-radius:16px;padding:20px;text-align:center;display:none;margin-top:8px}
+.all-done-title{font-size:22px;font-weight:800;margin-bottom:6px}
+.timer-strip{background:#fff;border:1px solid #e8e4dc;border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+.timer-val{font-family:monospace;font-size:16px;font-weight:700;color:#5C8A4A}
+.timer-lbl{font-size:11px;color:#888}
+</style>
+</head><body>
+<div class="sprint-wrap">
+  <div class="sprint-banner">
+    <div class="sprint-name">⚡ Sprint</div>
+    <div class="sprint-sub">${CUN} · ${timeStr} · ${fmtHours(totalH)} total</div>
+    <div class="progress-ring-wrap">
+      <svg width="72" height="72" viewBox="0 0 72 72">
+        <circle class="prog-bg" cx="36" cy="36" r="30"/>
+        <circle class="prog-fill" id="prog-fill" cx="36" cy="36" r="30" stroke-dasharray="188" stroke-dashoffset="188"/>
+      </svg>
+      <div class="prog-text" id="prog-text">0/${items.filter(i=>i.type==='task').length}</div>
+    </div>
+  </div>
+  <div class="timer-strip">
+    <div><div class="timer-lbl">Elapsed</div><div class="timer-val" id="st-elapsed">0:00</div></div>
+    <div style="text-align:right"><div class="timer-lbl">Remaining</div><div class="timer-val" id="st-remain">${fmtHours(totalH)}</div></div>
+  </div>
+  ${items.filter(i=>i.type==='task').length?'<div class="section-label">BravoChore Tasks</div>':''}
+  ${items.filter(i=>i.type==='task').map(item=>`
+    <div class="task-item" id="sti-${item.id}" data-task-id="${item.id}">
+      <div class="task-item-inner">
+        <div class="task-chk" id="stc-${item.id}" onclick="window.sprintTickTask(${item.id})"></div>
+        <div style="flex:1;min-width:0">
+          <div class="task-title" id="stt-${item.id}">${item.title}</div>
+          <div class="task-meta">${item.hours?fmtHours(item.hours):''}</div>
+        </div>
+        <button class="task-edit" onclick="window.sprintEditTask(${item.id})">✏ Edit</button>
+      </div>
+    </div>`).join('')}
+  ${items.filter(i=>i.type==='routine').length?'<div class="section-label">Routines</div>':''}
+  ${items.filter(i=>i.type==='routine').map((item,i)=>`
+    <div class="routine-item task-item" id="sri-${i}">
+      <div class="task-item-inner">
+        <div class="task-chk" id="src-${i}" onclick="tickRoutine(${i})"></div>
+        <div style="flex:1;min-width:0">
+          <div class="task-title" id="srt-${i}">${item.title}</div>
+          <div class="task-meta">${item.section||'Routine'}</div>
+        </div>
+      </div>
+    </div>`).join('')}
+  <div id="sprint-added-tasks"></div>
+  <div class="all-done" id="all-done">
+    <div class="all-done-title">🎉 Sprint Complete!</div>
+    <div style="font-size:13px;opacity:.85">All ${items.filter(i=>i.type==='task').length} tasks done. Brilliant work.</div>
+  </div>
+</div>
+
+</body></html>`;
+}
+
 
 function activateSprint(sprintTasks, html, allItems){
   hideSprintLoading();
@@ -6029,31 +6144,28 @@ function activateSprint(sprintTasks, html, allItems){
   window.sprintTickTask=async(taskId)=>{
     const id=parseInt(taskId);
     // Toggle: if already done, undo it
+    const inner=document.getElementById('sprint-tool-inner');
     if(sprintData.doneTasks.has(id)){
       sprintData.doneTasks.delete(id);
       // Undo in BravoChore
       const task=tasks.find(t=>t.id===id);
       if(task){task.done=false;try{await api('bravochore_tasks','PATCH',{done:false},`?id=eq.${id}`);}catch(e){}}
-      // Restore visual in sprint tool
-      document.querySelectorAll('[data-task-id="'+id+'"]').forEach(el=>{
-        el.style.opacity='';el.style.textDecoration='';
-        el.style.background='';
-        const chk=el.querySelector('.sprint-chk-inner');
-        if(chk){chk.style.background='';chk.innerHTML='';}
-      });
+      updateSprintToolUI(id,false);
       updateSprintProgress();
       showSprintToast('Undone ↩','',id,false);
       return;
     }
     // Mark done
     sprintData.doneTasks.add(id);
-    // Visual in sprint tool immediately
-    document.querySelectorAll('[data-task-id="'+id+'"]').forEach(el=>{
-      el.style.opacity='0.5';
-      el.style.background='rgba(92,138,74,.06)';
-      const chk=el.querySelector('.sprint-chk-inner');
-      if(chk){chk.style.background='var(--green)';chk.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';}
-    });
+    // Update built-in template UI
+    const inner2=document.getElementById('sprint-tool-inner');
+    if(inner2&&inner2._sprintTick)inner2._sprintTick(id,true);
+    else if(inner2){const s=inner2.querySelector('script');try{inner2._stit=inner2._stit||new Function('id','isDone','el','el._sprintInternalTick&&el._sprintInternalTick(id,isDone)',inner2);}catch(e){}}
+    // Fallback: direct DOM update
+    const chkEl=document.getElementById('stc-'+id);
+    const txtEl=document.getElementById('stt-'+id);
+    if(chkEl){chkEl.className='task-chk ticked';chkEl.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>';}
+    if(txtEl)txtEl.classList.add('struck');
     // Save to BravoChore
     await quickTickSilent(id);
     updateSprintProgress();
@@ -6064,6 +6176,22 @@ function activateSprint(sprintTasks, html, allItems){
     showSprintToast('✓ Done',task?task.title+' · '+elapsedStr:'',id,true);
   };
 
+  window.sprintTickRoutine=(idx)=>{
+    const chk=document.getElementById('src-'+idx);
+    const txt=document.getElementById('srt-'+idx);
+    const row=document.getElementById('sri-'+idx);
+    const tick='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>';
+    const isDone=chk&&chk.innerHTML.includes('svg');
+    if(isDone){
+      if(chk){chk.style.background='#fff';chk.innerHTML='';}
+      if(txt){txt.style.textDecoration='';txt.style.color='';}
+      if(row)row.style.opacity='';
+    }else{
+      if(chk){chk.style.background='#5C8A4A';chk.style.borderColor='#5C8A4A';chk.innerHTML=tick;}
+      if(txt){txt.style.textDecoration='line-through';txt.style.color='#999';}
+      if(row)row.style.opacity='0.6';
+    }
+  };
   window.sprintEditTask=(taskId)=>{
     const id=parseInt(taskId);
     // Open full detail panel without closing sprint
@@ -6087,6 +6215,10 @@ function activateSprint(sprintTasks, html, allItems){
     const m=Math.floor(sprintElapsed/60),s=sprintElapsed%60;
     const el=document.getElementById('sprint-elapsed');
     if(el)el.textContent=m+':'+String(s).padStart(2,'0');
+    // Also update timer inside the sprint tool
+    const tmr=document.getElementById('sprint-tmr');
+    if(tmr)tmr.textContent=m+':'+(s<10?'0':'')+s;
+    if(sprintElapsed%30===0)saveSprintState(); // save every 30s
   },1000);
 
   // Populate drawer
@@ -6175,6 +6307,7 @@ function toggleSprintDrawer(){
 }
 
 async function confirmEndSprint(){
+  clearSprintState();
   clearInterval(sprintTimer);
   const done=sprintData?.doneTasks.size||0;
   const total=sprintData?.taskIds.length||0;
@@ -6434,6 +6567,71 @@ function showSprintToast(title, subtitle, taskId, isDone){
   document.body.appendChild(toast);
   setTimeout(()=>toast.remove(),4500);
 }
+
+// ================================================================
+// SPRINT PERSISTENCE
+// ================================================================
+function saveSprintState(){
+  if(!sprintData)return;
+  try{
+    localStorage.setItem('bc-sprint',JSON.stringify({
+      taskIds:sprintData.taskIds,
+      doneTasks:[...sprintData.doneTasks],
+      title:sprintData.title,
+      dbId:sprintData.dbId,
+      elapsed:sprintElapsed,
+      savedAt:Date.now()
+    }));
+  }catch(e){}
+}
+
+function loadSprintState(){
+  try{
+    const s=localStorage.getItem('bc-sprint');
+    if(!s)return null;
+    const d=JSON.parse(s);
+    // Only restore if saved within last 12 hours
+    if(Date.now()-d.savedAt>12*60*60*1000){localStorage.removeItem('bc-sprint');return null;}
+    return d;
+  }catch(e){return null;}
+}
+
+function clearSprintState(){
+  try{localStorage.removeItem('bc-sprint');}catch(e){}
+}
+
+async function checkForActiveSprint(){
+  const saved=loadSprintState();
+  if(!saved||!saved.taskIds||!saved.taskIds.length)return;
+  // Show resume prompt
+  const banner=document.createElement('div');
+  banner.style.cssText='position:fixed;bottom:70px;left:12px;right:12px;background:var(--tx);color:#fff;border-radius:var(--r);padding:14px 16px;z-index:700;display:flex;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.25)';
+  banner.innerHTML=`<div><div style="font-size:13px;font-weight:700">Sprint in progress</div><div style="font-size:11px;opacity:.7">${saved.title} · ${saved.doneTasks.length}/${saved.taskIds.length} done</div></div>
+  <div style="display:flex;gap:8px">
+    <button onclick="resumeSprint();this.closest('[style*=position]').remove()" style="padding:7px 14px;background:var(--green);border:none;border-radius:var(--rs);color:#fff;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer">Resume</button>
+    <button onclick="clearSprintState();this.closest('[style*=position]').remove()" style="padding:7px 10px;border:1.5px solid rgba(255,255,255,.3);border-radius:var(--rs);background:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer">Dismiss</button>
+  </div>`;
+  document.body.appendChild(banner);
+}
+
+async function resumeSprint(){
+  const saved=loadSprintState();if(!saved)return;
+  const sprintTasks=tasks.filter(t=>saved.taskIds.includes(t.id));
+  const html=buildSprintHTML(sprintTasks,[]);
+  activateSprint(sprintTasks,html,[]);
+  // Restore done state
+  sprintElapsed=saved.elapsed||0;
+  sprintData.dbId=saved.dbId;
+  saved.doneTasks.forEach(id=>{
+    sprintData.doneTasks.add(id);
+    const chkEl=document.getElementById('stc-'+id);
+    const txtEl=document.getElementById('stt-'+id);
+    if(chkEl){chkEl.className='task-chk ticked';chkEl.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>';}
+    if(txtEl)txtEl.classList.add('struck');
+  });
+  updateSprintProgress();
+}
+
 // ================================================================
 // BOOT
 // ================================================================
@@ -6445,7 +6643,7 @@ async function boot(){
   if(CU){
     document.getElementById('app').style.display='block';
     document.getElementById('bb-fab').style.display='flex';
-    setupPill();renderExtraFilters();renderDashboard();initLottie();assignMissingCodes();loadPrefs();document.getElementById('bn-dashboard')?.classList.add('active');
+    setupPill();renderExtraFilters();renderDashboard();initLottie();assignMissingCodes();loadPrefs();setTimeout(checkForActiveSprint,1500);document.getElementById('bn-dashboard')?.classList.add('active');
     setTimeout(()=>checkReminders(),700);
     setTimeout(()=>bbMsg("Hey — I'm Blackbird. Tap the bird icon on any task for advice, or ask me anything.",'from-bb'),100);
   }else{
@@ -6461,7 +6659,7 @@ async function boot(){
     if(CU){
       document.getElementById('app').style.display='block';
       document.getElementById('bb-fab').style.display='flex';
-      setupPill();renderExtraFilters();renderDashboard();initLottie();assignMissingCodes();loadPrefs();document.getElementById('bn-dashboard')?.classList.add('active');
+      setupPill();renderExtraFilters();renderDashboard();initLottie();assignMissingCodes();loadPrefs();setTimeout(checkForActiveSprint,1500);document.getElementById('bn-dashboard')?.classList.add('active');
     }else{
       document.getElementById('user-picker').style.display='flex';
     }
