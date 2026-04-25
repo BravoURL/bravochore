@@ -978,6 +978,20 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 /* Sprint summary */
 .sprint-summary{padding:20px 16px;flex:1;overflow-y:auto}
 .sprint-summary-ring{width:80px;height:80px;margin:0 auto 16px;position:relative}
+
+/* Sprint builder */
+.sb-time-btn{padding:5px 10px;border-radius:100px;border:1.5px solid var(--bdrm);background:none;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;color:var(--tx2);transition:all .15s}
+.sb-time-btn.active{background:var(--green);border-color:var(--green);color:#fff}
+.sb-tab{flex:1;padding:10px;font-size:12px;font-weight:600;border:none;background:none;color:var(--tx2);border-bottom:2px solid transparent;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
+.sb-tab.active{color:var(--green);border-bottom-color:var(--green)}
+.sb-item{display:flex;align-items:center;gap:10px;padding:11px 18px;border-bottom:1px solid var(--bdr);cursor:pointer;transition:background .1s}
+.sb-item:active{background:var(--surf2)}
+.sb-item.selected{background:var(--gl)}
+.sb-check{width:22px;height:22px;border-radius:4px;border:2px solid var(--bdrm);background:#fff;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.sb-check.on{background:var(--green);border-color:var(--green)}
+.sb-item-title{font-size:13px;font-weight:500;flex:1}
+.sb-item-meta{font-size:11px;color:var(--tx2);margin-top:2px}
+.sb-routine-section{padding:8px 18px 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--tx3);background:var(--surf2)}
 </style>
 </head>
 <body>
@@ -1074,6 +1088,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 
       <!-- QUICK ACTIONS -->
       <div class="quick-actions">
+        <button class="qa-btn" style="background:var(--tx);color:#fff;border-color:var(--tx);display:flex;align-items:center;gap:5px;font-weight:700" onclick="openSprintBuilder()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Sprint</button>
         <button class="qa-btn accent" onclick="applyFilter('today')" style="display:flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Due Today</button>
         <button class="qa-btn urgent" onclick="applyFilter('overdue')" style="display:flex;align-items:center;gap:5px">🐢 Overdue</button>
         <button class="qa-btn" onclick="applyFilter('quickwin')" style="display:flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A4.5 4.5 0 0 0 17 12c0-3-2-5-4-7-2 2-3 4-3 6-.5-1-1.5-2-2-3-1 2-1 4 .5 6.5"/><path d="M12 21a6 6 0 0 0 6-6c0-4-3-6-6-8-3 2-6 4-6 8a6 6 0 0 0 6 6z"/></svg> Quick Wins</button>
@@ -1109,8 +1124,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
     <div id="view-tasks" class="view">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <h2 style="font-family:'Playfair Display',serif;font-size:20px;font-weight:500">All Tasks</h2>
-        <div style="display:flex;gap:7px">
-          <button class="qa-btn" style="font-size:11px;padding:6px 10px" onclick="generatePDF()">🖨 Sheet</button>
+        <div style="display:flex;gap:6px">
+          <button class="qa-btn" style="font-size:11px;padding:6px 10px;background:var(--tx);color:#fff;border-color:var(--tx);font-weight:700;display:flex;align-items:center;gap:4px" onclick="openSprintBuilder()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Sprint</button>
+          <button class="qa-btn" style="font-size:11px;padding:6px 10px" onclick="generatePDF()">🖨</button>
           <button class="qa-btn" id="select-mode-btn" style="font-size:11px;padding:6px 10px" onclick="toggleSelectMode()">Select</button>
           <button class="qa-btn accent" style="font-size:11px;padding:6px 10px" onclick="openDetail(null)">+ Add</button>
         </div>
@@ -5935,11 +5951,12 @@ Respond with ONLY the complete HTML — no explanation, no markdown fences.`;
   }
 }
 
-function activateSprint(sprintTasks, html){
+function activateSprint(sprintTasks, html, allItems){
   hideSprintLoading();
   sprintActive=true;
   sprintElapsed=0;
-  const title=sprintTasks.length===1?sprintTasks[0].title:`${sprintTasks.length}-task sprint`;
+  const totalItems=(allItems||sprintTasks).length;
+  const title=totalItems===1?(allItems?allItems[0].title:sprintTasks[0].title):`${totalItems}-item sprint`;
   sprintData={
     taskIds:sprintTasks.map(t=>t.id),
     doneTasks:new Set(),
@@ -6090,6 +6107,201 @@ async function confirmEndSprint(){
   setTimeout(()=>bbMsg(msg,'from-bb'),300);
   rerender();
 }
+
+// ================================================================
+// SPRINT BUILDER
+// ================================================================
+let sbTab='tasks';
+let sbTimeHours=1;
+let sbSelected=new Map(); // id -> {type:'task'|'routine', title, hours, id}
+
+function openSprintBuilder(){
+  sbSelected=new Map();
+  sbTimeHours=1;
+  sbTab='tasks';
+  // Reset UI
+  document.querySelectorAll('.sb-time-btn').forEach((b,i)=>{b.classList.toggle('active',i===0);});
+  document.querySelectorAll('.sb-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('sbt-tasks')?.classList.add('active');
+  const sheet=document.getElementById('sprint-builder-sheet');
+  if(sheet){sheet.style.display='flex';}
+  renderSBList();
+  updateSBCount();
+}
+
+function closeSprintBuilder(){
+  const sheet=document.getElementById('sprint-builder-sheet');
+  if(sheet)sheet.style.display='none';
+}
+
+function setSBTime(h,btn){
+  sbTimeHours=h; // null = all day
+  document.querySelectorAll('.sb-time-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function setSBTab(tab,btn){
+  sbTab=tab;
+  document.querySelectorAll('.sb-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderSBList();
+}
+
+function toggleSBItem(key, item){
+  if(sbSelected.has(key))sbSelected.delete(key);
+  else sbSelected.set(key,item);
+  // Update visual
+  const row=document.getElementById('sbr-'+key);
+  const chk=document.getElementById('sbc-'+key);
+  if(row)row.classList.toggle('selected',sbSelected.has(key));
+  if(chk)chk.classList.toggle('on',sbSelected.has(key));
+  if(chk){chk.innerHTML=sbSelected.has(key)?'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>':'';}
+  updateSBCount();
+}
+
+function updateSBCount(){
+  const count=sbSelected.size;
+  const totalH=[...sbSelected.values()].reduce((s,i)=>s+(i.hours||0),0);
+  const ct=document.getElementById('sb-count-label');
+  const timeEl=document.getElementById('sb-selected-time');
+  if(ct)ct.textContent=count+' selected';
+  if(timeEl)timeEl.textContent=totalH>0?fmtHours(totalH):'0m';
+}
+
+function renderSBList(){
+  const area=document.getElementById('sb-list-area');if(!area)return;
+
+  if(sbTab==='tasks'){
+    const pending=tasks.filter(t=>!t.done).sort((a,b)=>{
+      // Sort: overdue first, then by due date, then no date
+      const aOv=a.due&&a.due<tdStr()?0:a.due?1:2;
+      const bOv=b.due&&b.due<tdStr()?0:b.due?1:2;
+      if(aOv!==bOv)return aOv-bOv;
+      return (a.due||'9').localeCompare(b.due||'9');
+    });
+    if(!pending.length){area.innerHTML='<div class="empty-state" style="padding:24px">No pending tasks.</div>';return;}
+    area.innerHTML=pending.map(t=>{
+      const o=getOwner(t.owner);
+      const h=getEffectiveTime(t);
+      const ov=t.due&&t.due<tdStr();
+      const key='task-'+t.id;
+      const sel=sbSelected.has(key);
+      return `<div class="sb-item ${sel?'selected':''}" id="sbr-${key}" onclick="toggleSBItem('${key}',{type:'task',title:'${t.title.replace(/'/g,"\'")}',hours:${h},id:${t.id}})">
+        <div class="sb-check ${sel?'on':''}" id="sbc-${key}">${sel?'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>':''}</div>
+        <div style="flex:1;min-width:0">
+          <div class="sb-item-title">${t.title}</div>
+          <div class="sb-item-meta" style="display:flex;gap:5px;align-items:center">
+            <span class="task-tag" style="background:${o.bg};color:${o.color}">${o.name}</span>
+            ${t.due?`<span style="color:${ov?'var(--red)':'var(--tx3)'};">${fmtDate(t.due)}</span>`:''}
+            ${h?`<span>${fmtHours(h)}</span>`:''}
+            ${t.task_code?`<span class="task-code">${t.task_code}</span>`:''}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }else{
+    // TODAY'S ROUTINES from DAY_TASKS
+    const dayName=new Date().toLocaleDateString('en-AU',{weekday:'long'});
+    const sections=DAY_TASKS[dayName]||[];
+    if(!sections.length){area.innerHTML='<div class="empty-state" style="padding:24px">No routines for today.</div>';return;}
+    let html='';
+    sections.forEach(sec=>{
+      const checkable=sec.tasks.filter(t=>!t.note&&(!t.week||t.week===schedWeek));
+      if(!checkable.length)return;
+      html+=`<div class="sb-routine-section">${sec.label}${sec.time?' · '+sec.time:''}</div>`;
+      checkable.forEach(t=>{
+        const key='routine-'+t.id;
+        const sel=sbSelected.has(key);
+        const h=0.25; // routines default to 15min each
+        html+=`<div class="sb-item ${sel?'selected':''}" id="sbr-${key}" onclick="toggleSBItem('${key}',{type:'routine',title:'${t.text.replace(/'/g,"\'").replace(/’/g,"'")}',hours:${h},routineId:'${t.id}',section:'${sec.section}'})">
+          <div class="sb-check ${sel?'on':''}" id="sbc-${key}">${sel?'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>':''}</div>
+          <div style="flex:1;min-width:0">
+            <div class="sb-item-title">${t.text}</div>
+            <div class="sb-item-meta">${sec.label}${t.recur==='weekly'?' · Weekly':''}</div>
+          </div>
+        </div>`;
+      });
+    });
+    area.innerHTML=html||'<div class="empty-state" style="padding:24px">No routines today.</div>';
+  }
+}
+
+async function buildSprintFromBuilder(){
+  if(!sbSelected.size){chirp('Select at least one item.');return;}
+  closeSprintBuilder();
+  showSprintLoading();
+
+  const selectedItems=[...sbSelected.values()];
+  const taskItems=selectedItems.filter(i=>i.type==='task');
+  const routineItems=selectedItems.filter(i=>i.type==='routine');
+
+  // Build sprint tasks array (tasks only for BravoChore sync)
+  const sprintTasks=taskItems.map(i=>tasks.find(t=>t.id===i.id)).filter(Boolean);
+
+  // Combined list for tool generation
+  const allItemsForTool=[
+    ...taskItems.map((i,idx)=>({...i,num:idx+1})),
+    ...routineItems.map((i,idx)=>({...i,num:taskItems.length+idx+1}))
+  ];
+
+  const totalH=selectedItems.reduce((s,i)=>s+(i.hours||0),0);
+  const timeLabel=sbTimeHours?`${sbTimeHours}h available`:'all day';
+  const now=new Date();
+  const timeOfDay=`${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+  const taskList=allItemsForTool.map(i=>{
+    const type=i.type==='task'?`[TASK id:${i.id}]`:'[ROUTINE]';
+    return `${i.num}. ${i.title} (~${fmtHours(i.hours)}) ${type}`;
+  }).join('\n');
+
+  const sprintPrompt=`You are building a bespoke single-use sprint execution tool for BravoChore.
+
+Time: ${timeOfDay} · Available: ${timeLabel} · Total selected: ${fmtHours(totalH)}
+User: ${CUN}
+
+Sprint items (${allItemsForTool.length} total):
+${taskList}
+
+RULES:
+- For items marked [TASK id:N], the checkbox/tick must call: window.parent.sprintTickTask(N)
+- For items marked [ROUTINE], just tick visually (no BravoChore sync needed)
+- Beautiful design using CSS vars: --green:#5C8A4A, --gl:#EAF3DE, --tx:#2C2B28, --surf:#fff, --bg:#FAFAF8, --bdr:#e8e4dc, --rs:10px
+- Use 'DM Sans' from Google Fonts
+- Mobile-first, touch targets min 44px
+- Progress ring or bar showing overall completion
+- Motivating, focused feel — this is a sprint, not a list
+- Include a sprint name/title that feels motivating
+- Under 200 lines
+- ONLY return the HTML — no explanation
+
+Respond with ONLY the complete HTML.`;
+
+  try{
+    const res=await fetch(BB_PROXY,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SK},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:4000,
+        system:'You are a world-class UI developer. Return only clean HTML for a sprint tool.',
+        messages:[{role:'user',content:sprintPrompt}]
+      })
+    });
+    const data=await res.json();
+    let html=data.content?.find(c=>c.type==='text')?.text||'';
+    html=html.replace(/^```html\n?/,'').replace(/^```\n?/,'').replace(/```$/,'').trim();
+    if(!html||html.length<100){
+      hideSprintLoading();
+      chirp('Sprint generation failed — try again.');
+      return;
+    }
+    activateSprint(sprintTasks.length?sprintTasks:[], html, allItemsForTool);
+  }catch(e){
+    hideSprintLoading();
+    chirp('Connection issue — check internet and try again.');
+  }
+}
+
 // ================================================================
 // BOOT
 // ================================================================
@@ -6179,6 +6391,51 @@ boot();
   <div id="sprint-loading-status" style="font-size:12px;color:var(--tx2)">Analysing tasks</div>
   <div style="width:200px;height:3px;background:var(--surf2);border-radius:100px;overflow:hidden">
     <div id="sprint-loading-bar" style="height:100%;background:var(--green);width:0%;transition:width .4s;border-radius:100px"></div>
+  </div>
+</div>
+
+<!-- SPRINT BUILDER SHEET -->
+<div id="sprint-builder-sheet" style="display:none;position:fixed;inset:0;z-index:800;background:rgba(0,0,0,.5);align-items:flex-end;justify-content:center">
+  <div style="background:var(--bg);border-radius:20px 20px 0 0;width:100%;max-width:700px;max-height:90vh;display:flex;flex-direction:column;padding-bottom:max(0px,env(safe-area-inset-bottom))">
+    <!-- Header -->
+    <div style="padding:16px 18px 12px;border-bottom:1px solid var(--bdr);background:var(--surf);border-radius:20px 20px 0 0;flex-shrink:0">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div style="font-family:'Playfair Display',serif;font-size:20px;font-weight:500">Build a Sprint</div>
+        <button onclick="closeSprintBuilder()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--tx3)">✕</button>
+      </div>
+      <div style="font-size:12px;color:var(--tx2)">Select tasks and routines, then let Blackbird build your execution tool.</div>
+    </div>
+    <!-- Time available -->
+    <div style="padding:12px 18px;border-bottom:1px solid var(--bdr);background:var(--surf2);flex-shrink:0;display:flex;align-items:center;gap:12px">
+      <div style="flex:1">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--tx3);font-weight:600;margin-bottom:4px">Time available</div>
+        <div style="display:flex;gap:6px">
+          <button class="sb-time-btn active" onclick="setSBTime(1,this)">1h</button>
+          <button class="sb-time-btn" onclick="setSBTime(2,this)">2h</button>
+          <button class="sb-time-btn" onclick="setSBTime(3,this)">3h</button>
+          <button class="sb-time-btn" onclick="setSBTime(4,this)">4h</button>
+          <button class="sb-time-btn" onclick="setSBTime(6,this)">6h</button>
+          <button class="sb-time-btn" onclick="setSBTime(null,this)">All day</button>
+        </div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.04em">Selected</div>
+        <div id="sb-selected-time" style="font-family:'DM Mono',monospace;font-size:18px;font-weight:700;color:var(--green)">0m</div>
+      </div>
+    </div>
+    <!-- Section tabs -->
+    <div style="display:flex;border-bottom:1px solid var(--bdr);background:var(--surf);flex-shrink:0">
+      <button class="sb-tab active" id="sbt-tasks" onclick="setSBTab('tasks',this)">Tasks</button>
+      <button class="sb-tab" id="sbt-routines" onclick="setSBTab('routines',this)">Today's Routines</button>
+    </div>
+    <!-- List area -->
+    <div style="flex:1;overflow-y:auto" id="sb-list-area"></div>
+    <!-- Footer -->
+    <div style="padding:12px 18px;border-top:1px solid var(--bdr);background:var(--surf);flex-shrink:0;display:flex;gap:8px">
+      <div style="flex:1;align-self:center;font-size:12px;color:var(--tx2)" id="sb-count-label">0 selected</div>
+      <button onclick="closeSprintBuilder()" style="padding:11px 16px;border:1px solid var(--bdrm);border-radius:var(--rs);background:none;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;color:var(--tx2)">Cancel</button>
+      <button onclick="buildSprintFromBuilder()" style="padding:11px 22px;background:var(--tx);color:#fff;border:none;border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-weight:700;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Build Sprint</button>
+    </div>
   </div>
 </div>
 </body>
