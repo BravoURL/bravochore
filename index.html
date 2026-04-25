@@ -109,7 +109,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 .settings-btn:hover{background:var(--surf2)}
 
 /* TIMER STRIP */
-#timer-strip{position:sticky;top:50px;z-index:90;background:var(--surf);border-bottom:2px solid var(--green);color:var(--tx);display:none;flex-direction:column;font-size:12px;box-shadow:0 2px 8px rgba(92,138,74,.12);cursor:pointer;transition:all .2s}
+#timer-strip{position:fixed;top:0;left:0;right:0;z-index:830;background:var(--surf);border-bottom:2px solid var(--green);color:var(--tx);display:none;flex-direction:column;font-size:12px;box-shadow:0 2px 8px rgba(92,138,74,.12);cursor:pointer;transition:all .2s}
 #timer-strip.visible{display:flex}
 .ts-collapsed{display:flex;align-items:center;gap:8px;padding:7px 14px}
 .ts-expanded{display:none;padding:4px 14px 10px;border-top:1px solid var(--bdr)}
@@ -263,9 +263,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 .search-input:focus{border-color:var(--green)}
 
 /* DETAIL PANEL - slides up from bottom */
-#detail-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:400;display:none}
+#detail-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:820;display:none}
 #detail-backdrop.open{display:block}
-#detail-panel{position:fixed;left:0;right:0;bottom:-100%;height:92vh;background:var(--surf);z-index:401;display:flex;flex-direction:column;border-radius:20px 20px 0 0;box-shadow:0 -8px 40px rgba(0,0,0,.15);transition:bottom .3s ease;overflow:hidden;max-width:700px;margin:0 auto}
+#detail-panel{position:fixed;left:0;right:0;bottom:-100%;height:92vh;background:var(--surf);z-index:821;display:flex;flex-direction:column;border-radius:20px 20px 0 0;box-shadow:0 -8px 40px rgba(0,0,0,.15);transition:bottom .3s ease;overflow:hidden;max-width:700px;margin:0 auto}
 #detail-panel.open{bottom:0}
 .dp-drag-handle{width:40px;height:4px;background:var(--bdrm);border-radius:100px;margin:10px auto 0;flex-shrink:0}
 .dp-header{padding:12px 16px 10px;border-bottom:1px solid var(--bdr);flex-shrink:0}
@@ -349,7 +349,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 .shop-btn{margin-top:12px;padding:12px;background:var(--green);color:#fff;border:none;border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-weight:700;font-size:13px;cursor:pointer;width:100%}
 
 /* SHOPPING LIST MODAL */
-.shop-modal{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:600;display:none;align-items:flex-end;justify-content:center}
+.shop-modal{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:840;display:none;align-items:flex-end;justify-content:center}
 .shop-modal.open{display:flex}
 .shop-sheet{background:var(--surf);border-radius:20px 20px 0 0;width:100%;max-width:700px;max-height:85vh;display:flex;flex-direction:column;padding-bottom:max(16px,env(safe-area-inset-bottom))}
 .shop-sheet-hdr{padding:14px 16px 10px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between}
@@ -421,7 +421,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 @keyframes cfSpr{0%{opacity:1;transform:translate(0,0) rotate(0) scale(1)}100%{opacity:0;transform:translate(var(--cx,0px),var(--cy,-80px)) rotate(720deg) scale(.2)}}
 
 /* MODAL */
-.modal-bd{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:600;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-bd{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:840;display:none;align-items:center;justify-content:center;padding:20px}
 .modal-bd.open{display:flex}
 .modal{background:var(--surf);border-radius:var(--r);padding:20px;width:100%;max-width:380px;box-shadow:0 16px 48px rgba(0,0,0,.2)}
 .modal h3{font-family:'Playfair Display',serif;font-size:16px;font-weight:500;margin-bottom:10px}
@@ -473,7 +473,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 }
 
 /* FOCUS MODE */
-.focus-modal{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:700;display:none;align-items:flex-end;justify-content:center}
+.focus-modal{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:850;display:none;align-items:flex-end;justify-content:center}
 .focus-modal.open{display:flex}
 .focus-sheet{background:var(--bg);border-radius:20px 20px 0 0;width:100%;max-width:700px;max-height:88vh;display:flex;flex-direction:column;padding-bottom:max(16px,env(safe-area-inset-bottom))}
 .focus-hdr{padding:14px 16px 10px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;background:var(--surf);border-radius:20px 20px 0 0;flex-shrink:0}
@@ -2438,6 +2438,7 @@ async function quickTick(id,e){
     if(sprintActive&&sprintData){
       sprintData.doneTasks.delete(id);
       updateSprintProgress();
+      saveSprintState();
     }
   }
   rerender();
@@ -6043,6 +6044,9 @@ function activateSprint(sprintTasks, html, allItems){
 
   // Start timer
   clearInterval(sprintTimer);
+  // Save immediately so refresh recovery works from second 1
+  saveSprintState();
+
   // Restore elapsed display if resuming
   if(sprintElapsed>0){
     const m=Math.floor(sprintElapsed/60),s=sprintElapsed%60;
@@ -6534,8 +6538,6 @@ function clearSprintState(){
 async function checkForActiveSprint(){
   const saved=loadSprintState();
   if(!saved||!saved.taskIds||!saved.taskIds.length)return;
-  // Don't show if user already dismissed this session
-  if(sessionStorage.getItem('bc-sprint-dismissed'))return;
   // Show resume prompt
   document.getElementById('sprint-resume-banner')?.remove();
   const banner=document.createElement('div');
