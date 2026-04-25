@@ -921,6 +921,63 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 .bb-session-chip{padding:4px 12px;border-radius:100px;border:1px solid var(--bdrm);font-size:11px;font-weight:600;color:var(--tx2);cursor:pointer;white-space:nowrap;background:var(--surf);flex-shrink:0}
 .bb-session-chip.active{background:var(--green);color:#fff;border-color:var(--green)}
 .bb-new-session{padding:4px 10px;border-radius:100px;border:1.5px dashed var(--bdrm);font-size:11px;font-weight:600;color:var(--tx2);cursor:pointer;white-space:nowrap;background:none;flex-shrink:0}
+
+/* SETTINGS TOGGLES */
+.sp-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--bdr)}
+.sp-toggle-row:last-child{border-bottom:none}
+.sp-toggle-label{font-size:13px;color:var(--tx);flex:1}
+.sp-toggle{position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0}
+.sp-toggle input{opacity:0;width:0;height:0}
+.sp-slider{position:absolute;cursor:pointer;inset:0;background:var(--bdrm);border-radius:100px;transition:.2s}
+.sp-slider:before{position:absolute;content:"";height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s}
+.sp-toggle input:checked+.sp-slider{background:var(--green)}
+.sp-toggle input:checked+.sp-slider:before{transform:translateX(20px)}
+.sp-label{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--tx3);font-weight:600}
+.compact-cards .task-card{padding:0}.compact-cards .task-meta{display:none}
+/* ── SPRINT OVERLAY ── */
+#sprint-overlay{position:fixed;inset:0;z-index:800;background:var(--bg);display:none;flex-direction:column;overflow:hidden}
+#sprint-overlay.active{display:flex}
+
+/* Sprint header */
+.sprint-hdr{background:var(--tx);color:#fff;padding:12px 16px;flex-shrink:0;display:flex;align-items:center;gap:10px}
+.sprint-hdr-title{font-family:'Playfair Display',serif;font-size:16px;font-weight:500;flex:1}
+.sprint-hdr-prog{font-size:11px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.7)}
+.sprint-prog-bar{height:3px;background:rgba(255,255,255,.15);flex-shrink:0}
+.sprint-prog-fill{height:100%;background:var(--green);transition:width .4s ease}
+.sprint-end-btn{padding:5px 12px;border-radius:100px;border:1.5px solid rgba(255,255,255,.3);background:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;cursor:pointer}
+.sprint-end-btn:active{background:rgba(255,255,255,.1)}
+
+/* Sprint timer */
+.sprint-timer-bar{background:var(--surf);border-bottom:1px solid var(--bdr);padding:8px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.sprint-elapsed{font-family:'DM Mono',monospace;font-size:13px;color:var(--green);font-weight:700}
+.sprint-stats{font-size:11px;color:var(--tx2);flex:1}
+
+/* Sprint tool area — generated HTML renders here */
+.sprint-tool-area{flex:1;overflow:hidden;position:relative}
+.sprint-tool-frame{width:100%;height:100%;border:none;background:var(--bg)}
+
+/* Sprint drawer handle */
+.sprint-drawer-handle{position:absolute;left:0;top:50%;transform:translateY(-50%);background:var(--green);color:#fff;border-radius:0 8px 8px 0;padding:12px 6px;cursor:pointer;z-index:10;display:flex;flex-direction:column;align-items:center;gap:3px;writing-mode:vertical-rl;font-size:10px;font-weight:700;font-family:'DM Sans',sans-serif;letter-spacing:.04em;box-shadow:2px 0 8px rgba(0,0,0,.1)}
+.sprint-drawer-handle svg{width:14px;height:14px}
+
+/* Tasks drawer */
+.sprint-drawer{position:absolute;left:0;top:0;bottom:0;width:88%;max-width:360px;background:var(--bg);z-index:20;transform:translateX(-100%);transition:transform .28s cubic-bezier(.4,0,.2,1);box-shadow:4px 0 20px rgba(0,0,0,.15);display:flex;flex-direction:column}
+.sprint-drawer.open{transform:translateX(0)}
+.sprint-drawer-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.35);z-index:19;display:none;pointer-events:none}
+.sprint-drawer-backdrop.open{display:block;pointer-events:all}
+.sprint-drawer-hdr{padding:14px 16px;border-bottom:1px solid var(--bdr);background:var(--surf);flex-shrink:0;display:flex;align-items:center;justify-content:space-between}
+.sprint-drawer-body{flex:1;overflow-y:auto;padding:8px 12px}
+.sprint-add-btn{padding:6px 12px;border-radius:100px;border:1.5px solid var(--green);background:none;color:var(--green);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;cursor:pointer}
+.sprint-add-btn:active{background:var(--gl)}
+.sprint-task-row{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--bdr);cursor:pointer}
+.sprint-task-row:last-child{border-bottom:none}
+.sprint-task-in-sprint{opacity:.5}
+.sprint-task-in-sprint .sprint-in-badge{display:inline-block}
+.sprint-in-badge{display:none;font-size:9px;background:var(--gl);color:var(--gd);padding:2px 6px;border-radius:100px;font-weight:700}
+
+/* Sprint summary */
+.sprint-summary{padding:20px 16px;flex:1;overflow-y:auto}
+.sprint-summary-ring{width:80px;height:80px;margin:0 auto 16px;position:relative}
 </style>
 </head>
 <body>
@@ -973,7 +1030,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
     </button>
     <button class="bn-tab" id="bn-schedule" onclick="bnNav('schedule')">
       <div class="bn-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-      <span>Day</span>
+      <span>Routines</span>
     </button>
   </div>
 
@@ -1568,6 +1625,26 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
       </div>
     </div>
     <div class="sp-section">
+      <h3>Display</h3>
+      <div class="sp-toggle-row"><span class="sp-toggle-label">Show task codes (BC001)</span><label class="sp-toggle"><input type="checkbox" id="pref-show-codes" onchange="savePref('showCodes',this.checked)" checked><span class="sp-slider"></span></label></div>
+      <div class="sp-toggle-row"><span class="sp-toggle-label">Show time estimates on cards</span><label class="sp-toggle"><input type="checkbox" id="pref-show-times" onchange="savePref('showTimes',this.checked)" checked><span class="sp-slider"></span></label></div>
+      <div class="sp-toggle-row"><span class="sp-toggle-label">Compact task cards</span><label class="sp-toggle"><input type="checkbox" id="pref-compact" onchange="savePref('compactCards',this.checked)"><span class="sp-slider"></span></label></div>
+      <div class="sp-toggle-row"><span class="sp-toggle-label">Confetti on task complete</span><label class="sp-toggle"><input type="checkbox" id="pref-confetti" onchange="savePref('confetti',this.checked)" checked><span class="sp-slider"></span></label></div>
+      <div class="sp-toggle-row"><span class="sp-toggle-label">Timer alarm sound</span><label class="sp-toggle"><input type="checkbox" id="pref-alarm" onchange="savePref('timerAlarm',this.checked)" checked><span class="sp-slider"></span></label></div>
+      <div style="margin-top:12px"><label style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--tx3);font-weight:600">Greeting name</label>
+      <input class="add-person-input" id="pref-nickname" placeholder="e.g. Brent" style="width:100%;margin-top:6px" onblur="savePref('nickname',this.value)"></div>
+    </div>
+    <div class="sp-section">
+      <h3>Dashboard</h3>
+      <div class="sp-toggle-row"><span class="sp-toggle-label">Show overdue section</span><label class="sp-toggle"><input type="checkbox" id="pref-show-overdue" onchange="savePref('showOverdue',this.checked)" checked><span class="sp-slider"></span></label></div>
+      <div class="sp-toggle-row"><span class="sp-toggle-label">Show active events strip</span><label class="sp-toggle"><input type="checkbox" id="pref-show-events-strip" onchange="savePref('showEventsStrip',this.checked)" checked><span class="sp-slider"></span></label></div>
+    </div>
+    <div class="sp-section">
+      <h3>Routines</h3>
+      <div class="sp-toggle-row"><span class="sp-toggle-label">Show nudge on login</span><label class="sp-toggle"><input type="checkbox" id="pref-nudge" onchange="savePref('showNudge',this.checked)" checked><span class="sp-slider"></span></label></div>
+      <div class="sp-toggle-row"><span class="sp-toggle-label">Week A/B reminder on switch</span><label class="sp-toggle"><input type="checkbox" id="pref-weekab" onchange="savePref('weekABReminder',this.checked)" checked><span class="sp-slider"></span></label></div>
+    </div>
+    <div class="sp-section">
       <h3>Data</h3>
       <button class="qa-btn" style="width:100%;justify-content:center;margin-bottom:8px" onclick="exportData()">📤 Export all tasks</button>
       <button class="qa-btn urgent" style="width:100%;justify-content:center" onclick="resetData()">⚠ Reset all data</button>
@@ -1885,7 +1962,7 @@ function selectUser(code,name){
   document.getElementById('user-picker').style.display='none';
   document.getElementById('app').style.display='block';
   document.getElementById('bb-fab').style.display='flex';
-  setupPill();renderExtraFilters();renderDashboard();initLottie();assignMissingCodes();document.getElementById('bn-dashboard')?.classList.add('active');
+  setupPill();renderExtraFilters();renderDashboard();initLottie();assignMissingCodes();loadPrefs();document.getElementById('bn-dashboard')?.classList.add('active');
   setTimeout(()=>chirp("Let's get this done."),800);
   bbMsg("Hey — I'm Blackbird. Tap the bird icon on any task for advice, or just ask me anything.",'from-bb');
 }
@@ -3241,6 +3318,12 @@ async function sendToBB(){
 
   bbSetState('thinking');
 
+  // Detect sprint intent FIRST
+  if(detectSprintIntent(msg)&&!hasPhotos){
+    bbSetState('idle');
+    await startSprintFlow(msg);
+    return;
+  }
   // Detect add-task intent
   const addIntent=/add|create|new task|remind|schedule|put.*on.*list|add.*list|need to|remember to|fertilise|trim|fix|paint|install|buy|get|order|plant|clean|wash|repair|replace|sort|organise|organize/i.test(msg);
 
@@ -3519,44 +3602,60 @@ function dragClean(){
 function initDragList(list){
   if(!list||list.dataset.dragInit)return;
   list.dataset.dragInit='1';
-  const markDraggable=()=>list.querySelectorAll('.task-card:not(.done),[data-drag="true"]').forEach(c=>c.setAttribute('draggable','true'));
+  const markDraggable=()=>list.querySelectorAll('.task-card:not(.done)').forEach(c=>c.setAttribute('draggable','true'));
   new MutationObserver(markDraggable).observe(list,{childList:true,subtree:true});
   markDraggable();
-  // TOUCH
+
+  // TOUCH — touchstart MUST be passive:false so preventDefault works on move
   list.addEventListener('touchstart',e=>{
-    const card=e.target.closest('.task-card:not(.done)[data-id],[data-sid]');
+    const card=e.target.closest('.task-card:not(.done)');
     if(!card)return;
     dragStarted=false;
+    const startY=e.touches[0].clientY;
+    const startX=e.touches[0].clientX;
     dragPressTimer=setTimeout(()=>{
       dragStarted=true;dragSrc=card;dragSrcList=list;
       card.classList.add('dragging');
-      navigator.vibrate&&navigator.vibrate([30,15,30]);
-    },600);
-  },{passive:true});
+      navigator.vibrate&&navigator.vibrate([20,10,20]);
+    },500);
+  },{passive:false});
+
   list.addEventListener('touchmove',e=>{
-    if(!dragStarted){clearTimeout(dragPressTimer);return;}
-    e.preventDefault();
+    if(!dragStarted){
+      // If moved significantly before timer, cancel drag intent
+      clearTimeout(dragPressTimer);
+      return;
+    }
+    e.preventDefault(); // works because touchstart is passive:false
     const t=e.touches[0];
     dragAutoScroll(t.clientY);
-    const el=document.elementFromPoint(t.clientX,t.clientY)?.closest('.task-card[data-id],.task-card[data-sid]');
-    dragSetOver(el,t.clientY);
+    const el=document.elementFromPoint(t.clientX,t.clientY)?.closest('.task-card');
+    if(el&&el!==dragSrc)dragSetOver(el,t.clientY);
   },{passive:false});
-  list.addEventListener('touchend',()=>{clearTimeout(dragPressTimer);if(dragStarted)dragFinishInList(list);else dragClean();});
-  list.addEventListener('touchcancel',()=>dragClean());
+
+  list.addEventListener('touchend',e=>{
+    clearTimeout(dragPressTimer);
+    if(dragStarted)dragFinishInList(list);
+    else dragClean();
+  },{passive:true});
+
+  list.addEventListener('touchcancel',()=>{clearTimeout(dragPressTimer);dragClean();});
+
   // DESKTOP
   list.addEventListener('dragstart',e=>{
-    const card=e.target.closest('.task-card:not(.done)[data-id],.task-card[data-sid]');
+    const card=e.target.closest('.task-card:not(.done)');
     if(!card){e.preventDefault();return;}
     dragSrc=card;dragSrcList=list;card.classList.add('dragging');
-    e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain','');
+    e.dataTransfer.effectAllowed='move';
+    e.dataTransfer.setData('text/plain',card.dataset.id||card.dataset.sid||'');
   });
   list.addEventListener('dragend',()=>{clearInterval(scrollInterval);dragFinishInList(list);});
   list.addEventListener('dragover',e=>{
-    e.preventDefault();
-    const card=e.target.closest('.task-card[data-id],.task-card[data-sid]');
-    if(card){dragAutoScroll(e.clientY);dragSetOver(card,e.clientY);}
+    e.preventDefault();e.dataTransfer.dropEffect='move';
+    const card=e.target.closest('.task-card');
+    if(card&&card!==dragSrc){dragAutoScroll(e.clientY);dragSetOver(card,e.clientY);}
   });
-  list.addEventListener('drop',e=>e.preventDefault());
+  list.addEventListener('drop',e=>{e.preventDefault();dragFinishInList(list);});
 }
 
 let dragSrcList=null;
@@ -4392,12 +4491,18 @@ function setSchedSub(name,el){
 
 function setSchedView(v){
   schedView=v;
-  ['me','partner','both'].forEach(n=>{
+  // Update button states
+  const btns=['me','partner','both'];
+  btns.forEach(n=>{
     const b=document.getElementById('sv-'+n);if(!b)return;
     b.style.background=v===n?'var(--green)':'none';
     b.style.color=v===n?'#fff':'var(--tx2)';
+    b.style.borderRadius='100px';
   });
-  renderSchedToday();
+  // Always render — DAY_TASKS are household routines visible to all
+  if(document.getElementById('ssp-today')?.classList.contains('active')){
+    renderSchedToday();
+  }
 }
 
 function toggleSchedWeek(){
@@ -4757,9 +4862,13 @@ async function dismissNudge(){
 // Entry point called from bnNav
 async function initScheduleView(){
   await loadScheduleData();
-  // Set partner button label
-  const pb=document.getElementById('sv-partner');
-  if(pb)pb.textContent=getOwner(getPartnerCode()).name;
+  // Set owner toggle labels to actual user codes
+  const meBtn=document.getElementById('sv-me');
+  const partnerBtn=document.getElementById('sv-partner');
+  if(meBtn)meBtn.textContent=CU;
+  if(partnerBtn)partnerBtn.textContent=getPartnerCode();
+  // Set active view state
+  setSchedView(schedView); // applies current user filter
   setSchedSub('today',document.getElementById('ssn-today'));
 }
 
@@ -4999,10 +5108,10 @@ function renderEventPanel(ev){
     </div>
     ${pending.map(t=>{
       const o=getOwner(t.owner);
-      return `<div class="task-card" style="margin-bottom:6px">
+      return `<div class="task-card" data-id="${t.id}" style="margin-bottom:6px">
         <div class="task-row">
-          <div class="task-check ${t.done?'checked':''}" onclick="quickTick(${t.id},event)"></div>
-          <div class="task-main" onclick="openDetail(${t.id})">
+          <div class="task-check ${t.done?'checked':''}" onclick="event.stopPropagation();quickTick(${t.id},event)"></div>
+          <div class="task-main" onclick="event.stopPropagation();openDetail(${t.id})">
             <div class="task-title">${t.title}</div>
             <div class="task-meta">
               <span class="task-tag" style="background:${o.bg};color:${o.color}">${o.name}</span>
@@ -5548,6 +5657,420 @@ ${context}`;
   tcLoading=false;
 }
 
+
+// ================================================================
+// USER PREFERENCES
+// ================================================================
+let userPrefs={};
+
+function loadPrefs(){
+  try{const s=localStorage.getItem('bc-prefs-'+CU);if(s)userPrefs=JSON.parse(s);}catch(e){}
+  applyPrefs();
+}
+
+function savePref(key,val){
+  userPrefs[key]=val;
+  try{localStorage.setItem('bc-prefs-'+CU,JSON.stringify(userPrefs));}catch(e){}
+  applyPrefs();
+}
+
+function getPref(key,def){return userPrefs[key]!==undefined?userPrefs[key]:def;}
+
+function applyPrefs(){
+  // Compact cards
+  document.body.classList.toggle('compact-cards',getPref('compactCards',false));
+}
+
+function openSettings(){
+  loadPrefs();
+  document.getElementById('settings-panel').classList.add('open');
+  // Populate people
+  const pl=document.getElementById('people-list');
+  if(pl){
+    pl.innerHTML=people.map(p=>`<div class="person-row">
+      <div class="person-av" style="background:${p.bg||'var(--surf2)'};color:${p.color||'var(--tx)'}">${p.code}</div>
+      <span class="person-name">${p.name}</span>
+      ${p.code!=='BW'&&p.code!=='BJ'?`<button class="person-del" onclick="deletePerson('${p.code}')">✕</button>`:''}
+    </div>`).join('');
+  }
+  // Set pref values
+  const fields={
+    'pref-show-codes':'showCodes','pref-show-times':'showTimes',
+    'pref-compact':'compactCards','pref-confetti':'confetti',
+    'pref-alarm':'timerAlarm','pref-show-overdue':'showOverdue',
+    'pref-show-events-strip':'showEventsStrip','pref-nudge':'showNudge',
+    'pref-weekab':'weekABReminder'
+  };
+  Object.entries(fields).forEach(([id,key])=>{
+    const el=document.getElementById(id);
+    if(el)el.checked=getPref(key,true);
+  });
+  const nick=document.getElementById('pref-nickname');
+  if(nick)nick.value=getPref('nickname',CUN)||'';
+}
+
+
+// ================================================================
+// SPRINT ENGINE
+// ================================================================
+let sprintActive=false;
+let sprintData=null; // {id, title, taskIds, startedAt}
+let sprintTimer=null;
+let sprintElapsed=0;
+
+// Detect sprint intent from user message
+function detectSprintIntent(msg){
+  return /sprint|build.*tool|get.*done|execute|tackle|power.*through|crunch|focus.*session|what can i get done|help me get/i.test(msg);
+}
+
+// ── STEP 1: Trigger from Blackbird chat ──
+async function startSprintFlow(userMsg){
+  const now=new Date();
+  const hour=now.getHours();
+  const hoursLeft=Math.max(1,Math.min(10,22-hour)); // rough usable hours left today
+  const pending=tasks.filter(t=>!t.done).sort((a,b)=>(a.due||'9').localeCompare(b.due||'9'));
+  const totalH=pending.reduce((s,t)=>s+getEffectiveTime(t),0);
+  const overdue=pending.filter(t=>t.due&&t.due<tdStr());
+
+  // Reality check message from Blackbird
+  const realism=totalH>hoursLeft*1.5
+    ?`You've got ${fmtHours(totalH)} of tasks and it's ${hour}:00 — realistically ${hoursLeft}h to work with today. `
+    :'';
+
+  bbMsg(`${realism}Let's pick what you're actually going to nail today. Tap the tasks you want in your sprint — I'll build you a focused tool around them.`,'from-bb');
+
+  // Show task picker in chat
+  setTimeout(()=>showSprintPicker(pending, hoursLeft),400);
+}
+
+function showSprintPicker(pending, hoursLeft){
+  const msgs=document.getElementById('bb-msgs');if(!msgs)return;
+
+  // Pre-select: overdue + due today + fits in available hours
+  const today=tdStr();
+  const preSelected=new Set();
+  let budget=0;
+  const sorted=[
+    ...pending.filter(t=>t.due&&t.due<=today),
+    ...pending.filter(t=>!t.due||t.due>today)
+  ];
+  sorted.forEach(t=>{
+    const h=getEffectiveTime(t)||0.5;
+    if(budget+h<=hoursLeft*0.8){preSelected.add(t.id);budget+=h;}
+  });
+
+  const card=document.createElement('div');
+  card.className='bb-preview-card';
+  card.style.cssText='background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);overflow:hidden;margin-top:4px;width:100%';
+  card.innerHTML=`
+    <div style="padding:10px 14px;background:var(--surf2);border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between">
+      <div style="font-family:'Playfair Display',serif;font-size:14px;font-weight:500">Pick your sprint tasks</div>
+      <span id="sprint-pick-time" style="font-size:11px;font-family:'DM Mono',monospace;color:var(--green);font-weight:700">${fmtHours(budget)}</span>
+    </div>
+    <div id="sprint-pick-list" style="max-height:320px;overflow-y:auto">
+      ${sorted.slice(0,20).map(t=>{
+        const sel=preSelected.has(t.id);
+        const o=getOwner(t.owner);
+        const h=getEffectiveTime(t);
+        const ov=t.due&&t.due<today;
+        return `<div id="spl-${t.id}" style="display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--bdr);cursor:pointer;background:${sel?'var(--gl)':''};" onclick="toggleSprintPick(${t.id},${h})">
+          <div id="splc-${t.id}" style="width:20px;height:20px;border-radius:4px;border:2px solid ${sel?'var(--green)':'var(--bdrm)'};background:${sel?'var(--green)':'#fff'};flex-shrink:0;display:flex;align-items:center;justify-content:center">
+            ${sel?'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>':''}
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.title}</div>
+            <div style="display:flex;gap:5px;margin-top:2px;align-items:center">
+              <span class="task-tag" style="background:${o.bg};color:${o.color}">${o.name}</span>
+              ${t.due?`<span style="font-size:10px;color:${ov?'var(--red)':'var(--tx3)'}">${fmtDate(t.due)}</span>`:''}
+              ${h?`<span style="font-size:10px;color:var(--tx3)">${fmtHours(h)}</span>`:''}
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="padding:10px 14px;border-top:1px solid var(--bdr)">
+      <button onclick="launchSprint()" style="width:100%;padding:12px;background:var(--green);color:#fff;border:none;border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-weight:700;font-size:14px;cursor:pointer">⚡ Build sprint tool</button>
+    </div>`;
+  msgs.appendChild(card);
+  msgs.scrollTop=msgs.scrollHeight;
+  window._sprintSelected=preSelected;
+  window._sprintBudget=budget;
+  window._sprintHoursLeft=hoursLeft;
+}
+
+function toggleSprintPick(taskId, hours){
+  const sel=window._sprintSelected;if(!sel)return;
+  const chk=document.getElementById('splc-'+taskId);
+  const row=document.getElementById('spl-'+taskId);
+  if(sel.has(taskId)){
+    sel.delete(taskId);
+    window._sprintBudget-=hours;
+    if(chk){chk.style.borderColor='var(--bdrm)';chk.style.background='#fff';chk.innerHTML='';}
+    if(row)row.style.background='';
+  }else{
+    sel.add(taskId);
+    window._sprintBudget+=hours;
+    if(chk){chk.style.borderColor='var(--green)';chk.style.background='var(--green)';chk.innerHTML='<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>';}
+    if(row)row.style.background='var(--gl)';
+  }
+  const timeEl=document.getElementById('sprint-pick-time');
+  if(timeEl)timeEl.textContent=fmtHours(Math.max(0,window._sprintBudget));
+}
+
+async function launchSprint(){
+  const sel=window._sprintSelected;
+  if(!sel||!sel.size){chirp('Select at least one task.');return;}
+  const sprintTasks=tasks.filter(t=>sel.has(t.id));
+  if(!sprintTasks.length)return;
+  closeBBFullscreen();
+  // Show loading screen
+  showSprintLoading();
+  // Generate the tool
+  await generateSprintTool(sprintTasks);
+}
+
+function showSprintLoading(){
+  const el=document.getElementById('sprint-loading');
+  if(el)el.style.display='flex';
+  // Animate loading bar
+  let pct=0;
+  const bar=document.getElementById('sprint-loading-bar');
+  const status=document.getElementById('sprint-loading-status');
+  const steps=['Analysing tasks…','Calculating time blocks…','Designing your sprint…','Almost ready…'];
+  let step=0;
+  window._sprintLoadInterval=setInterval(()=>{
+    pct=Math.min(90,pct+Math.random()*15);
+    if(bar)bar.style.width=pct+'%';
+    if(status&&step<steps.length)status.textContent=steps[Math.floor(pct/25)]||steps[3];
+  },600);
+  // Init loading bird lottie
+  if(typeof lottie!=='undefined'){
+    const lb=document.getElementById('sprint-loading-bird');
+    if(lb&&!lb.dataset.init){lb.dataset.init='1';const a=lottie.loadAnimation({container:lb,renderer:'svg',loop:true,autoplay:true,animationData:BLACKBIRD_ANIM});a.setSpeed(2);}
+  }
+}
+
+function hideSprintLoading(){
+  clearInterval(window._sprintLoadInterval);
+  const bar=document.getElementById('sprint-loading-bar');
+  if(bar)bar.style.width='100%';
+  setTimeout(()=>{
+    const el=document.getElementById('sprint-loading');
+    if(el)el.style.display='none';
+  },400);
+}
+
+async function generateSprintTool(sprintTasks){
+  const totalH=sprintTasks.reduce((s,t)=>s+getEffectiveTime(t),0);
+  const taskList=sprintTasks.map((t,i)=>`${i+1}. ${t.title} (${fmtHours(getEffectiveTime(t))}) [id:${t.id}]`).join('\n');
+  const now=new Date();
+  const timeOfDay=`${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+  const sprintPrompt=`You are building a bespoke single-use sprint execution tool for a household task app called BravoChore.
+
+Current time: ${timeOfDay}
+User: ${CUN}
+Sprint tasks (${sprintTasks.length} tasks, ~${fmtHours(totalH)} total):
+${taskList}
+
+Generate a complete, self-contained HTML sprint tool. Requirements:
+- Beautiful, motivating design using these CSS variables: --green:#5C8A4A, --gl:#EAF3DE, --tx:#2C2B28, --surf:#ffffff, --bg:#FAFAF8, --bdr:#e8e4dc, --rs:10px, --r:14px
+- Font: use system-ui or 'DM Sans' from Google Fonts
+- Each task must have a checkbox/tick button. When ticked, call: window.parent.sprintTickTask(taskId) where taskId is the numeric ID shown above
+- Show a motivating progress indicator (ring, bar, or counter)
+- Include a visible elapsed timer using setInterval — call window.parent.getSprintElapsed() to get seconds
+- Make it feel like a focused execution tool — not a list. Could be a sequential task guide, a visual board, a timer-driven flow, whatever fits these specific tasks
+- Must be mobile-optimised (max-width 100%, touch-friendly tap targets min 44px)
+- Add personality — Blackbird energy, warm but focused. Can include a motivating phrase or sprint name
+- Keep it under 200 lines of HTML
+- NO external dependencies except Google Fonts
+- The tool should feel premium and hand-crafted, not generic
+
+Respond with ONLY the complete HTML — no explanation, no markdown fences.`;
+
+  try{
+    const res=await fetch(BB_PROXY,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SK},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:4000,
+        system:'You are a world-class UI developer building a focused sprint tool. Return only clean HTML.',
+        messages:[{role:'user',content:sprintPrompt}]
+      })
+    });
+    const data=await res.json();
+    let html=data.content?.find(c=>c.type==='text')?.text||'';
+    // Strip markdown fences if present
+    html=html.replace(/^```html\n?/,'').replace(/^```\n?/,'').replace(/```$/,'').trim();
+    if(!html||html.length<100){
+      hideSprintLoading();
+      bbMsg('Couldn\'t generate the sprint tool — try again.','from-bb');
+      openBBFullscreen();
+      return;
+    }
+    activateSprint(sprintTasks, html);
+  }catch(e){
+    hideSprintLoading();
+    chirp('Sprint generation failed — check connection.');
+  }
+}
+
+function activateSprint(sprintTasks, html){
+  hideSprintLoading();
+  sprintActive=true;
+  sprintElapsed=0;
+  const title=sprintTasks.length===1?sprintTasks[0].title:`${sprintTasks.length}-task sprint`;
+  sprintData={
+    taskIds:sprintTasks.map(t=>t.id),
+    doneTasks:new Set(),
+    title
+  };
+
+  // Save to DB
+  api('bravochore_sprints','POST',[{
+    user_code:CU,title,
+    task_ids:JSON.stringify(sprintTasks.map(t=>t.id)),
+    status:'active',
+    tasks_total:sprintTasks.length
+  }]).then(r=>{if(r&&r[0])sprintData.dbId=r[0].id;}).catch(()=>{});
+
+  // Render tool into the inner div (not iframe — avoids origin issues)
+  const inner=document.getElementById('sprint-tool-inner');
+  if(inner){
+    const shadow=inner.attachShadow({mode:'open'});
+    shadow.innerHTML=html;
+    sprintData.shadow=shadow;
+  }
+
+  // Expose tick function to shadow DOM scripts
+  window.sprintTickTask=async(taskId)=>{
+    if(sprintData.doneTasks.has(taskId))return;
+    sprintData.doneTasks.add(taskId);
+    await quickTickSilent(taskId);
+    updateSprintProgress();
+  };
+  window.getSprintElapsed=()=>sprintElapsed;
+
+  // Update UI
+  document.getElementById('sprint-title').textContent=title;
+  updateSprintProgress();
+
+  // Show overlay
+  document.getElementById('sprint-overlay').classList.add('active');
+
+  // Start timer
+  clearInterval(sprintTimer);
+  sprintTimer=setInterval(()=>{
+    sprintElapsed++;
+    const m=Math.floor(sprintElapsed/60),s=sprintElapsed%60;
+    const el=document.getElementById('sprint-elapsed');
+    if(el)el.textContent=m+':'+String(s).padStart(2,'0');
+  },1000);
+
+  // Populate drawer
+  renderSprintDrawer();
+}
+
+async function quickTickSilent(taskId){
+  const task=tasks.find(t=>t.id===taskId);if(!task||task.done)return;
+  task.done=true;
+  rerender();
+  try{await api('bravochore_tasks','PATCH',{done:true},`?id=eq.${taskId}`);}catch(e){}
+  playChime('task');
+}
+
+function updateSprintProgress(){
+  if(!sprintData)return;
+  const total=sprintData.taskIds.length;
+  const done=sprintData.doneTasks.size;
+  const pct=total?Math.round((done/total)*100):0;
+  const fill=document.getElementById('sprint-prog-fill');
+  const text=document.getElementById('sprint-prog-text');
+  const stats=document.getElementById('sprint-stats');
+  if(fill)fill.style.width=pct+'%';
+  if(text)text.textContent=`${done} / ${total} done`;
+  if(stats){
+    const remaining=sprintData.taskIds.filter(id=>!sprintData.doneTasks.has(id));
+    const remH=remaining.reduce((s,id)=>{const t=tasks.find(x=>x.id===id);return s+(t?getEffectiveTime(t):0);},0);
+    stats.textContent=remH>0?`~${fmtHours(remH)} remaining`:'All done!';
+  }
+  if(done===total&&total>0)setTimeout(()=>showSprintComplete(),1200);
+}
+
+function renderSprintDrawer(){
+  const body=document.getElementById('sprint-drawer-body');if(!body)return;
+  const inSprint=new Set(sprintData?.taskIds||[]);
+  const pending=tasks.filter(t=>!t.done).sort((a,b)=>(a.sort_order||999)-(b.sort_order||999));
+  body.innerHTML=pending.map(t=>{
+    const inS=inSprint.has(t.id);
+    const done=sprintData?.doneTasks.has(t.id);
+    const o=getOwner(t.owner);
+    return `<div class="sprint-task-row ${inS?'sprint-task-in-sprint':''}" onclick="${inS?'':'addTaskToSprint('+t.id+')'}">
+      <div style="width:18px;height:18px;border-radius:4px;border:1.5px solid ${done?'var(--green)':inS?'var(--bdrm)':'var(--green)'};background:${done?'var(--green)':'#fff'};flex-shrink:0;display:flex;align-items:center;justify-content:center">
+        ${done?'<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>':''}
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:500;${done?'text-decoration:line-through;color:var(--tx3)':''};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.title}</div>
+        <div style="display:flex;gap:4px;margin-top:2px">
+          <span class="task-tag" style="background:${o.bg};color:${o.color};font-size:9px">${o.name}</span>
+          ${inS?'<span class="sprint-in-badge" style="display:inline-block">In sprint</span>':'<span style="font-size:9px;color:var(--green);font-weight:600">+ Add</span>'}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function addTaskToSprint(taskId){
+  if(!sprintData)return;
+  if(sprintData.taskIds.includes(taskId))return;
+  sprintData.taskIds.push(taskId);
+  renderSprintDrawer();
+  updateSprintProgress();
+  chirp('Added to sprint.');
+  // Inject task into shadow DOM tool (appends a simple row)
+  if(sprintData.shadow){
+    const task=tasks.find(t=>t.id===taskId);if(!task)return;
+    const addedSection=sprintData.shadow.getElementById('sprint-added-tasks');
+    if(addedSection){
+      const row=document.createElement('div');
+      row.style.cssText='display:flex;align-items:center;gap:10px;padding:12px;border-top:1px solid rgba(0,0,0,.06)';
+      row.innerHTML=`<div onclick="window.parent.sprintTickTask(${taskId})" style="width:28px;height:28px;border-radius:50%;border:2px solid #5C8A4A;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0"></div><span style="font-size:14px;font-weight:500">${task.title}</span>`;
+      addedSection.appendChild(row);
+    }
+  }
+}
+
+function toggleSprintDrawer(){
+  const drawer=document.getElementById('sprint-drawer');
+  const backdrop=document.getElementById('sprint-drawer-backdrop');
+  const isOpen=drawer?.classList.contains('open');
+  drawer?.classList.toggle('open',!isOpen);
+  backdrop?.classList.toggle('open',!isOpen);
+  if(!isOpen)renderSprintDrawer();
+}
+
+async function confirmEndSprint(){
+  clearInterval(sprintTimer);
+  const done=sprintData?.doneTasks.size||0;
+  const total=sprintData?.taskIds.length||0;
+  const pct=total?Math.round((done/total)*100):0;
+  const m=Math.floor(sprintElapsed/60);
+  const msg=pct===100?`🎉 Sprint complete! All ${total} tasks done in ${m} minutes.`
+    :pct>=75?`Strong sprint. ${done}/${total} done in ${m} minutes. ${total-done} rolling back to your list.`
+    :`Sprint ended. ${done}/${total} done in ${m} minutes.`;
+  // Close overlay
+  document.getElementById('sprint-overlay').classList.remove('active');
+  sprintActive=false;
+  // Update DB
+  if(sprintData?.dbId){
+    api('bravochore_sprints','PATCH',{status:'completed',ended_at:new Date().toISOString(),tasks_done:done},`?id=eq.${sprintData.dbId}`).catch(()=>{});
+  }
+  // Show summary in Blackbird
+  openBBFullscreen();
+  setTimeout(()=>bbMsg(msg,'from-bb'),300);
+  rerender();
+}
 // ================================================================
 // BOOT
 // ================================================================
@@ -5559,7 +6082,7 @@ async function boot(){
   if(CU){
     document.getElementById('app').style.display='block';
     document.getElementById('bb-fab').style.display='flex';
-    setupPill();renderExtraFilters();renderDashboard();initLottie();assignMissingCodes();document.getElementById('bn-dashboard')?.classList.add('active');
+    setupPill();renderExtraFilters();renderDashboard();initLottie();assignMissingCodes();loadPrefs();document.getElementById('bn-dashboard')?.classList.add('active');
     setTimeout(()=>checkReminders(),700);
     setTimeout(()=>bbMsg("Hey — I'm Blackbird. Tap the bird icon on any task for advice, or ask me anything.",'from-bb'),100);
   }else{
@@ -5575,7 +6098,7 @@ async function boot(){
     if(CU){
       document.getElementById('app').style.display='block';
       document.getElementById('bb-fab').style.display='flex';
-      setupPill();renderExtraFilters();renderDashboard();initLottie();assignMissingCodes();document.getElementById('bn-dashboard')?.classList.add('active');
+      setupPill();renderExtraFilters();renderDashboard();initLottie();assignMissingCodes();loadPrefs();document.getElementById('bn-dashboard')?.classList.add('active');
     }else{
       document.getElementById('user-picker').style.display='flex';
     }
@@ -5583,5 +6106,61 @@ async function boot(){
 }
 boot();
 </script>
+
+<!-- ════════════════════════════════════════════════════
+     SPRINT OVERLAY
+════════════════════════════════════════════════════ -->
+<div id="sprint-overlay">
+  <!-- Header -->
+  <div class="sprint-hdr">
+    <div style="display:flex;flex-direction:column;flex:1;min-width:0">
+      <div class="sprint-hdr-title" id="sprint-title">Sprint</div>
+      <div class="sprint-hdr-prog" id="sprint-prog-text">0 / 0 done</div>
+    </div>
+    <button class="sprint-end-btn" onclick="confirmEndSprint()">End sprint</button>
+  </div>
+  <div class="sprint-prog-bar"><div class="sprint-prog-fill" id="sprint-prog-fill" style="width:0%"></div></div>
+
+  <!-- Timer bar -->
+  <div class="sprint-timer-bar">
+    <div>
+      <div style="font-size:9px;text-transform:uppercase;letter-spacing:.04em;color:var(--tx3);font-weight:700">Elapsed</div>
+      <div class="sprint-elapsed" id="sprint-elapsed">0:00</div>
+    </div>
+    <div class="sprint-stats" id="sprint-stats"></div>
+    <button class="sprint-add-btn" onclick="toggleSprintDrawer()">☰ Tasks</button>
+  </div>
+
+  <!-- Tool area -->
+  <div class="sprint-tool-area" id="sprint-tool-area">
+    <!-- Drawer handle -->
+    <div class="sprint-drawer-handle" onclick="toggleSprintDrawer()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+      Tasks
+    </div>
+    <!-- Backdrop -->
+    <div class="sprint-drawer-backdrop" id="sprint-drawer-backdrop" onclick="toggleSprintDrawer()"></div>
+    <!-- Drawer -->
+    <div class="sprint-drawer" id="sprint-drawer">
+      <div class="sprint-drawer-hdr">
+        <div style="font-family:'Playfair Display',serif;font-size:16px;font-weight:500">All tasks</div>
+        <button onclick="toggleSprintDrawer()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--tx3)">✕</button>
+      </div>
+      <div class="sprint-drawer-body" id="sprint-drawer-body"></div>
+    </div>
+    <!-- Generated sprint tool renders here as srcdoc iframe -->
+    <div id="sprint-tool-inner" style="width:100%;height:100%;overflow-y:auto;padding:16px"></div>
+  </div>
+</div>
+
+<!-- SPRINT LOADING OVERLAY -->
+<div id="sprint-loading" style="display:none;position:fixed;inset:0;z-index:850;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;gap:16px">
+  <div id="sprint-loading-bird" style="width:60px;height:60px"></div>
+  <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:500;color:var(--tx)">Building your sprint…</div>
+  <div id="sprint-loading-status" style="font-size:12px;color:var(--tx2)">Analysing tasks</div>
+  <div style="width:200px;height:3px;background:var(--surf2);border-radius:100px;overflow:hidden">
+    <div id="sprint-loading-bar" style="height:100%;background:var(--green);width:0%;transition:width .4s;border-radius:100px"></div>
+  </div>
+</div>
 </body>
 </html>
