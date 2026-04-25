@@ -203,7 +203,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 .sec-count{font-size:11px;color:var(--tx3);background:var(--surf2);padding:2px 7px;border-radius:100px}
 
 /* TASK CARD */
-.task-card{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rs);margin-bottom:6px;overflow:hidden;position:relative;transition:box-shadow .15s;touch-action:manipulation}
+.task-card{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rs);margin-bottom:6px;overflow:hidden;position:relative;transition:box-shadow .15s;touch-action:pan-y}
 .task-card:hover{box-shadow:var(--shadow)}
 .task-card.overdue{border-left:3px solid var(--red)}
 .task-card.due-soon{border-left:3px solid var(--amber)}
@@ -3594,8 +3594,16 @@ function dragFinish(){
 function dragClean(){
   clearInterval(scrollInterval);
   clearTimeout(dragPressTimer);
-  dragStarted=false;dragSrc=null;dragOver=null;
-  document.querySelectorAll('.task-card').forEach(c=>c.classList.remove('dragging','drag-over-above','drag-over-below'));
+  // Restore touch-action on all cards and list
+  if(dragSrcList){
+    dragSrcList.style.touchAction='';
+    dragSrcList.style.overflowY='';
+  }
+  document.querySelectorAll('.task-card').forEach(c=>{
+    c.classList.remove('dragging','drag-over-above','drag-over-below');
+    c.style.touchAction='';
+  });
+  dragStarted=false;dragSrc=null;dragOver=null;dragSrcList=null;
 }
 
 // Wire drag on any list container — call with list element
@@ -3613,9 +3621,20 @@ function initDragList(list){
     dragStarted=false;
     const startY=e.touches[0].clientY;
     const startX=e.touches[0].clientX;
+    // Cancel drag if user moves before hold completes
+    const cancelOnMove=(ev)=>{
+      const dy=Math.abs(ev.touches[0].clientY-startY);
+      const dx=Math.abs(ev.touches[0].clientX-startX);
+      if(dy>8||dx>8){clearTimeout(dragPressTimer);list.removeEventListener('touchmove',cancelOnMove);}
+    };
+    list.addEventListener('touchmove',cancelOnMove,{passive:true,once:false});
     dragPressTimer=setTimeout(()=>{
+      list.removeEventListener('touchmove',cancelOnMove);
       dragStarted=true;dragSrc=card;dragSrcList=list;
       card.classList.add('dragging');
+      card.style.touchAction='none'; // allow JS to take over touch
+      list.style.touchAction='none';
+      list.style.overflowY='hidden'; // prevent scroll while dragging
       navigator.vibrate&&navigator.vibrate([20,10,20]);
     },500);
   },{passive:false});
