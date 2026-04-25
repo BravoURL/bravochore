@@ -5977,13 +5977,20 @@ function activateSprint(sprintTasks, html, allItems){
   const title=sprintTasks.length===1?sprintTasks[0].title:
     (allItems&&allItems.length?allItems.length+'-item sprint':sprintTasks.length+'-task sprint');
 
+  // Calculate total hours including routines
+  const sprintTotalH=(allItems||[]).reduce((s,i)=>s+(i.hours||0),0) ||
+    sprintTasks.reduce((s,t)=>s+getEffectiveTime(t),0);
+  const sprintRoutineCount=(allItems||[]).filter(i=>i.type==='routine').length;
+
   sprintData={
     taskIds:sprintTasks.map(t=>t.id),
     doneTasks:new Set(),
     doneRoutines:new Set(),
     title,
     dbId:null,
-    allItems:allItems||null
+    allItems:allItems||null,
+    totalH:sprintTotalH,
+    routineCount:sprintRoutineCount
   };
 
   // Save to DB
@@ -6028,6 +6035,7 @@ function activateSprint(sprintTasks, html, allItems){
     if(chk){chk.style.background=newDone?'var(--green)':'var(--surf)';chk.style.borderColor=newDone?'var(--green)':'var(--gm)';chk.innerHTML=newDone?tick:'';}
     if(row)row.style.opacity=newDone?'0.55':'';
     if(titleEl){titleEl.style.textDecoration=newDone?'line-through':'';titleEl.style.color=newDone?'var(--tx3)':'';}
+    updateSprintProgress(); // update header counts
   };
 
   window.sprintEditTask=(taskId)=>{openDetail(parseInt(taskId));};
@@ -6049,10 +6057,13 @@ function activateSprint(sprintTasks, html, allItems){
   sprintTimer=setInterval(()=>{
     sprintElapsed++;
     const m=Math.floor(sprintElapsed/60),s=sprintElapsed%60;
+    const timeStr=m+':'+(s<10?'0':'')+s;
     const el=document.getElementById('sprint-elapsed');
-    if(el)el.textContent=m+':'+(s<10?'0':'')+s;
+    if(el)el.textContent=timeStr;
     const tmr=document.getElementById('sprint-tmr');
-    if(tmr)tmr.textContent=m+':'+(s<10?'0':'')+s;
+    if(tmr)tmr.textContent=timeStr;
+    // Update remaining time every 60s (as elapsed grows)
+    if(sprintElapsed%60===0)updateSprintProgress();
     if(sprintElapsed%30===0)saveSprintState();
   },1000);
 }
@@ -6186,20 +6197,44 @@ function updateSprintToolUI(taskId, isDone){
 
 function updateSprintProgress(){
   if(!sprintData)return;
-  const total=sprintData.taskIds.length;
-  const done=sprintData.doneTasks.size;
-  const pct=total?Math.round((done/total)*100):0;
+  const taskTotal=sprintData.taskIds.length;
+  const taskDone=sprintData.doneTasks.size;
+  const routineTotal=sprintData.routineCount||0;
+  const routineDone=sprintData.doneRoutines?sprintData.doneRoutines.size:0;
+  const totalItems=taskTotal+routineTotal;
+  const doneItems=taskDone+routineDone;
+  const pct=totalItems?Math.round((doneItems/totalItems)*100):0;
+
+  // Progress bar
   const fill=document.getElementById('sprint-prog-fill');
-  const text=document.getElementById('sprint-prog-text');
-  const stats=document.getElementById('sprint-stats');
   if(fill)fill.style.width=pct+'%';
-  if(text)text.textContent=`${done} / ${total} done`;
-  if(stats){
-    const remaining=sprintData.taskIds.filter(id=>!sprintData.doneTasks.has(id));
-    const remH=remaining.reduce((s,id)=>{const t=tasks.find(x=>x.id===id);return s+(t?getEffectiveTime(t):0);},0);
-    stats.textContent=remH>0?`~${fmtHours(remH)} remaining`:'All done!';
+
+  // New stats header
+  const tdEl=document.getElementById('sph-tasks-done');
+  const ttEl=document.getElementById('sph-tasks-total');
+  const rdEl=document.getElementById('sph-rout-done');
+  const rtEl=document.getElementById('sph-rout-total');
+  const remEl=document.getElementById('sph-time-rem');
+  if(tdEl)tdEl.textContent=taskDone;
+  if(ttEl)ttEl.textContent='/ '+taskTotal+' task'+(taskTotal===1?'':'s');
+  if(rdEl)rdEl.textContent=routineDone;
+  if(rtEl)rtEl.textContent='/ '+routineTotal+' routine'+(routineTotal===1?'':'s');
+
+  // Time remaining: task time left + routine time left (routines = 0.25h each)
+  if(remEl){
+    const taskRemH=sprintData.taskIds
+      .filter(id=>!sprintData.doneTasks.has(id))
+      .reduce((s,id)=>{const t=tasks.find(x=>x.id===id);return s+(t?getEffectiveTime(t):0);},0);
+    const routineRemH=(routineTotal-routineDone)*0.25;
+    const totalRemH=taskRemH+routineRemH;
+    remEl.textContent=totalRemH>0?fmtHours(totalRemH):'0m';
+    remEl.style.color=totalRemH<=0?'#5C8A4A':
+      totalRemH<0.5?'#BA7517':'rgba(255,255,255,.9)';
   }
-  // completion handled by updateSprintToolUI
+
+  // Legacy compatibility
+  const text=document.getElementById('sprint-prog-text');
+  if(text)text.textContent=doneItems+' / '+totalItems+' done';
 }
 
 function renderSprintDrawer(){
@@ -6575,23 +6610,43 @@ boot();
 ════════════════════════════════════════════════════ -->
 <div id="sprint-overlay">
   <!-- Header -->
-  <div class="sprint-hdr">
-    <div style="display:flex;flex-direction:column;flex:1;min-width:0">
-      <div class="sprint-hdr-title" id="sprint-title">Sprint</div>
-      <div class="sprint-hdr-prog" id="sprint-prog-text">0 / 0 done</div>
+  <div class="sprint-hdr" style="flex-direction:column;gap:0;padding:0">
+    <!-- Top row: title + end -->
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 14px 8px">
+      <div class="sprint-hdr-title" id="sprint-title" style="font-size:15px">Sprint</div>
+      <button class="sprint-add-btn" onclick="toggleSprintDrawer()" style="margin-left:auto">☰</button>
+      <button class="sprint-end-btn" onclick="confirmEndSprint()">End</button>
     </div>
-    <button class="sprint-end-btn" onclick="confirmEndSprint()">End sprint</button>
+    <!-- Stats row — the numbers dashboard -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;border-top:1px solid rgba(255,255,255,.1);padding:0">
+      <!-- Tasks -->
+      <div style="padding:8px 10px;border-right:1px solid rgba(255,255,255,.1);text-align:center">
+        <div id="sph-tasks-done" style="font-family:'DM Mono',monospace;font-size:20px;font-weight:700;line-height:1;color:#fff">0</div>
+        <div id="sph-tasks-total" style="font-size:9px;color:rgba(255,255,255,.55);margin-top:2px;text-transform:uppercase;letter-spacing:.04em">/ 0 tasks</div>
+      </div>
+      <!-- Routines -->
+      <div style="padding:8px 10px;border-right:1px solid rgba(255,255,255,.1);text-align:center">
+        <div id="sph-rout-done" style="font-family:'DM Mono',monospace;font-size:20px;font-weight:700;line-height:1;color:#fff">0</div>
+        <div id="sph-rout-total" style="font-size:9px;color:rgba(255,255,255,.55);margin-top:2px;text-transform:uppercase;letter-spacing:.04em">/ 0 routines</div>
+      </div>
+      <!-- Time remaining -->
+      <div style="padding:8px 10px;border-right:1px solid rgba(255,255,255,.1);text-align:center">
+        <div id="sph-time-rem" style="font-family:'DM Mono',monospace;font-size:20px;font-weight:700;line-height:1;color:#5C8A4A">–</div>
+        <div style="font-size:9px;color:rgba(255,255,255,.55);margin-top:2px;text-transform:uppercase;letter-spacing:.04em">remaining</div>
+      </div>
+      <!-- Elapsed -->
+      <div style="padding:8px 10px;text-align:center">
+        <div class="sprint-elapsed" id="sprint-elapsed" style="font-size:20px;line-height:1">0:00</div>
+        <div style="font-size:9px;color:rgba(255,255,255,.55);margin-top:2px;text-transform:uppercase;letter-spacing:.04em">elapsed</div>
+      </div>
+    </div>
+    <!-- Progress bar -->
+    <div class="sprint-prog-bar"><div class="sprint-prog-fill" id="sprint-prog-fill" style="width:0%"></div></div>
   </div>
-  <div class="sprint-prog-bar"><div class="sprint-prog-fill" id="sprint-prog-fill" style="width:0%"></div></div>
-
-  <!-- Timer bar -->
-  <div class="sprint-timer-bar">
-    <div>
-      <div style="font-size:9px;text-transform:uppercase;letter-spacing:.04em;color:var(--tx3);font-weight:700">Elapsed</div>
-      <div class="sprint-elapsed" id="sprint-elapsed">0:00</div>
-    </div>
-    <div class="sprint-stats" id="sprint-stats"></div>
-    <button class="sprint-add-btn" onclick="toggleSprintDrawer()">☰ Tasks</button>
+  <!-- hidden elements kept for JS compatibility -->
+  <div style="display:none">
+    <div id="sprint-prog-text"></div>
+    <div id="sprint-stats"></div>
   </div>
 
   <!-- Tool area -->
