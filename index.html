@@ -4673,10 +4673,21 @@ function renderSchedToday(){
   const sections=DAY_TASKS[dayName]||[];
   const container=document.getElementById('sched-sections');if(!container)return;
 
-  // Determine which user to show
-  // For now if Me/Both show BJ's routines (Bernadette), if Partner show Brent's (none yet)
-  // This will expand when Brent builds his own routine data
-  const showRoutines=(schedView==='me'&&CU==='BJ')||(schedView==='partner'&&CU==='BW')||schedView==='both';
+  // DAY_TASKS belong to BJ. Show them based on who is viewing what.
+  const bjIsMe=CU==='BJ';
+  const showRoutines=(schedView==='both')||
+    (schedView==='me'&&bjIsMe)||
+    (schedView==='partner'&&!bjIsMe);
+
+  if(!showRoutines){
+    container.innerHTML=`<div style="padding:32px 16px;text-align:center;color:var(--tx2)">
+      <div style="font-size:36px;margin-bottom:12px">📋</div>
+      <div style="font-size:15px;font-weight:500;color:var(--tx);margin-bottom:8px">No routines set up yet for ${CU}</div>
+      <div style="font-size:13px;line-height:1.6">Switch to <strong>Both</strong> to see the household routines, or tap your partner's code to see theirs.</div>
+    </div>`;
+    updateSchedProgress(0,0,dayName);
+    return;
+  }
 
   let totalTasks=0,doneTasks=0;
   const html=sections.map(sec=>{
@@ -4974,7 +4985,7 @@ async function checkScheduleNudge(){
   }catch(e){}
   const yesterSlots=schedSlots.filter(s=>s.slot_date===yStr&&!s.completed_at&&s.user_code===CU);
   const missedTasks=yesterSlots.map(s=>tasks.find(t=>t.id==s.task_id)).filter(Boolean);
-  const overdueTasks=tasks.filter(t=>!t.done&&t.due&&t.due<tdStr()).slice(0,5);
+  const overdueTasks=tasks.filter(t=>!t.done&&t.due&&t.due<tdStr()&&t.owner===CU).slice(0,5);
   const allMissed=[...missedTasks,...overdueTasks.filter(t=>!missedTasks.find(m=>m.id===t.id))];
   if(!allMissed.length)return;
   const nudge=document.getElementById('sched-nudge');
@@ -5955,6 +5966,95 @@ function buildSprintHTML(sprintTasks, allItems){
   const taskItems=allItems?allItems.filter(i=>i.type==='task'):sprintTasks.map(t=>({type:'task',id:t.id}));
   const routineItems=allItems?allItems.filter(i=>i.type==='routine'):[];
   return {taskItems, routineItems};
+}
+
+
+function activateSprint(sprintTasks, html, allItems){
+  hideSprintLoading(); // dismiss loading screen
+
+  sprintActive=true;
+  sprintElapsed=0;
+  const title=sprintTasks.length===1?sprintTasks[0].title:
+    (allItems&&allItems.length?allItems.length+'-item sprint':sprintTasks.length+'-task sprint');
+
+  sprintData={
+    taskIds:sprintTasks.map(t=>t.id),
+    doneTasks:new Set(),
+    doneRoutines:new Set(),
+    title,
+    dbId:null,
+    allItems:allItems||null
+  };
+
+  // Save to DB
+  api('bravochore_sprints','POST',[{
+    user_code:CU,title,
+    task_ids:JSON.stringify(sprintTasks.map(t=>t.id)),
+    status:'active',
+    tasks_total:sprintTasks.length
+  }]).then(r=>{if(r&&r[0])sprintData.dbId=r[0].id;}).catch(()=>{});
+
+  // Expose tick functions on window
+  window.sprintTickTask=async(taskId)=>{
+    const id=parseInt(taskId);
+    if(sprintData.doneTasks.has(id)){
+      // Undo
+      sprintData.doneTasks.delete(id);
+      const task=tasks.find(t=>t.id===id);
+      if(task){task.done=false;try{await api('bravochore_tasks','PATCH',{done:false},`?id=eq.${id}`);}catch(e){}}
+      renderSprintTaskRow(id,false);
+      updateSprintProgress();
+      showSprintToast('Undone ↩','',id,false);
+      return;
+    }
+    sprintData.doneTasks.add(id);
+    renderSprintTaskRow(id,true);
+    await quickTickSilent(id);
+    updateSprintProgress();
+    const task=tasks.find(t=>t.id===id);
+    const m=Math.floor(sprintElapsed/60),s=sprintElapsed%60;
+    showSprintToast('✓ Done',task?task.title+' · '+m+'m '+(s<10?'0':'')+s+'s elapsed':'',id,true);
+  };
+
+  window.sprintTickRoutine=(idx)=>{
+    if(!sprintData.doneRoutines)sprintData.doneRoutines=new Set();
+    const isDone=sprintData.doneRoutines.has(idx);
+    if(isDone)sprintData.doneRoutines.delete(idx);else sprintData.doneRoutines.add(idx);
+    const tick='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>';
+    const newDone=!isDone;
+    const chk=document.getElementById('src-'+idx);
+    const row=document.getElementById('sri-'+idx);
+    const titleEl=row?.querySelector('[style*="font-size:14px"]');
+    if(chk){chk.style.background=newDone?'var(--green)':'var(--surf)';chk.style.borderColor=newDone?'var(--green)':'var(--gm)';chk.innerHTML=newDone?tick:'';}
+    if(row)row.style.opacity=newDone?'0.55':'';
+    if(titleEl){titleEl.style.textDecoration=newDone?'line-through':'';titleEl.style.color=newDone?'var(--tx3)':'';}
+  };
+
+  window.sprintEditTask=(taskId)=>{openDetail(parseInt(taskId));};
+  window.getSprintElapsed=()=>sprintElapsed;
+
+  // Render tasks into the tool area
+  renderSprintTasks();
+  renderSprintDrawer();
+
+  // Update header
+  document.getElementById('sprint-title').textContent=title;
+  updateSprintProgress();
+
+  // Show the overlay
+  document.getElementById('sprint-overlay').classList.add('active');
+
+  // Start timer
+  clearInterval(sprintTimer);
+  sprintTimer=setInterval(()=>{
+    sprintElapsed++;
+    const m=Math.floor(sprintElapsed/60),s=sprintElapsed%60;
+    const el=document.getElementById('sprint-elapsed');
+    if(el)el.textContent=m+':'+(s<10?'0':'')+s;
+    const tmr=document.getElementById('sprint-tmr');
+    if(tmr)tmr.textContent=m+':'+(s<10?'0':'')+s;
+    if(sprintElapsed%30===0)saveSprintState();
+  },1000);
 }
 
 function renderSprintTasks(){
