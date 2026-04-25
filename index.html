@@ -5624,29 +5624,7 @@ async function promoteShelvedFromDetail(){
   closeDetail();bnNav('tasks');chirp('"'+title+'" is now active.');
 }
 
-function openEditShelved(id){
-  const s=shelved.find(x=>x.id===id);if(!s)return;
-  document.getElementById('asm-title').value=s.title;
-  document.getElementById('asm-notes').value=s.notes||'';
-  openModal('add-shelved-modal');
-  // Override save to update instead
-  const saveBtn=document.querySelector('#add-shelved-modal .btn-ok');
-  if(saveBtn){
-    saveBtn.onclick=async()=>{
-      const title=document.getElementById('asm-title')?.value.trim();
-      if(!title)return;
-      s.title=title;s.notes=document.getElementById('asm-notes')?.value||'';
-      closeModal('add-shelved-modal');
-      saveBtn.onclick=saveShelvedItem; // reset
-      renderShelved();
-      try{await api('bravochore_shelved','PATCH',{title:s.title,notes:s.notes},`?id=eq.${id}`);}catch(e){}
-    };
-  }
-}
 
-// ================================================================
-// TASK CODES
-// ================================================================
 function getNextCode(){
   const codes=tasks.map(t=>t.task_code).filter(Boolean);
   const nums=codes.map(c=>parseInt(c.replace('BC',''))||0);
@@ -5816,44 +5794,7 @@ function applyPrefs(){
   document.body.classList.toggle('compact-cards',getPref('compactCards',false));
 }
 
-function openSettings(){
-  loadPrefs();
-  document.getElementById('settings-panel').classList.add('open');
-  // Populate people
-  const pl=document.getElementById('people-list');
-  if(pl){
-    pl.innerHTML=people.map(p=>`<div class="person-row">
-      <div class="person-av" style="background:${p.bg||'var(--surf2)'};color:${p.color||'var(--tx)'}">${p.code}</div>
-      <span class="person-name">${p.name}</span>
-      ${p.code!=='BW'&&p.code!=='BJ'?`<button class="person-del" onclick="deletePerson('${p.code}')">✕</button>`:''}
-    </div>`).join('');
-  }
-  // Set pref values
-  const fields={
-    'pref-show-codes':'showCodes','pref-show-times':'showTimes',
-    'pref-compact':'compactCards','pref-confetti':'confetti',
-    'pref-alarm':'timerAlarm','pref-show-overdue':'showOverdue',
-    'pref-show-events-strip':'showEventsStrip','pref-nudge':'showNudge',
-    'pref-weekab':'weekABReminder'
-  };
-  Object.entries(fields).forEach(([id,key])=>{
-    const el=document.getElementById(id);
-    if(el)el.checked=getPref(key,true);
-  });
-  const nick=document.getElementById('pref-nickname');
-  if(nick)nick.value=getPref('nickname',CUN)||'';
-}
 
-
-// ================================================================
-// SPRINT ENGINE
-// ================================================================
-let sprintActive=false;
-let sprintData=null; // {id, title, taskIds, startedAt}
-let sprintTimer=null;
-let sprintElapsed=0;
-
-// Detect sprint intent from user message
 function detectSprintIntent(msg){
   return /sprint|build.*tool|get.*done|execute|tackle|power.*through|crunch|focus.*session|what can i get done|help me get/i.test(msg);
 }
@@ -5965,40 +5906,26 @@ async function launchSprint(){
 }
 
 function showSprintLoading(){
+  // Sprint now builds instantly from template — just show briefly
   const el=document.getElementById('sprint-loading');
-  if(el)el.style.display='flex';
-  // Animate loading bar
-  let pct=0;
+  if(el){el.style.display='flex';}
   const bar=document.getElementById('sprint-loading-bar');
   const status=document.getElementById('sprint-loading-status');
-  const steps=[
-    'Reading your tasks…',
-    'Thinking about what matters most…',
-    'Designing your sprint layout…',
-    'Adding the finishing touches…',
-    'Almost there…'
-  ];
-  let stepIdx=0;
-  // Slow, steady progress — crawls to 75% over ~25 seconds, feels deliberate
+  if(status)status.textContent='Assembling your sprint…';
+  // Quick progress fill since it's instant
+  let pct=0;
+  clearInterval(window._sprintLoadInterval);
   window._sprintLoadInterval=setInterval(()=>{
-    if(pct<30)pct+=1.2;
-    else if(pct<55)pct+=0.7;
-    else if(pct<72)pct+=0.4;
-    else if(pct<76)pct+=0.1;
-    // Update step message every 20%
-    const newStep=Math.min(Math.floor(pct/18),steps.length-1);
-    if(newStep!==stepIdx){stepIdx=newStep;if(status)status.textContent=steps[stepIdx];}
+    pct=Math.min(100,pct+12);
     if(bar)bar.style.width=pct+'%';
-  },400);
-  // Init loading bird — calm speed, no box
+    if(pct>=100)clearInterval(window._sprintLoadInterval);
+  },60);
   if(typeof lottie!=='undefined'){
     const lb=document.getElementById('sprint-loading-bird');
     if(lb&&!lb.dataset.init){
-      lb.dataset.init='1';
-      lb.style.background='transparent';
-      lb.style.border='none';
+      lb.dataset.init='1';lb.style.background='transparent';lb.style.border='none';
       const a=lottie.loadAnimation({container:lb,renderer:'svg',loop:true,autoplay:true,animationData:BLACKBIRD_ANIM});
-      a.setSpeed(1.2); // calm, purposeful — not frantic
+      a.setSpeed(0.9);
     }
   }
 }
@@ -6255,23 +6182,48 @@ function renderSprintDrawer(){
   const body=document.getElementById('sprint-drawer-body');if(!body)return;
   const inSprint=new Set(sprintData?.taskIds||[]);
   const pending=tasks.filter(t=>!t.done).sort((a,b)=>(a.sort_order||999)-(b.sort_order||999));
-  body.innerHTML=pending.map(t=>{
-    const inS=inSprint.has(t.id);
-    const done=sprintData?.doneTasks.has(t.id);
-    const o=getOwner(t.owner);
-    return `<div class="sprint-task-row ${inS?'sprint-task-in-sprint':''}" onclick="${inS?'':'addTaskToSprint('+t.id+')'}">
-      <div style="width:18px;height:18px;border-radius:4px;border:1.5px solid ${done?'var(--green)':inS?'var(--bdrm)':'var(--green)'};background:${done?'var(--green)':'#fff'};flex-shrink:0;display:flex;align-items:center;justify-content:center">
-        ${done?'<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>':''}
-      </div>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:12px;font-weight:500;${done?'text-decoration:line-through;color:var(--tx3)':''};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.title}</div>
-        <div style="display:flex;gap:4px;margin-top:2px">
-          <span class="task-tag" style="background:${o.bg};color:${o.color};font-size:9px">${o.name}</span>
-          ${inS?'<span class="sprint-in-badge" style="display:inline-block">In sprint</span>':'<span style="font-size:9px;color:var(--green);font-weight:600">+ Add</span>'}
+  // Two sections: In Sprint | Add More
+  const sprintTasks=pending.filter(t=>inSprint.has(t.id));
+  const otherTasks=pending.filter(t=>!inSprint.has(t.id));
+
+  let html='';
+  if(sprintTasks.length){
+    html+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--tx3);padding:10px 14px 4px;background:var(--surf2)">In this sprint</div>`;
+    html+=sprintTasks.map(t=>{
+      const done=sprintData?.doneTasks.has(t.id);
+      const o=getOwner(t.owner);
+      return `<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--bdr);${done?'opacity:.5':''}">
+        <div style="width:18px;height:18px;border-radius:4px;border:1.5px solid ${done?'var(--green)':'var(--bdrm)'};background:${done?'var(--green)':'#fff'};flex-shrink:0;display:flex;align-items:center;justify-content:center">
+          ${done?'<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>':''}
         </div>
-      </div>
-    </div>`;
-  }).join('');
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:500;${done?'text-decoration:line-through;color:var(--tx3)':''}">${t.title}</div>
+          <span class="task-tag" style="background:${o.bg};color:${o.color};font-size:9px">${o.name}</span>
+        </div>
+        <button onclick="openDetail(${t.id});toggleSprintDrawer()" style="padding:4px 8px;border:1px solid var(--bdrm);border-radius:100px;font-size:10px;color:var(--tx2);cursor:pointer;background:none;flex-shrink:0">View</button>
+      </div>`;
+    }).join('');
+  }
+  if(otherTasks.length){
+    html+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--tx3);padding:10px 14px 4px;background:var(--surf2)">Add to sprint</div>`;
+    html+=otherTasks.map(t=>{
+      const o=getOwner(t.owner);
+      return `<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--bdr);cursor:pointer" onclick="addTaskToSprint(${t.id})">
+        <div style="width:18px;height:18px;border-radius:4px;border:1.5px solid var(--green);flex-shrink:0;display:flex;align-items:center;justify-content:center">
+          <span style="font-size:12px;color:var(--green);font-weight:700;line-height:1">+</span>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:500">${t.title}</div>
+          <div style="display:flex;gap:4px;margin-top:2px">
+            <span class="task-tag" style="background:${o.bg};color:${o.color};font-size:9px">${o.name}</span>
+            ${t.due?`<span style="font-size:9px;color:${t.due<tdStr()?'var(--red)':'var(--tx3)'}">${fmtDate(t.due)}</span>`:''}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  if(!pending.length)html='<div style="padding:20px;text-align:center;font-size:12px;color:var(--tx2)">All tasks complete!</div>';
+  body.innerHTML=html;
 }
 
 function addTaskToSprint(taskId){
@@ -6280,21 +6232,26 @@ function addTaskToSprint(taskId){
   sprintData.taskIds.push(taskId);
   renderSprintDrawer();
   updateSprintProgress();
-  chirp('Added to sprint.');
-  // Inject task into the live sprint tool div
+  // Inject into the #sprint-added-tasks container in the template
   const task=tasks.find(t=>t.id===taskId);if(!task)return;
-  const inner=document.getElementById('sprint-tool-inner');
-  if(inner){
-    // Try to find an existing task list container
-    let taskList=inner.querySelector('#sprint-added-tasks,#task-list,.task-list,[data-tasks]');
-    if(!taskList)taskList=inner; // append to root if no container found
+  const added=document.getElementById('sprint-added-tasks');
+  if(added){
     const row=document.createElement('div');
+    row.id='sti-'+taskId;
     row.setAttribute('data-task-id',taskId);
-    row.style.cssText='display:flex;align-items:center;gap:10px;padding:12px 14px;border-top:1px solid rgba(0,0,0,.08);background:#fff;cursor:pointer';
-    row.onclick=()=>window.sprintTickTask(taskId);
-    row.innerHTML=`<div style="width:26px;height:26px;border-radius:6px;border:2px solid #5C8A4A;flex-shrink:0;display:flex;align-items:center;justify-content:center"></div><span style="font-size:14px;font-weight:500">${task.title}</span><span style="margin-left:auto;font-size:11px;color:#888">${task.time_hours?fmtHours(parseFloat(task.time_hours)):''}</span>`;
-    taskList.appendChild(row);
+    row.style.cssText='background:#fff;border:1.5px solid #e8e4dc;border-radius:12px;margin-bottom:10px;overflow:hidden';
+    row.innerHTML=`<div style="display:flex;align-items:center;gap:12px;padding:14px;min-height:56px">
+      <div id="stc-${taskId}" onclick="window.sprintTickTask(${taskId})" style="width:28px;height:28px;border-radius:8px;border:2px solid #5C8A4A;background:#fff;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer"></div>
+      <div style="flex:1;min-width:0">
+        <div id="stt-${taskId}" style="font-size:14px;font-weight:500;line-height:1.4">${task.title}</div>
+        <div style="font-size:11px;color:#888;margin-top:2px">${task.time_hours?fmtHours(parseFloat(task.time_hours)):''}</div>
+      </div>
+      <button onclick="openDetail(${taskId})" style="padding:5px 10px;border:1px solid #e8e4dc;border-radius:100px;font-size:11px;color:#888;cursor:pointer;background:none;flex-shrink:0">✏</button>
+    </div>`;
+    added.appendChild(row);
   }
+  updateSprintProgress();
+  chirp('"'+task.title+'" added to sprint.');
 }
 
 function toggleSprintDrawer(){
@@ -6323,10 +6280,10 @@ async function confirmEndSprint(){
   if(sprintData?.dbId){
     api('bravochore_sprints','PATCH',{status:'completed',ended_at:new Date().toISOString(),tasks_done:done},`?id=eq.${sprintData.dbId}`).catch(()=>{});
   }
-  // Show summary in Blackbird
-  openBBFullscreen();
-  setTimeout(()=>bbMsg(msg,'from-bb'),300);
+  // Go home and show summary as a chirp
   rerender();
+  bnNav('dashboard');
+  setTimeout(()=>chirp(msg),400);
 }
 
 // ================================================================
@@ -6470,72 +6427,9 @@ async function buildSprintFromBuilder(){
   const now=new Date();
   const timeOfDay=`${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
 
-  const taskList=allItemsForTool.map(i=>{
-    const type=i.type==='task'?`[TASK id:${i.id}]`:'[ROUTINE]';
-    return `${i.num}. ${i.title} (~${fmtHours(i.hours)}) ${type}`;
-  }).join('\n');
-
-  const sprintPrompt=`You are building a bespoke single-use sprint execution tool for BravoChore.
-
-Time: ${timeOfDay} · Available: ${timeLabel} · Total selected: ${fmtHours(totalH)}
-User: ${CUN}
-
-Sprint items (${allItemsForTool.length} total):
-${taskList}
-
-RULES:
-- For items marked [TASK id:N]:
-  * Wrap the entire task row in: <div data-task-id="N" class="sprint-task-row">
-  * The checkbox must have class="sprint-chk-inner" and call: onclick="window.sprintTickTask(N)"
-  * Add an edit icon/button that calls: window.sprintEditTask(N)
-  * Make the whole row tappable (large touch target, min 48px height)
-- For items marked [ROUTINE], just tick visually (no BravoChore sync needed)
-- Beautiful design using CSS vars: --green:#5C8A4A, --gl:#EAF3DE, --tx:#2C2B28, --surf:#fff, --bg:#FAFAF8, --bdr:#e8e4dc, --rs:10px
-- Use 'DM Sans' from Google Fonts
-- Mobile-first, touch targets min 44px
-- Progress ring or bar showing overall completion
-- Motivating, focused feel — this is a sprint, not a list
-- Include a sprint name/title that feels motivating
-- Under 220 lines of clean HTML
-- Make it feel EXCITING and motivating — not a plain list. Use:
-  * Large satisfying checkboxes (min 40px) with a strikethrough animation on tick
-  * A bold progress indicator (ring or bar) that updates as tasks are ticked
-  * A sprint name/tagline that creates urgency and momentum  
-  * Show task time estimates prominently
-  * Use colour to differentiate sections or task priority
-  * Consider a sequential "focus on this now" highlight for the current task
-  * Celebrate completion with a message when all done
-- Style should feel like a premium productivity app, not a todo list
-- Add a small countdown timer showing time remaining (use setInterval to update)
-- Include a hidden div with id="sprint-added-tasks" at the bottom for dynamically added tasks
-- ONLY return the HTML — no markdown, no explanation
-
-Respond with ONLY the complete HTML.`;
-
-  try{
-    const res=await fetch(BB_PROXY,{
-      method:'POST',
-      headers:{'Content-Type':'application/json','apikey':SK},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:4000,
-        system:'You are a world-class UI developer. Return only clean HTML for a sprint tool.',
-        messages:[{role:'user',content:sprintPrompt}]
-      })
-    });
-    const data=await res.json();
-    let html=data.content?.find(c=>c.type==='text')?.text||'';
-    html=html.replace(/^```html\n?/,'').replace(/^```\n?/,'').replace(/```$/,'').trim();
-    if(!html||html.length<100){
-      hideSprintLoading();
-      chirp('Sprint generation failed — try again.');
-      return;
-    }
-    activateSprint(sprintTasks.length?sprintTasks:[], html, allItemsForTool);
-  }catch(e){
-    hideSprintLoading();
-    chirp('Connection issue — check internet and try again.');
-  }
+  // Build instantly from template — no API call needed
+  const html=buildSprintHTML(sprintTasks, allItemsForTool);
+  activateSprint(sprintTasks, html, allItemsForTool);
 }
 
 
@@ -6733,7 +6627,7 @@ boot();
         <div style="font-family:'Playfair Display',serif;font-size:20px;font-weight:500">Build a Sprint</div>
         <button onclick="closeSprintBuilder()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--tx3)">✕</button>
       </div>
-      <div style="font-size:12px;color:var(--tx2)">Select tasks and routines, then let Blackbird build your execution tool.</div>
+      <div style="font-size:12px;color:var(--tx2)">Select tasks and routines for your sprint.</div>
     </div>
     <!-- Time available -->
     <div style="padding:12px 18px;border-bottom:1px solid var(--bdr);background:var(--surf2);flex-shrink:0;display:flex;align-items:center;gap:12px">
@@ -6764,7 +6658,7 @@ boot();
     <div style="padding:12px 18px;border-top:1px solid var(--bdr);background:var(--surf);flex-shrink:0;display:flex;gap:8px">
       <div style="flex:1;align-self:center;font-size:12px;color:var(--tx2)" id="sb-count-label">0 selected</div>
       <button onclick="closeSprintBuilder()" style="padding:11px 16px;border:1px solid var(--bdrm);border-radius:var(--rs);background:none;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;color:var(--tx2)">Cancel</button>
-      <button onclick="buildSprintFromBuilder()" style="padding:11px 22px;background:var(--tx);color:#fff;border:none;border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-weight:700;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Build Sprint</button>
+      <button onclick="buildSprintFromBuilder()" style="padding:11px 22px;background:var(--tx);color:#fff;border:none;border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-weight:700;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>⚡ Start Sprint</button>
     </div>
   </div>
 </div>
