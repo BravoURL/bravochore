@@ -1216,7 +1216,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
     <div id="view-shelved" class="view">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <h2 style="font-family:'Playfair Display',serif;font-size:20px;font-weight:500">Shelved</h2>
-        <button class="qa-btn accent" style="font-size:11px;padding:7px 12px" onclick="openAddShelvedSheet()">+ Add</button>
+        <div style="display:flex;gap:6px">
+          <button class="qa-btn" style="font-size:11px;padding:7px 10px" onclick="openShelveFromTasksSheet()">From tasks</button>
+          <button class="qa-btn accent" style="font-size:11px;padding:7px 12px" onclick="openAddShelvedSheet()">+ New</button>
+        </div>
       </div>
       <p style="font-size:13px;color:var(--tx2);margin-bottom:16px">Good ideas on hold. Nothing urgent, nothing forgotten.</p>
       <div id="shelved-list"></div>
@@ -1955,6 +1958,7 @@ function renderFocusSheet(){
         ${msBar}
         <div class="focus-actions">
           <button class="focus-tick" onclick="focusTick(${task.id})">✓ Done</button>
+          ${focusMode==='overdue'?`<button class="focus-open" style="background:var(--al);color:var(--amber);border-color:var(--amber)" onclick="focusReschedule(${task.id},event)">📅 Reschedule</button>`:''}
           <button class="focus-open" onclick="closeFocus();openDetail(${task.id})">Open</button>
         </div>
       </div>
@@ -1962,6 +1966,42 @@ function renderFocusSheet(){
   }).join('');
 }
 
+function focusReschedule(taskId, evt){
+  evt.stopPropagation();
+  const task=tasks.find(t=>t.id===taskId);if(!task)return;
+  // Show a quick date picker inline
+  const card=document.getElementById('fc-'+taskId);if(!card)return;
+  // Remove any existing picker
+  card.querySelector('.fc-date-picker')?.remove();
+  const today=tdStr();
+  const options=[
+    {label:'Tomorrow',date:()=>{const d=new Date();d.setDate(d.getDate()+1);return d.toISOString().slice(0,10);}},
+    {label:'In 3 days',date:()=>{const d=new Date();d.setDate(d.getDate()+3);return d.toISOString().slice(0,10);}},
+    {label:'Next week',date:()=>{const d=new Date();d.setDate(d.getDate()+7);return d.toISOString().slice(0,10);}},
+    {label:'Next month',date:()=>{const d=new Date();d.setMonth(d.getMonth()+1);return d.toISOString().slice(0,10);}},
+  ];
+  const picker=document.createElement('div');
+  picker.className='fc-date-picker';
+  picker.style.cssText='margin-top:10px;padding:10px;background:var(--surf2);border-radius:var(--rs);border:1px solid var(--bdrm)';
+  picker.innerHTML=`<div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">Reschedule to when?</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+      ${options.map(o=>`<button onclick="doReschedule(${taskId},'${o.date()}')" style="padding:6px 12px;border-radius:100px;border:1.5px solid var(--bdrm);background:var(--surf);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;color:var(--tx2)">${o.label}</button>`).join('')}
+    </div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <input type="date" id="fc-custom-date-${taskId}" min="${today}" style="flex:1;padding:7px 10px;border:1.5px solid var(--bdrm);border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:12px;background:var(--surf)">
+      <button onclick="doReschedule(${taskId},document.getElementById('fc-custom-date-${taskId}').value)" style="padding:7px 14px;background:var(--green);color:#fff;border:none;border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer">Set</button>
+    </div>`;
+  card.appendChild(picker);
+}
+async function doReschedule(taskId, newDate){
+  if(!newDate){chirp('Please pick a date.');return;}
+  const task=tasks.find(t=>t.id===taskId);if(!task)return;
+  task.due=newDate;
+  document.getElementById('fc-'+taskId)?.remove();
+  try{await api('bravochore_tasks','PATCH',{due:newDate},`?id=eq.${taskId}`);}catch(e){}
+  rerender();renderFocusSheet();
+  chirp('Rescheduled to '+fmtDate(newDate));
+}
 async function focusTick(id){
   const task=tasks.find(t=>t.id===id);if(!task)return;
   task.done=true;playChime('task');spawnConfettiCenter();
@@ -2162,9 +2202,7 @@ function taskCard(task){
         <button class="icon-btn ${isTimerOn?'timer-on':''}" onclick="startTaskTimer(${task.id},event)" title="Start timer" style="color:${isTimerOn?'var(--red)':'var(--tx3)'}">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${isTimerOn?'<line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><path d="M7 4.5C4.5 6.5 3 9.1 3 12s1.5 5.5 4 7.5"/><path d="M17 4.5C19.5 6.5 21 9.1 21 12s-1.5 5.5-4 7.5"/>':'<path d="M6 2h12M6 22h12M6 2c0 4 2 6 6 10C8 16 6 18 6 22M18 2c0 4-2 6-6 10c4 4 6 6 6 10"/>'}</svg>
         </button>
-        <button class="icon-btn bb-task-btn" onclick="askBBTask(${task.id},event)" title="Ask Blackbird" style="width:26px;height:26px;border-radius:50%;background:#fff;border:1.5px solid var(--gm);display:flex;align-items:center;justify-content:center;padding:0;overflow:hidden;flex-shrink:0">
-          <div class="bb-task-lottie" style="width:26px;height:26px;pointer-events:none"></div>
-        </button>
+
       </div>
     </div>
   </div>`;
@@ -2403,11 +2441,16 @@ function renderDpBody(task,ms){
 function closeDetail(){
   document.getElementById('detail-backdrop').classList.remove('open');
   document.getElementById('detail-panel').classList.remove('open');
+  // Restore footer to normal task mode
   const footer=document.querySelector('.dp-footer');
-  if(footer)footer.dataset.confirming='';
-  const delBtn=document.querySelector('.dp-del');
-  if(delBtn){delBtn.textContent='Delete';delBtn.style.background='';delBtn.style.color='';delBtn.style.borderColor='';}
-  dpTaskId=null;
+  if(footer&&dpShelvedId){
+    footer.innerHTML=`
+      <button class="dp-pdf" onclick="generatePDFForTask()">🖨</button>
+      <button class="dp-del" onclick="dpDelete()">Delete</button>
+      <button class="dp-del" onclick="dpShelveTask()">Shelve</button>
+      <button class="dp-save" onclick="dpSave()">Save</button>`;
+  }
+  dpTaskId=null;dpShelvedId=null;
 }
 
 function dpTitleBlur(){
@@ -2479,25 +2522,33 @@ function dpConfirmCustomTime(){
   });
 }
 async function dpShelveTask(){
-  const task=tasks.find(t=>t.id===dpTaskId);
-  if(!task)return;
-  const confirmed=await confirm2('Shelve this task?','It will move to your Shelved list and can be activated later.','btn-ok');
+  // Snapshot everything BEFORE any async — dpTaskId may be nulled by closeDetail mid-await
+  const taskId=dpTaskId;
+  const task=tasks.find(t=>t.id===taskId);
+  if(!task||!taskId)return;
+  const taskTitle=task.title;
+  const taskNotes=task.notes||'';
+
+  // Close detail panel FIRST so the backdrop doesn't interfere with confirm modal
+  closeDetail();
+
+  // Now show confirm — detail is closed, no backdrop interference
+  const confirmed=await confirm2('Shelve "'+taskTitle+'"?','It will move to your Shelved list and can be activated when ready.','btn-ok');
   if(!confirmed)return;
-  const ns={title:task.title,notes:task.notes||'',sort_order:shelved.length+1};
+
+  const ns={title:taskTitle,notes:taskNotes,sort_order:shelved.length+1};
   let saved=false;
   try{
     const res=await api('bravochore_shelved','POST',[ns]);
     if(res&&res[0]){shelved.push(res[0]);saved=true;}
-  }catch(e){}
+  }catch(e){console.error('Shelve POST failed:',e);}
   if(!saved){chirp('Could not shelve — please try again.');return;}
-  const idToDelete=dpTaskId;
-  tasks=tasks.filter(t=>t.id!==idToDelete);
-  milestones=milestones.filter(m=>m.task_id!==idToDelete);
-  try{await api('bravochore_tasks','DELETE',null,`?id=eq.${idToDelete}`);}catch(e){}
-  try{await api('bravochore_milestones','DELETE',null,`?task_id=eq.${idToDelete}`);}catch(e){}
-  closeDetail();
+  tasks=tasks.filter(t=>t.id!==taskId);
+  milestones=milestones.filter(m=>m.task_id!==taskId);
+  try{await api('bravochore_tasks','DELETE',null,`?id=eq.${taskId}`);}catch(e){}
+  try{await api('bravochore_milestones','DELETE',null,`?task_id=eq.${taskId}`);}catch(e){}
   bnNav('shelved');
-  chirp('"'+task.title+'" shelved.');
+  chirp('"'+taskTitle+'" shelved.');
 }
 async function dpSave(){
   const title=document.getElementById('dp-title').textContent.trim();
@@ -3410,59 +3461,79 @@ function dragClean(){
   document.querySelectorAll('.task-card').forEach(c=>c.classList.remove('dragging','drag-over-above','drag-over-below'));
 }
 
-// Wire ONCE on document — survives any rerender
-function initDrag(){
-  const list=document.getElementById('all-tasks-list');
+// Wire drag on any list container — call with list element
+function initDragList(list){
   if(!list||list.dataset.dragInit)return;
   list.dataset.dragInit='1';
-
-  // Mark cards draggable whenever list rerenders
-  const markDraggable=()=>list.querySelectorAll('.task-card:not(.done)').forEach(c=>c.setAttribute('draggable','true'));
-  new MutationObserver(markDraggable).observe(list,{childList:true,subtree:false});
+  const markDraggable=()=>list.querySelectorAll('.task-card:not(.done),[data-drag="true"]').forEach(c=>c.setAttribute('draggable','true'));
+  new MutationObserver(markDraggable).observe(list,{childList:true,subtree:true});
   markDraggable();
-
-  // ── TOUCH ──
+  // TOUCH
   list.addEventListener('touchstart',e=>{
-    const card=e.target.closest('.task-card:not(.done)[data-id]');
+    const card=e.target.closest('.task-card:not(.done)[data-id],[data-sid]');
     if(!card)return;
     dragStarted=false;
     dragPressTimer=setTimeout(()=>{
-      dragStarted=true;dragSrc=card;
+      dragStarted=true;dragSrc=card;dragSrcList=list;
       card.classList.add('dragging');
       navigator.vibrate&&navigator.vibrate([30,15,30]);
     },600);
   },{passive:true});
-
   list.addEventListener('touchmove',e=>{
     if(!dragStarted){clearTimeout(dragPressTimer);return;}
     e.preventDefault();
     const t=e.touches[0];
     dragAutoScroll(t.clientY);
-    const el=document.elementFromPoint(t.clientX,t.clientY)?.closest('.task-card[data-id]');
+    const el=document.elementFromPoint(t.clientX,t.clientY)?.closest('.task-card[data-id],.task-card[data-sid]');
     dragSetOver(el,t.clientY);
   },{passive:false});
-
-  list.addEventListener('touchend',()=>{
-    clearTimeout(dragPressTimer);
-    if(dragStarted)dragFinish();else dragClean();
-  });
+  list.addEventListener('touchend',()=>{clearTimeout(dragPressTimer);if(dragStarted)dragFinishInList(list);else dragClean();});
   list.addEventListener('touchcancel',()=>dragClean());
-
-  // ── DESKTOP ──
+  // DESKTOP
   list.addEventListener('dragstart',e=>{
-    const card=e.target.closest('.task-card:not(.done)[data-id]');
+    const card=e.target.closest('.task-card:not(.done)[data-id],.task-card[data-sid]');
     if(!card){e.preventDefault();return;}
-    dragSrc=card;card.classList.add('dragging');
-    e.dataTransfer.effectAllowed='move';
-    e.dataTransfer.setData('text/plain','');
+    dragSrc=card;dragSrcList=list;card.classList.add('dragging');
+    e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain','');
   });
-  list.addEventListener('dragend',()=>{clearInterval(scrollInterval);dragFinish();});
+  list.addEventListener('dragend',()=>{clearInterval(scrollInterval);dragFinishInList(list);});
   list.addEventListener('dragover',e=>{
     e.preventDefault();
-    const card=e.target.closest('.task-card[data-id]');
+    const card=e.target.closest('.task-card[data-id],.task-card[data-sid]');
     if(card){dragAutoScroll(e.clientY);dragSetOver(card,e.clientY);}
   });
   list.addEventListener('drop',e=>e.preventDefault());
+}
+
+let dragSrcList=null;
+
+function dragFinishInList(list){
+  clearInterval(scrollInterval);
+  if(!dragSrc||!dragOver||dragSrc===dragOver){dragClean();return;}
+  const src=dragSrc,tgt=dragOver;
+  const above=tgt.classList.contains('drag-over-above');
+  dragClean();
+  if(above)tgt.before(src);else tgt.after(src);
+  // Update sort order based on which list
+  const isShelved=list.id==='shelved-list';
+  const newOrder=Array.from(list.querySelectorAll(isShelved?'.task-card[data-sid]':'.task-card[data-id]'))
+    .map(c=>parseInt(isShelved?c.dataset.sid:c.dataset.id));
+  if(isShelved){
+    newOrder.forEach((id,i)=>{const s=shelved.find(x=>x.id===id);if(s)s.sort_order=i+1;});
+    newOrder.forEach((id,i)=>api('bravochore_shelved','PATCH',{sort_order:i+1},`?id=eq.${id}`).catch(()=>{}));
+  }else{
+    newOrder.forEach((id,i)=>{const t=tasks.find(x=>x.id===id);if(t)t.sort_order=i+1;});
+    tasks.sort((a,b)=>(a.sort_order||999)-(b.sort_order||999));
+    newOrder.forEach((id,i)=>api('bravochore_tasks','PATCH',{sort_order:i+1},`?id=eq.${id}`).catch(()=>{}));
+  }
+}
+
+// Wire ONCE on document — survives any rerender
+function initDrag(){
+  const list=document.getElementById('all-tasks-list');
+  if(!list||list.dataset.dragInit)return;
+  initDragList(list);
+
 }
 
 // ================================================================
@@ -4637,6 +4708,84 @@ async function initScheduleView(){
   setSchedSub('today',document.getElementById('ssn-today'));
 }
 
+// ================================================================
+// SHELVE FROM TASKS (from Shelved tab)
+// ================================================================
+function openShelveFromTasksSheet(){
+  const picker=document.createElement('div');
+  picker.setAttribute('data-picker','1');
+  picker.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;display:flex;align-items:flex-end;justify-content:center';
+  const pending=tasks.filter(t=>!t.done);
+  const selected=new Set();
+  picker.innerHTML=`<div style="background:var(--bg);border-radius:20px 20px 0 0;width:100%;max-width:700px;max-height:82vh;display:flex;flex-direction:column;padding-bottom:max(16px,env(safe-area-inset-bottom))">
+    <div style="padding:14px 16px 10px;border-bottom:1px solid var(--bdr);background:var(--surf);border-radius:20px 20px 0 0;flex-shrink:0;display:flex;align-items:center;justify-content:space-between">
+      <div><div style="font-family:'Playfair Display',serif;font-size:17px;font-weight:500">Move to Shelved</div>
+      <div style="font-size:11px;color:var(--tx2)">Tap to select, then shelve</div></div>
+      <button onclick="this.closest('[data-picker]').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--tx3)">✕</button>
+    </div>
+    <div id="sfts-list" style="flex:1;overflow-y:auto;padding:6px 14px">
+      ${pending.map(t=>{
+        const o=getOwner(t.owner);
+        return `<div id="sfts-${t.id}" style="display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--bdr);cursor:pointer" onclick="toggleSFTS(${t.id})">
+          <div id="sfts-chk-${t.id}" style="width:22px;height:22px;border:2px solid var(--bdrm);border-radius:4px;background:#fff;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s"></div>
+          <div style="flex:1"><div style="font-size:13px;font-weight:500">${t.title}</div>
+          <div style="display:flex;gap:5px;margin-top:3px;align-items:center">
+            <span class="task-tag" style="background:${o.bg};color:${o.color}">${o.name}</span>
+            ${t.task_code?`<span class="task-code">${t.task_code}</span>`:''}
+          </div></div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="padding:10px 14px;border-top:1px solid var(--bdr);display:flex;gap:8px;flex-shrink:0">
+      <span id="sfts-count" style="align-self:center;font-size:12px;font-weight:600;color:var(--tx2);flex:1">0 selected</span>
+      <button onclick="doShelveFromTasks()" style="padding:11px 20px;background:var(--green);color:#fff;border:none;border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer">Shelve selected</button>
+    </div>
+  </div>`;
+  picker._selected=selected;
+  picker.addEventListener('click',e=>{if(e.target===picker)picker.remove();});
+  document.body.appendChild(picker);
+  window._sftsPicker=picker;
+}
+function toggleSFTS(taskId){
+  const picker=window._sftsPicker;if(!picker)return;
+  const sel=picker._selected;
+  const chk=document.getElementById('sfts-chk-'+taskId);
+  const row=document.getElementById('sfts-'+taskId);
+  if(sel.has(taskId)){
+    sel.delete(taskId);
+    if(chk){chk.style.background='#fff';chk.style.borderColor='var(--bdrm)';chk.innerHTML='';}
+    if(row)row.style.background='';
+  }else{
+    sel.add(taskId);
+    if(chk){chk.style.background='var(--green)';chk.style.borderColor='var(--green)';chk.innerHTML='<span style="color:#fff;font-size:12px;font-weight:700">✓</span>';}
+    if(row)row.style.background='var(--gl)';
+  }
+  const ct=document.getElementById('sfts-count');
+  if(ct)ct.textContent=sel.size+' selected';
+}
+async function doShelveFromTasks(){
+  const picker=window._sftsPicker;if(!picker)return;
+  const sel=picker._selected;
+  if(!sel.size){chirp('No tasks selected.');return;}
+  picker.remove();
+  let count=0;
+  for(const id of sel){
+    const task=tasks.find(t=>t.id===id);if(!task)continue;
+    const ns={title:task.title,notes:task.notes||'',owner:task.owner,due:task.due,
+      time_hours:task.time_hours,bucket:task.bucket||'Indoor',
+      photo_urls:task.photo_urls||[],task_code:task.task_code,sort_order:shelved.length+1};
+    let saved=false;
+    try{const res=await api('bravochore_shelved','POST',[ns]);if(res&&res[0]){shelved.push(res[0]);saved=true;}}catch(e){}
+    if(!saved)continue;
+    tasks=tasks.filter(t=>t.id!==id);
+    milestones=milestones.filter(m=>m.task_id!==id);
+    try{await api('bravochore_tasks','DELETE',null,`?id=eq.${id}`);}catch(e){}
+    count++;
+  }
+  renderShelved();rerender();
+  chirp(count+' task'+(count!==1?'s':'')+' shelved.');
+}
+
 // SELECT MODE (multi-shelve)
 // ================================================================
 let selectMode=false;
@@ -4795,17 +4944,21 @@ function renderEventPanel(ev){
     </div>
     ${pending.map(t=>{
       const o=getOwner(t.owner);
-      return `<div class="task-card" style="margin-bottom:6px" onclick="openDetail(${t.id})">
+      return `<div class="task-card" style="margin-bottom:6px">
         <div class="task-row">
-          <div class="task-check ${t.done?'checked':''}" onclick="event.stopPropagation();quickTick(${t.id},event)"></div>
-          <div class="task-main">
+          <div class="task-check ${t.done?'checked':''}" onclick="quickTick(${t.id},event)"></div>
+          <div class="task-main" onclick="openDetail(${t.id})">
             <div class="task-title">${t.title}</div>
             <div class="task-meta">
               <span class="task-tag" style="background:${o.bg};color:${o.color}">${o.name}</span>
               ${t.due?`<span class="task-date">${fmtDate(t.due)}</span>`:''}
               ${t.task_code?`<span class="task-code">${t.task_code}</span>`:''}
+              ${t.time_hours?`<span class="task-time-b">${fmtHours(parseFloat(t.time_hours))}</span>`:''}
             </div>
           </div>
+          <button class="icon-btn" onclick="startTaskTimer(${t.id},event)" title="Timer" style="color:var(--tx3)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2h12M6 22h12M6 2c0 4 2 6 6 10C8 16 6 18 6 22M18 2c0 4-2 6-6 10c4 4 6 6 6 10"/></svg>
+          </button>
         </div>
       </div>`;
     }).join('')}
@@ -4979,24 +5132,32 @@ function getActiveEvent(){
 // ================================================================
 function renderShelved(){
   const list=document.getElementById('shelved-list');
-  const empty=document.getElementById('shelved-empty');
   if(!list)return;
-  if(!shelved.length){
-    list.innerHTML='';
-    const se=document.getElementById('shelved-empty');
-    if(se)se.style.display='block';
-    return;
-  }
   const se=document.getElementById('shelved-empty');
+  if(!shelved.length){list.innerHTML='';if(se)se.style.display='block';return;}
   if(se)se.style.display='none';
-  list.innerHTML=shelved.map(s=>`<div class="shelved-item">
-    <div class="shelved-item-content" onclick="openEditShelved(${s.id})">
-      <div class="shelved-item-title">${s.title}</div>
-      ${s.notes?`<div class="shelved-item-notes">${s.notes}</div>`:''}
-    </div>
-    <button class="shelved-promote-btn" onclick="promoteShelved(${s.id})">↑ Activate</button>
-    <button class="shelved-del" onclick="deleteShelved(${s.id})">✕</button>
-  </div>`).join('');
+  setTimeout(()=>initDragList(document.getElementById('shelved-list')),80);
+  list.innerHTML=shelved.map(s=>{
+    const owner=getOwner(s.owner||CU);
+    const hasPhoto=(s.photo_urls&&s.photo_urls.length);
+    const hasNotes=s.notes;
+    return `<div class="task-card" data-sid="${s.id}" style="border-left:3px solid var(--bdrm)" onclick="openShelvedDetail(${s.id})">
+      <div class="task-row">
+        <div class="task-main">
+          <div class="task-title">${s.title}</div>
+          <div class="task-meta">
+            <span class="task-tag" style="background:${owner.bg};color:${owner.color}">${owner.name}</span>
+            ${s.due?`<span class="task-date ${s.due<tdStr()?'ov':''}">${fmtDate(s.due)}</span>`:''}
+            ${s.task_code?`<span class="task-code">${s.task_code}</span>`:''}
+            ${s.time_hours?`<span class="task-time-b">${fmtHours(parseFloat(s.time_hours))}</span>`:''}
+            ${hasPhoto?`<span class="task-time-b">📷${s.photo_urls.length}</span>`:''}
+          </div>
+          ${hasNotes?`<div style="font-size:11px;color:var(--tx2);margin-top:4px;font-style:italic">${s.notes.slice(0,80)}${s.notes.length>80?'…':''}</div>`:''}
+        </div>
+        <button class="shelved-promote-btn" onclick="event.stopPropagation();promoteShelved(${s.id})" style="flex-shrink:0">↑ Activate</button>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function openAddShelvedSheet(){
@@ -5039,6 +5200,129 @@ async function deleteShelved(id){
   shelved=shelved.filter(x=>x.id!==id);
   renderShelved();
   try{await api('bravochore_shelved','DELETE',null,`?id=eq.${id}`);}catch(e){}
+}
+
+function openShelvedDetail(id){
+  const s=shelved.find(x=>x.id===id);if(!s)return;
+  // Build a task-like object and open the detail panel
+  dpTaskId=null; // signal shelved mode
+  dpShelvedId=id;
+  // Populate the panel manually
+  const bd=document.getElementById('detail-backdrop');
+  const dp=document.getElementById('detail-panel');
+  if(!bd||!dp)return;
+  document.getElementById('dp-title').textContent=s.title;
+  const check=document.getElementById('dp-check');
+  if(check){check.className='dp-check';check.onclick=()=>{};}
+  // Build body
+  renderDpBodyForShelved(s);
+  bd.classList.add('open');dp.classList.add('open');
+  // Swap footer buttons for shelved mode
+  const footer=document.querySelector('.dp-footer');
+  if(footer){
+    footer.innerHTML=`
+      <button class="dp-del" onclick="deleteShelvedFromDetail()">Delete</button>
+      <button class="dp-del" onclick="saveShelvedFromDetail()" style="background:none;border-color:var(--bdrm);color:var(--tx2)">Save</button>
+      <button class="dp-save" onclick="promoteShelvedFromDetail()">↑ Activate</button>`;
+  }
+}
+
+let dpShelvedId=null;
+
+function renderDpBodyForShelved(s){
+  const dp=document.getElementById('dp-body');if(!dp)return;
+  const today=tdStr();
+  dp.innerHTML=`
+    <div class="dp-meta-row" style="margin-bottom:12px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+      <span class="task-tag" style="background:${getOwner(s.owner||CU).bg};color:${getOwner(s.owner||CU).color}">${getOwner(s.owner||CU).name}</span>
+      ${s.task_code?`<span class="task-code">${s.task_code}</span>`:''}
+      <span style="font-size:11px;color:var(--amber);background:var(--al);padding:2px 7px;border-radius:100px;font-weight:600">Shelved</span>
+    </div>
+    <div class="dp-row2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <div class="dp-field"><label class="dp-label">Owner</label>
+        <select class="dp-select" id="sdp-owner">
+          ${people.map(p=>`<option value="${p.code}" ${(s.owner||CU)===p.code?'selected':''}>${p.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="dp-field"><label class="dp-label">Bucket</label>
+        <select class="dp-select" id="sdp-bucket">
+          <option ${s.bucket==='Indoor'||!s.bucket?'selected':''}>Indoor</option>
+          <option ${s.bucket==='Outdoor'?'selected':''}>Outdoor</option>
+        </select>
+      </div>
+    </div>
+    <div class="dp-row2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <div class="dp-field"><label class="dp-label">Target date</label>
+        <input type="date" class="dp-input" id="sdp-due" value="${s.due||''}">
+      </div>
+      <div class="dp-field"><label class="dp-label">Est. time</label>
+        <div style="display:flex;gap:5px;flex-wrap:wrap" id="sdp-time-btns">
+          ${[0.25,0.5,1,1.5,2,3,4].map(v=>{
+            const cur=parseFloat(s.time_hours||0);const active=Math.abs(cur-v)<0.01;
+            const lbl=v<1?(v*60)+'m':v===1?'1h':v+'h';
+            return `<button type="button" onclick="sdpSetTime(${v},this)" style="padding:5px 9px;border-radius:100px;border:1.5px solid ${active?'var(--green)':'var(--bdrm)'};background:${active?'var(--green)':'var(--surf)'};color:${active?'#fff':'var(--tx2)'};font-size:11px;font-weight:600;cursor:pointer">${lbl}</button>`;
+          }).join('')}
+        </div>
+        <input type="hidden" id="sdp-time" value="${s.time_hours||0}">
+      </div>
+    </div>
+    <div class="dp-field"><label class="dp-label">Notes & research</label>
+      <textarea class="dp-textarea" id="sdp-notes" rows="4" placeholder="Ideas, links, measurements, research notes...">${s.notes||''}</textarea>
+    </div>
+    ${(s.photo_urls&&s.photo_urls.length)?`<div class="dp-field"><label class="dp-label">Photos</label><div style="display:flex;gap:6px;flex-wrap:wrap">${s.photo_urls.map(u=>`<img src="${u}" style="width:72px;height:72px;object-fit:cover;border-radius:6px;cursor:pointer" onclick="window.open('${u}','_blank')">`).join('')}</div></div>`:''}
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <label class="photo-action-btn" for="photo-input-cam" style="flex:1;justify-content:center" onclick="window._photoTargetShelvedId=${s.id}">📷 Add photo</label>
+    </div>`;
+}
+
+function sdpSetTime(val,btn){
+  document.getElementById('sdp-time').value=val;
+  document.querySelectorAll('#sdp-time-btns button').forEach(b=>{
+    const on=b===btn;b.style.background=on?'var(--green)':'var(--surf)';
+    b.style.borderColor=on?'var(--green)':'var(--bdrm)';b.style.color=on?'#fff':'var(--tx2)';
+  });
+}
+
+async function saveShelvedFromDetail(){
+  const s=shelved.find(x=>x.id===dpShelvedId);if(!s)return;
+  s.title=document.getElementById('dp-title').textContent.trim()||s.title;
+  s.owner=document.getElementById('sdp-owner')?.value||s.owner;
+  s.due=document.getElementById('sdp-due')?.value||null;
+  s.time_hours=parseFloat(document.getElementById('sdp-time')?.value)||0;
+  s.bucket=document.getElementById('sdp-bucket')?.value||s.bucket;
+  s.notes=document.getElementById('sdp-notes')?.value||'';
+  try{await api('bravochore_shelved','PATCH',{title:s.title,owner:s.owner,due:s.due,time_hours:s.time_hours,bucket:s.bucket,notes:s.notes},`?id=eq.${s.id}`);}catch(e){}
+  closeDetail();renderShelved();chirp('Saved.');
+}
+
+async function deleteShelvedFromDetail(){
+  const id=dpShelvedId;
+  const confirmed=await confirm2('Delete this shelved task?','This cannot be undone.','btn-ok');
+  if(!confirmed)return;
+  shelved=shelved.filter(x=>x.id!==id);
+  try{await api('bravochore_shelved','DELETE',null,`?id=eq.${id}`);}catch(e){}
+  closeDetail();renderShelved();chirp('Deleted.');
+}
+
+async function promoteShelvedFromDetail(){
+  const s=shelved.find(x=>x.id===dpShelvedId);if(!s)return;
+  const title=document.getElementById('dp-title').textContent.trim()||s.title;
+  const owner=document.getElementById('sdp-owner')?.value||s.owner||CU;
+  const due=document.getElementById('sdp-due')?.value||null;
+  const time_hours=parseFloat(document.getElementById('sdp-time')?.value)||0;
+  const bucket=document.getElementById('sdp-bucket')?.value||'Indoor';
+  const notes=document.getElementById('sdp-notes')?.value||'';
+  const newCode=getNextCode();
+  const nt={id:Date.now(),title,owner,due,time_hours,bucket,notes,done:false,sort_order:tasks.length+1,
+    photo_urls:s.photo_urls||[],task_code:newCode,event_id:null};
+  tasks.push(nt);
+  let saved=false;
+  try{const r=await api('bravochore_tasks','POST',[nt]);if(r&&r[0]){const idx=tasks.findIndex(t=>t.id===nt.id);if(idx>=0)tasks[idx]=r[0];}saved=true;}catch(e){}
+  if(saved){
+    const id=dpShelvedId;shelved=shelved.filter(x=>x.id!==id);
+    try{await api('bravochore_shelved','DELETE',null,`?id=eq.${id}`);}catch(e){}
+  }
+  closeDetail();bnNav('tasks');chirp('"'+title+'" is now active.');
 }
 
 function openEditShelved(id){
