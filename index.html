@@ -210,8 +210,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 .task-card.done{opacity:.4}
 .task-card{transition:margin .2s ease,box-shadow .15s,opacity .15s,transform .15s}
 .task-card.dragging{opacity:.25;border:2px dashed var(--green) !important;transform:scale(.97)}
-.task-card.drag-over-above{margin-top:56px}
-.task-card.drag-over-below{margin-bottom:56px}
+.task-card.drag-over-above{border-top:3px solid var(--green)!important;margin-top:2px}
+.task-card.drag-over-below{border-bottom:3px solid var(--green)!important;margin-bottom:2px}
 /* MS progress wash */
 .task-wash{position:absolute;left:0;top:0;height:100%;background:linear-gradient(90deg,rgba(92,138,74,.1) 0%,transparent 100%);pointer-events:none;transition:width .5s ease;border-radius:var(--rs)}
 .task-row{display:flex;align-items:center;padding:12px 10px;gap:9px;position:relative;z-index:1;min-height:56px}
@@ -992,6 +992,21 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 .sb-item-title{font-size:13px;font-weight:500;flex:1}
 .sb-item-meta{font-size:11px;color:var(--tx2);margin-top:2px}
 .sb-routine-section{padding:8px 18px 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--tx3);background:var(--surf2)}
+
+/* Lottie containers — always transparent, no box */
+[id*="lottie"] svg, [id*="lottie"] canvas,
+#bb-lottie-fab svg, #bb-lottie-header svg,
+#sched-nudge-bird svg, #sprint-loading-bird svg,
+.bb-task-lottie svg {
+  background:transparent!important;
+}
+[id*="lottie"], .bb-task-lottie {
+  background:transparent!important;
+  border:none!important;
+  outline:none!important;
+}
+
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 </style>
 </head>
 <body>
@@ -1332,8 +1347,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 </div>
 
 <!-- BLACKBIRD FAB -->
-<div id="bb-fab" onclick="openBBFullscreen()" style="position:fixed;bottom:70px;right:14px;width:38px;height:38px;background:#fff;border:1.5px solid var(--gm);border-radius:50%;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:200;box-shadow:0 2px 8px rgba(0,0,0,.08);overflow:hidden">
-  <div id="bb-lottie-fab" style="width:30px;height:30px"></div>
+<div id="bb-fab" onclick="openBBFullscreen()" style="position:fixed;bottom:70px;right:14px;width:38px;height:38px;background:transparent;border:1.5px solid var(--gm);border-radius:50%;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:200;box-shadow:0 2px 8px rgba(0,0,0,.08);overflow:hidden">
+  <div id="bb-lottie-fab" style="width:34px;height:34px;background:transparent"></div>
 </div>
 
 <!-- FULLSCREEN BLACKBIRD -->
@@ -3583,11 +3598,14 @@ let dragPressTimer=null;
 let dragStarted=false;
 
 function dragSetOver(el,clientY){
-  if(!el||el===dragSrc||!el.dataset.id)return;
+  if(!el||el===dragSrc)return;
+  // Must be a task card (not a child element)
+  const card=el.classList.contains('task-card')?el:el.closest('.task-card');
+  if(!card||card===dragSrc)return;
   document.querySelectorAll('.task-card').forEach(c=>c.classList.remove('drag-over-above','drag-over-below'));
-  dragOver=el;
-  const r=el.getBoundingClientRect();
-  el.classList.add(clientY<r.top+r.height/2?'drag-over-above':'drag-over-below');
+  dragOver=card;
+  const r=card.getBoundingClientRect();
+  card.classList.add(clientY<r.top+r.height/2?'drag-over-above':'drag-over-below');
 }
 
 function dragAutoScroll(clientY){
@@ -3615,8 +3633,6 @@ function dragClean(){
     dragSrcList.style.touchAction='';
     dragSrcList.style.overflowY='';
   }
-  document.body.style.overflow='';
-  document.body.style.userSelect='';
   document.body.style.overflow='';
   document.body.style.userSelect='';
   document.querySelectorAll('.task-card').forEach(c=>{
@@ -3670,8 +3686,9 @@ function initDragList(list){
     e.preventDefault(); // works because touchstart is passive:false
     const t=e.touches[0];
     dragAutoScroll(t.clientY);
-    const el=document.elementFromPoint(t.clientX,t.clientY)?.closest('.task-card');
-    if(el&&el!==dragSrc)dragSetOver(el,t.clientY);
+    const rawEl=document.elementFromPoint(t.clientX,t.clientY);
+    const el=rawEl?.closest('.task-card');
+    if(el)dragSetOver(el,t.clientY);
   },{passive:false});
 
   list.addEventListener('touchend',e=>{
@@ -3694,7 +3711,7 @@ function initDragList(list){
   list.addEventListener('dragover',e=>{
     e.preventDefault();e.dataTransfer.dropEffect='move';
     const card=e.target.closest('.task-card');
-    if(card&&card!==dragSrc){dragAutoScroll(e.clientY);dragSetOver(card,e.clientY);}
+    if(card)dragSetOver(card,e.clientY);
   });
   list.addEventListener('drop',e=>{e.preventDefault();dragFinishInList(list);});
 }
@@ -5877,17 +5894,35 @@ function showSprintLoading(){
   let pct=0;
   const bar=document.getElementById('sprint-loading-bar');
   const status=document.getElementById('sprint-loading-status');
-  const steps=['Analysing tasks…','Calculating time blocks…','Designing your sprint…','Almost ready…'];
-  let step=0;
+  const steps=[
+    'Reading your tasks…',
+    'Thinking about what matters most…',
+    'Designing your sprint layout…',
+    'Adding the finishing touches…',
+    'Almost there…'
+  ];
+  let stepIdx=0;
+  // Slow, steady progress — crawls to 75% over ~25 seconds, feels deliberate
   window._sprintLoadInterval=setInterval(()=>{
-    pct=Math.min(90,pct+Math.random()*15);
+    if(pct<30)pct+=1.2;
+    else if(pct<55)pct+=0.7;
+    else if(pct<72)pct+=0.4;
+    else if(pct<76)pct+=0.1;
+    // Update step message every 20%
+    const newStep=Math.min(Math.floor(pct/18),steps.length-1);
+    if(newStep!==stepIdx){stepIdx=newStep;if(status)status.textContent=steps[stepIdx];}
     if(bar)bar.style.width=pct+'%';
-    if(status&&step<steps.length)status.textContent=steps[Math.floor(pct/25)]||steps[3];
-  },600);
-  // Init loading bird lottie
+  },400);
+  // Init loading bird — calm speed, no box
   if(typeof lottie!=='undefined'){
     const lb=document.getElementById('sprint-loading-bird');
-    if(lb&&!lb.dataset.init){lb.dataset.init='1';const a=lottie.loadAnimation({container:lb,renderer:'svg',loop:true,autoplay:true,animationData:BLACKBIRD_ANIM});a.setSpeed(2);}
+    if(lb&&!lb.dataset.init){
+      lb.dataset.init='1';
+      lb.style.background='transparent';
+      lb.style.border='none';
+      const a=lottie.loadAnimation({container:lb,renderer:'svg',loop:true,autoplay:true,animationData:BLACKBIRD_ANIM});
+      a.setSpeed(1.2); // calm, purposeful — not frantic
+    }
   }
 }
 
@@ -5993,16 +6028,49 @@ function activateSprint(sprintTasks, html, allItems){
   // Expose tick function on window — accessible from generated scripts
   window.sprintTickTask=async(taskId)=>{
     const id=parseInt(taskId);
-    if(sprintData.doneTasks.has(id))return;
+    // Toggle: if already done, undo it
+    if(sprintData.doneTasks.has(id)){
+      sprintData.doneTasks.delete(id);
+      // Undo in BravoChore
+      const task=tasks.find(t=>t.id===id);
+      if(task){task.done=false;try{await api('bravochore_tasks','PATCH',{done:false},`?id=eq.${id}`);}catch(e){}}
+      // Restore visual in sprint tool
+      document.querySelectorAll('[data-task-id="'+id+'"]').forEach(el=>{
+        el.style.opacity='';el.style.textDecoration='';
+        el.style.background='';
+        const chk=el.querySelector('.sprint-chk-inner');
+        if(chk){chk.style.background='';chk.innerHTML='';}
+      });
+      updateSprintProgress();
+      showSprintToast('Undone ↩','',id,false);
+      return;
+    }
+    // Mark done
     sprintData.doneTasks.add(id);
-    await quickTickSilent(id);
-    updateSprintProgress();
-    // Visual feedback in the tool — find and check any element with this task id
+    // Visual in sprint tool immediately
     document.querySelectorAll('[data-task-id="'+id+'"]').forEach(el=>{
       el.style.opacity='0.5';
-      el.style.textDecoration='line-through';
+      el.style.background='rgba(92,138,74,.06)';
+      const chk=el.querySelector('.sprint-chk-inner');
+      if(chk){chk.style.background='var(--green)';chk.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';}
     });
+    // Save to BravoChore
+    await quickTickSilent(id);
+    updateSprintProgress();
+    // Show toast confirmation with undo
+    const task=tasks.find(t=>t.id===id);
+    const m=Math.floor(sprintElapsed/60),s=sprintElapsed%60;
+    const elapsedStr=m+'m '+(s<10?'0':'')+s+'s elapsed';
+    showSprintToast('✓ Done',task?task.title+' · '+elapsedStr:'',id,true);
   };
+
+  window.sprintEditTask=(taskId)=>{
+    const id=parseInt(taskId);
+    // Open full detail panel without closing sprint
+    openDetail(id);
+  };
+
+  window.getSprintElapsed=()=>sprintElapsed;
   window.getSprintElapsed=()=>sprintElapsed;
 
   // Update UI
@@ -6283,7 +6351,11 @@ Sprint items (${allItemsForTool.length} total):
 ${taskList}
 
 RULES:
-- For items marked [TASK id:N], the checkbox/tick must call: window.sprintTickTask(N)
+- For items marked [TASK id:N]:
+  * Wrap the entire task row in: <div data-task-id="N" class="sprint-task-row">
+  * The checkbox must have class="sprint-chk-inner" and call: onclick="window.sprintTickTask(N)"
+  * Add an edit icon/button that calls: window.sprintEditTask(N)
+  * Make the whole row tappable (large touch target, min 48px height)
 - For items marked [ROUTINE], just tick visually (no BravoChore sync needed)
 - Beautiful design using CSS vars: --green:#5C8A4A, --gl:#EAF3DE, --tx:#2C2B28, --surf:#fff, --bg:#FAFAF8, --bdr:#e8e4dc, --rs:10px
 - Use 'DM Sans' from Google Fonts
@@ -6333,6 +6405,35 @@ Respond with ONLY the complete HTML.`;
   }
 }
 
+
+function showSprintToast(title, subtitle, taskId, isDone){
+  // Remove existing toast
+  document.getElementById('sprint-toast')?.remove();
+  const toast=document.createElement('div');
+  toast.id='sprint-toast';
+  toast.style.cssText=`
+    position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+    background:var(--tx);color:#fff;
+    border-radius:var(--r);padding:12px 16px;
+    min-width:220px;max-width:320px;
+    display:flex;flex-direction:column;gap:4px;
+    z-index:1000;box-shadow:0 4px 20px rgba(0,0,0,.25);
+    animation:toastIn .2s ease;
+  `;
+  toast.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <div>
+        <div style="font-size:13px;font-weight:700">${title}</div>
+        ${subtitle?`<div style="font-size:11px;opacity:.7;margin-top:2px">${subtitle}</div>`:''}
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        ${isDone?`<button onclick="window.sprintTickTask(${taskId});document.getElementById('sprint-toast')?.remove()" style="padding:5px 10px;border-radius:100px;border:1.5px solid rgba(255,255,255,.3);background:none;color:#fff;font-size:11px;font-weight:600;cursor:pointer">Undo</button>`:''}
+        ${taskId?`<button onclick="window.sprintEditTask(${taskId});document.getElementById('sprint-toast')?.remove()" style="padding:5px 10px;border-radius:100px;border:1.5px solid rgba(255,255,255,.3);background:none;color:#fff;font-size:11px;font-weight:600;cursor:pointer">Edit</button>`:''}
+      </div>
+    </div>`;
+  document.body.appendChild(toast);
+  setTimeout(()=>toast.remove(),4500);
+}
 // ================================================================
 // BOOT
 // ================================================================
