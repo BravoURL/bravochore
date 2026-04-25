@@ -3441,17 +3441,8 @@ function dragAutoScroll(clientY){
 }
 
 function dragFinish(){
-  clearInterval(scrollInterval);
-  if(!dragSrc||!dragOver||dragSrc===dragOver){dragClean();return;}
-  const src=dragSrc,tgt=dragOver;
-  const above=tgt.classList.contains('drag-over-above');
-  dragClean();
-  if(above)tgt.before(src);else tgt.after(src);
   const list=document.getElementById('all-tasks-list');
-  const newOrder=Array.from(list.querySelectorAll('.task-card[data-id]')).map(c=>parseInt(c.dataset.id));
-  newOrder.forEach((id,i)=>{const t=tasks.find(x=>x.id===id);if(t)t.sort_order=i+1;});
-  tasks.sort((a,b)=>(a.sort_order||999)-(b.sort_order||999));
-  newOrder.forEach((id,i)=>api('bravochore_tasks','PATCH',{sort_order:i+1},`?id=eq.${id}`).catch(()=>{}));
+  dragFinishInList(list);
 }
 
 function dragClean(){
@@ -3512,8 +3503,9 @@ function dragFinishInList(list){
   if(!dragSrc||!dragOver||dragSrc===dragOver){dragClean();return;}
   const src=dragSrc,tgt=dragOver;
   const above=tgt.classList.contains('drag-over-above');
-  dragClean();
+  // Move DOM FIRST, then clean — order matters
   if(above)tgt.before(src);else tgt.after(src);
+  dragClean();
   // Update sort order based on which list
   const isShelved=list.id==='shelved-list';
   const newOrder=Array.from(list.querySelectorAll(isShelved?'.task-card[data-sid]':'.task-card[data-id]'))
