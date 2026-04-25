@@ -3615,6 +3615,10 @@ function dragClean(){
     dragSrcList.style.touchAction='';
     dragSrcList.style.overflowY='';
   }
+  document.body.style.overflow='';
+  document.body.style.userSelect='';
+  document.body.style.overflow='';
+  document.body.style.userSelect='';
   document.querySelectorAll('.task-card').forEach(c=>{
     c.classList.remove('dragging','drag-over-above','drag-over-below');
     c.style.touchAction='';
@@ -3648,9 +3652,11 @@ function initDragList(list){
       list.removeEventListener('touchmove',cancelOnMove);
       dragStarted=true;dragSrc=card;dragSrcList=list;
       card.classList.add('dragging');
-      card.style.touchAction='none'; // allow JS to take over touch
+      card.style.touchAction='none';
       list.style.touchAction='none';
-      list.style.overflowY='hidden'; // prevent scroll while dragging
+      list.style.overflowY='hidden';
+      document.body.style.overflow='hidden';
+      document.body.style.userSelect='none';
       navigator.vibrate&&navigator.vibrate([20,10,20]);
     },500);
   },{passive:false});
@@ -5911,7 +5917,7 @@ ${taskList}
 Generate a complete, self-contained HTML sprint tool. Requirements:
 - Beautiful, motivating design using these CSS variables: --green:#5C8A4A, --gl:#EAF3DE, --tx:#2C2B28, --surf:#ffffff, --bg:#FAFAF8, --bdr:#e8e4dc, --rs:10px, --r:14px
 - Font: use system-ui or 'DM Sans' from Google Fonts
-- Each task must have a checkbox/tick button. When ticked, call: window.parent.sprintTickTask(taskId) where taskId is the numeric ID shown above
+- Each task must have a checkbox/tick button. When ticked, call: window.sprintTickTask(taskId) where taskId is the numeric ID shown above
 - Show a motivating progress indicator (ring, bar, or counter)
 - Include a visible elapsed timer using setInterval — call window.parent.getSprintElapsed() to get seconds
 - Make it feel like a focused execution tool — not a list. Could be a sequential task guide, a visual board, a timer-driven flow, whatever fits these specific tasks
@@ -5971,20 +5977,31 @@ function activateSprint(sprintTasks, html, allItems){
     tasks_total:sprintTasks.length
   }]).then(r=>{if(r&&r[0])sprintData.dbId=r[0].id;}).catch(()=>{});
 
-  // Render tool into the inner div (not iframe — avoids origin issues)
+  // Render tool directly into div — plain HTML injection, no Shadow DOM
+  // Shadow DOM breaks window.sprintTickTask calls from generated scripts
   const inner=document.getElementById('sprint-tool-inner');
   if(inner){
-    const shadow=inner.attachShadow({mode:'open'});
-    shadow.innerHTML=html;
-    sprintData.shadow=shadow;
+    inner.innerHTML=html;
+    // Re-run any scripts in the injected HTML
+    inner.querySelectorAll('script').forEach(oldScript=>{
+      const newScript=document.createElement('script');
+      newScript.textContent=oldScript.textContent;
+      oldScript.parentNode.replaceChild(newScript,oldScript);
+    });
   }
 
-  // Expose tick function to shadow DOM scripts
+  // Expose tick function on window — accessible from generated scripts
   window.sprintTickTask=async(taskId)=>{
-    if(sprintData.doneTasks.has(taskId))return;
-    sprintData.doneTasks.add(taskId);
-    await quickTickSilent(taskId);
+    const id=parseInt(taskId);
+    if(sprintData.doneTasks.has(id))return;
+    sprintData.doneTasks.add(id);
+    await quickTickSilent(id);
     updateSprintProgress();
+    // Visual feedback in the tool — find and check any element with this task id
+    document.querySelectorAll('[data-task-id="'+id+'"]').forEach(el=>{
+      el.style.opacity='0.5';
+      el.style.textDecoration='line-through';
+    });
   };
   window.getSprintElapsed=()=>sprintElapsed;
 
@@ -6064,16 +6081,19 @@ function addTaskToSprint(taskId){
   renderSprintDrawer();
   updateSprintProgress();
   chirp('Added to sprint.');
-  // Inject task into shadow DOM tool (appends a simple row)
-  if(sprintData.shadow){
-    const task=tasks.find(t=>t.id===taskId);if(!task)return;
-    const addedSection=sprintData.shadow.getElementById('sprint-added-tasks');
-    if(addedSection){
-      const row=document.createElement('div');
-      row.style.cssText='display:flex;align-items:center;gap:10px;padding:12px;border-top:1px solid rgba(0,0,0,.06)';
-      row.innerHTML=`<div onclick="window.parent.sprintTickTask(${taskId})" style="width:28px;height:28px;border-radius:50%;border:2px solid #5C8A4A;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0"></div><span style="font-size:14px;font-weight:500">${task.title}</span>`;
-      addedSection.appendChild(row);
-    }
+  // Inject task into the live sprint tool div
+  const task=tasks.find(t=>t.id===taskId);if(!task)return;
+  const inner=document.getElementById('sprint-tool-inner');
+  if(inner){
+    // Try to find an existing task list container
+    let taskList=inner.querySelector('#sprint-added-tasks,#task-list,.task-list,[data-tasks]');
+    if(!taskList)taskList=inner; // append to root if no container found
+    const row=document.createElement('div');
+    row.setAttribute('data-task-id',taskId);
+    row.style.cssText='display:flex;align-items:center;gap:10px;padding:12px 14px;border-top:1px solid rgba(0,0,0,.08);background:#fff;cursor:pointer';
+    row.onclick=()=>window.sprintTickTask(taskId);
+    row.innerHTML=`<div style="width:26px;height:26px;border-radius:6px;border:2px solid #5C8A4A;flex-shrink:0;display:flex;align-items:center;justify-content:center"></div><span style="font-size:14px;font-weight:500">${task.title}</span><span style="margin-left:auto;font-size:11px;color:#888">${task.time_hours?fmtHours(parseFloat(task.time_hours)):''}</span>`;
+    taskList.appendChild(row);
   }
 }
 
@@ -6124,7 +6144,7 @@ function openSprintBuilder(){
   document.querySelectorAll('.sb-tab').forEach(b=>b.classList.remove('active'));
   document.getElementById('sbt-tasks')?.classList.add('active');
   const sheet=document.getElementById('sprint-builder-sheet');
-  if(sheet){sheet.style.display='flex';}
+  if(sheet){sheet.style.display='flex';sheet.style.alignItems='flex-end';sheet.style.justifyContent='center';}
   renderSBList();
   updateSBCount();
 }
@@ -6263,7 +6283,7 @@ Sprint items (${allItemsForTool.length} total):
 ${taskList}
 
 RULES:
-- For items marked [TASK id:N], the checkbox/tick must call: window.parent.sprintTickTask(N)
+- For items marked [TASK id:N], the checkbox/tick must call: window.sprintTickTask(N)
 - For items marked [ROUTINE], just tick visually (no BravoChore sync needed)
 - Beautiful design using CSS vars: --green:#5C8A4A, --gl:#EAF3DE, --tx:#2C2B28, --surf:#fff, --bg:#FAFAF8, --bdr:#e8e4dc, --rs:10px
 - Use 'DM Sans' from Google Fonts
@@ -6271,8 +6291,19 @@ RULES:
 - Progress ring or bar showing overall completion
 - Motivating, focused feel — this is a sprint, not a list
 - Include a sprint name/title that feels motivating
-- Under 200 lines
-- ONLY return the HTML — no explanation
+- Under 220 lines of clean HTML
+- Make it feel EXCITING and motivating — not a plain list. Use:
+  * Large satisfying checkboxes (min 40px) with a strikethrough animation on tick
+  * A bold progress indicator (ring or bar) that updates as tasks are ticked
+  * A sprint name/tagline that creates urgency and momentum  
+  * Show task time estimates prominently
+  * Use colour to differentiate sections or task priority
+  * Consider a sequential "focus on this now" highlight for the current task
+  * Celebrate completion with a message when all done
+- Style should feel like a premium productivity app, not a todo list
+- Add a small countdown timer showing time remaining (use setInterval to update)
+- Include a hidden div with id="sprint-added-tasks" at the bottom for dynamically added tasks
+- ONLY return the HTML — no markdown, no explanation
 
 Respond with ONLY the complete HTML.`;
 
