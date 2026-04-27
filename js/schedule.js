@@ -71,6 +71,40 @@ function setSchedState(key,val){schedState[key]=val;saveSchedState();}
 function saveSchedState(){try{localStorage.setItem('bc-sched-state',JSON.stringify(schedState));}catch(e){}}
 function loadSchedStateLocal(){try{const s=localStorage.getItem('bc-sched-state');if(s)schedState=JSON.parse(s);}catch(e){}}
 
+// Cross-device sync: load TODAY's routine logs from Supabase and merge them
+// into schedState (overriding the localStorage cache). Then on every tick we
+// upsert into bravochore_routine_logs so other devices pick it up on next load.
+async function loadTodayRoutineLogs(){
+  if(typeof CU!=='string'||!CU)return;
+  const today=tdStr();
+  try{
+    const logs=await api('bravochore_routine_logs','GET',null,`?log_date=eq.${today}&owner=eq.${CU}`);
+    (logs||[]).forEach(log=>{schedState['task-'+log.routine_id]=!!log.done;});
+    saveSchedState();
+  }catch(e){console.warn('Routine log load failed:',e);}
+}
+
+// Upsert a single routine's done state for today via Supabase REST.
+// Uses on_conflict + Prefer:resolution=merge-duplicates so we don't need to
+// check-then-write. Fire-and-forget — UI is already optimistically updated.
+function persistRoutineLog(routineId,done){
+  if(typeof CU!=='string'||!CU)return;
+  const id=parseInt(routineId,10);
+  if(!id)return;
+  const today=tdStr();
+  const url=`${SB}/rest/v1/bravochore_routine_logs?on_conflict=routine_id,log_date,owner`;
+  fetch(url,{
+    method:'POST',
+    headers:{
+      'apikey':SK,
+      'Authorization':'Bearer '+SK,
+      'Content-Type':'application/json',
+      'Prefer':'resolution=merge-duplicates,return=minimal'
+    },
+    body:JSON.stringify({routine_id:id,owner:CU,log_date:today,done:!!done})
+  }).catch(e=>{/* silent — localStorage still has the truth for this device */});
+}
+
 async function loadScheduleData(){
   loadSchedStateLocal();
   // Load week state from Supabase
@@ -98,6 +132,8 @@ async function loadScheduleData(){
     console.warn('Routine load failed:',e);
     routineBlocks=[];routineItems=[];
   }
+  // Load TODAY's routine logs from DB into schedState so cross-device ticks sync
+  await loadTodayRoutineLogs();
   // Load long-term tasks
   try{longtermItems=await api('bravochore_longterm_tasks','GET',null,`?user_code=eq.BJ&order=sort_order.asc`);}
   catch(e){longtermItems=[];}
@@ -274,10 +310,13 @@ function renderSchedToday(){
 
 function toggleSchedItem(taskId,el){
   const cur=getSchedState('task-'+taskId,false);
-  setSchedState('task-'+taskId,!cur);
-  el.classList.toggle('checked',!cur);
+  const next=!cur;
+  setSchedState('task-'+taskId,next);
+  el.classList.toggle('checked',next);
   const chk=el.querySelector('.sched-item-check');
-  if(chk)chk.innerHTML=!cur?'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>':'';
+  if(chk)chk.innerHTML=next?'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>':'';
+  // Cross-device sync — fire-and-forget upsert on bravochore_routine_logs
+  persistRoutineLog(taskId,next);
   // Recount progress without full re-render
   const dayName=SCHED_DAYS[schedSelectedDay];
   const dayNum=schedSelectedDay;
