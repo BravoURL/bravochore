@@ -19,6 +19,14 @@ function pickBlackbirdGreeting(){
 
 async function boot(){
   try{
+  // First-run onboarding: brand-new users with no bc_user yet are routed
+  // through a welcome flow that gathers their name + short code instead of
+  // landing on the Wallis-default user-picker.
+  if(typeof shouldShowWelcomeOnboarding==='function'&&shouldShowWelcomeOnboarding()){
+    document.getElementById('loading-screen').style.display='none';
+    showWelcomeOnboarding();
+    return;
+  }
   buildUserPicker();
   await loadData();
   document.getElementById('loading-screen').style.display='none';

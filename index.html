@@ -56,6 +56,35 @@ document.querySelector('link[rel="manifest"]').href = url;
   <div class="user-cards" id="user-cards-container"></div>
 </div>
 
+<!-- WELCOME ONBOARDING — shown to first-time users (no bc_user in localStorage) -->
+<div id="welcome-onboarding" style="display:none;position:fixed;inset:0;z-index:1100;background:var(--bg);overflow-y:auto;padding:30px 20px">
+  <div style="max-width:440px;margin:30px auto;text-align:center">
+    <div id="welcome-step-1">
+      <div style="font-family:'Playfair Display',serif;font-size:36px;font-weight:500;margin-bottom:6px">Welcome to <span style="color:var(--green)">Bravo</span><span style="color:var(--tx)">Chore</span></div>
+      <p style="font-size:14px;color:var(--tx2);margin-bottom:30px;line-height:1.6">Household task management with a Blackbird in your pocket. Let's set you up.</p>
+      <div style="background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:20px;text-align:left;margin-bottom:18px">
+        <div class="dp-field" style="margin-bottom:14px">
+          <label class="dp-label">Your name</label>
+          <input class="dp-input" id="wo-name" placeholder="e.g. Maria" autocomplete="given-name">
+        </div>
+        <div class="dp-field">
+          <label class="dp-label">Short code</label>
+          <input class="dp-input" id="wo-code" placeholder="e.g. M or MK (uppercase)" maxlength="4" style="text-transform:uppercase">
+          <div style="font-size:11px;color:var(--tx3);margin-top:4px">Used as a tag on tasks. Two letters works well.</div>
+        </div>
+      </div>
+      <button class="btn-ok" style="width:100%;padding:14px" onclick="welcomeFirstPerson()">Continue →</button>
+    </div>
+    <div id="welcome-step-2" style="display:none">
+      <div style="font-family:'Playfair Display',serif;font-size:28px;font-weight:500;margin-bottom:6px">Anyone else?</div>
+      <p style="font-size:13px;color:var(--tx2);margin-bottom:24px;line-height:1.6">Add household members you'll share tasks with. You can always add or edit them later in Settings.</p>
+      <div id="welcome-extra-people" style="text-align:left;margin-bottom:14px"></div>
+      <button class="qa-btn" style="width:100%;margin-bottom:14px" onclick="welcomeAddAnotherPerson()">+ Add another person</button>
+      <button class="btn-ok" style="width:100%;padding:14px" onclick="welcomeFinish()">Get started →</button>
+    </div>
+  </div>
+</div>
+
 <div id="app">
   <nav class="topnav">
     <div class="brand" onclick="bnNav('dashboard')">Bravo<span style="color:var(--tx);font-weight:400">Chore</span></div>
@@ -792,6 +821,7 @@ document.querySelector('link[rel="manifest"]').href = url;
 <script src="js/sprint.js"></script>
 <script src="js/suppliers.js"></script>
 <script src="js/routine-manager.js"></script>
+<script src="js/onboarding.js"></script>
 <script src="js/boot.js"></script>
 
 <!-- ════════════════════════════════════════════════════
