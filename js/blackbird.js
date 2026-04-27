@@ -107,6 +107,16 @@ async function sendToBB(){
     await startSprintFlow(msg);
     return;
   }
+  // Detect supplier-creation intent (saving a tradesperson / business contact)
+  // This must run BEFORE task-creation intent because phrases like "save this
+  // contact" / "this plumber" overlap with task-creation triggers.
+  if(typeof detectSupplierIntent==='function'&&detectSupplierIntent(msg,hasPhotos)){
+    const snapshotPhotos=[...bbPendingPhotos];
+    bbPendingPhotos=[];renderBBPhotoStrip();
+    await runSupplierExtraction(msg,snapshotPhotos);
+    bbSetState('idle');
+    return;
+  }
   // Detect add-task intent
   const addIntent=/add|create|new task|remind|schedule|put.*on.*list|add.*list|need to|remember to|fertilise|trim|fix|paint|install|buy|get|order|plant|clean|wash|repair|replace|sort|organise|organize/i.test(msg);
 
@@ -346,5 +356,56 @@ function bbMsgHTML(html,cls){
   const msgs=document.getElementById('bb-msgs');if(!msgs)return;
   const d=document.createElement('div');d.className='bb-msg '+cls;d.innerHTML=html;
   msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;
+}
+
+// Send the photo + user message to Claude with a supplier-extraction system
+// prompt. Claude returns structured JSON; we hand it to showBBSupplierPreview
+// (defined in suppliers.js) for confirm-before-save.
+async function runSupplierExtraction(msg,photos){
+  if(!photos||!photos.length){
+    bbMsg("To save a contact I need a photo of their van, business card, or signage. Snap one and try again.",'from-bb');
+    return;
+  }
+  bbSetState('thinking');
+  const photoBlocks=photos.map(p=>({type:'image',source:{type:'base64',media_type:p.file?.type||'image/jpeg',data:p.dataUrl.split(',')[1]}}));
+  const userContent=[...photoBlocks,{type:'text',text:msg||'Save this person as a supplier in my contacts.'}];
+  const sys=`You are Blackbird, the AI inside BravoChore. The user wants to save a tradesperson, contractor or service supplier as a CRM contact. Look at the photo (typically a van, business card, signage, or shopfront) and extract the contact details.
+
+Respond ONLY with valid JSON in this exact shape (no markdown, no explanation):
+{
+  "business_name": "trading name e.g. Jim's Mowing, or null",
+  "name": "person's name if visible, or null",
+  "phone": "phone number with spaces stripped, or null",
+  "email": "email if visible, or null",
+  "website": "URL if visible, or null",
+  "trades": "comma-separated trade tags using lowercase singular nouns — e.g. plumber,gas-fitter or mowing,landscaping or painter",
+  "notes": "anything else worth remembering: hours, area covered, specialties, or null",
+  "blackbird_comment": "one short warm sentence confirming what you saw"
+}
+
+Rules:
+- "trades" should be searchable tags. If the van says "Jim's Mowing & Landscaping" → "mowing,landscaping". If it says "ABC Plumbing & Gas" → "plumber,gas-fitter".
+- Phone numbers: keep the original formatting if it's readable, else strip to digits.
+- If you genuinely cannot read a field, return null for it. Don't make stuff up.
+- The comment should be human and brief, like "Got it — Jim's Mowing, lives in Beechboro, mowing + landscaping."`;
+  try{
+    const res=await fetch(BB_PROXY,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SK},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:500,system:sys,messages:[{role:'user',content:userContent}]})
+    });
+    const data=await res.json();
+    const raw=data.content?.find(c=>c.type==='text')?.text||'null';
+    let parsed=null;
+    try{parsed=JSON.parse(raw.replace(/```json|```/g,'').trim());}catch(e){}
+    if(parsed&&(parsed.business_name||parsed.name||parsed.phone)){
+      if(typeof showBBSupplierPreview==='function')showBBSupplierPreview(parsed,photos);
+      else bbMsg("Couldn't show the preview card — supplier module not loaded.",'from-bb');
+    }else{
+      bbMsg("I couldn't read enough from that photo to save a contact. Try a clearer shot of the van/card/signage.",'from-bb');
+    }
+  }catch(e){
+    bbMsg("Connection issue — try again.",'from-bb');
+  }
 }
 

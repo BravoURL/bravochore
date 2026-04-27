@@ -752,7 +752,7 @@ document.querySelector('link[rel="manifest"]').href = url;
       <div class="sp-toggle-row"><span class="sp-toggle-label">Show active events strip</span><label class="sp-toggle"><input type="checkbox" id="pref-show-events-strip" onchange="savePref('showEventsStrip',this.checked)" checked><span class="sp-slider"></span></label></div>
     </div>
     <div class="sp-section">
-      <h3>Routines</h3>
+      <h3>Routine preferences</h3>
       <div class="sp-toggle-row"><span class="sp-toggle-label">Show nudge on login</span><label class="sp-toggle"><input type="checkbox" id="pref-nudge" onchange="savePref('showNudge',this.checked)" checked><span class="sp-slider"></span></label></div>
       <div class="sp-toggle-row"><span class="sp-toggle-label">Week A/B reminder on switch</span><label class="sp-toggle"><input type="checkbox" id="pref-weekab" onchange="savePref('weekABReminder',this.checked)" checked><span class="sp-slider"></span></label></div>
     </div>
@@ -760,6 +760,16 @@ document.querySelector('link[rel="manifest"]').href = url;
       <h3>Events</h3>
       <div style="font-size:12px;color:var(--tx2);margin-bottom:8px;line-height:1.4">Templates pre-populate prep tasks back-calculated from the event date — perfect for recurring occasions like hosted meals.</div>
       <button class="qa-btn" style="width:100%;justify-content:center" onclick="openTemplateManager()">📋 Manage event templates</button>
+    </div>
+    <div class="sp-section">
+      <h3>Suppliers</h3>
+      <div style="font-size:12px;color:var(--tx2);margin-bottom:8px;line-height:1.4">Tradespeople and contacts you can call when a task needs an outside hand. Snap a photo of a van or business card via Blackbird with the words "save contact" — Blackbird extracts the details.</div>
+      <button class="qa-btn" style="width:100%;justify-content:center" onclick="openSuppliersPanel()">📇 Manage suppliers</button>
+    </div>
+    <div class="sp-section">
+      <h3>Routines</h3>
+      <div style="font-size:12px;color:var(--tx2);margin-bottom:8px;line-height:1.4">Edit your weekly routine blocks (morning, afternoon, etc.) and the tasks inside them. Drag to reorder inside each block on the Today tab.</div>
+      <button class="qa-btn" style="width:100%;justify-content:center" onclick="openRoutineManager()">🗓 Manage routines</button>
     </div>
     <div class="sp-section">
       <h3>Data</h3>
@@ -795,6 +805,8 @@ document.querySelector('link[rel="manifest"]').href = url;
 <script src="js/schedule.js"></script>
 <script src="js/events.js"></script>
 <script src="js/sprint.js"></script>
+<script src="js/suppliers.js"></script>
+<script src="js/routine-manager.js"></script>
 <script src="js/boot.js"></script>
 
 <!-- ════════════════════════════════════════════════════

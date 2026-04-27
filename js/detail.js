@@ -102,6 +102,12 @@ function renderDpBody(task,ms){
     <div class="dp-field"><label class="dp-label">Notes</label>
       <textarea class="dp-textarea" id="dp-notes" placeholder="Instructions, context, tips...">${task?.notes||''}</textarea>
     </div>
+    ${task?`<div style="margin-top:8px;display:flex;justify-content:flex-start">
+      <button class="qa-btn" style="font-size:11px;padding:6px 12px;display:inline-flex;align-items:center;gap:5px" onclick="whoCanDoThis(${task.id})" title="Suggest a tradesperson from your supplier list">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg>
+        Who can do this?
+      </button>
+    </div>`:''}
   </div>
   <div class="dp-sec">
     <div class="dp-sec-title" style="font-size:12px;font-weight:800;color:var(--tx);letter-spacing:.3px;border-bottom:2px solid var(--green);padding-bottom:6px;margin-bottom:10px">Milestones <span style="font-weight:500;color:var(--tx2)">${ms.length?ms.filter(m=>m.done).length+'/'+ms.length+' · '+fmtHours(calcTaskTime(task?.id||0)):''}</span></div>
