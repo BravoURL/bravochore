@@ -61,7 +61,10 @@ document.querySelector('link[rel="manifest"]').href = url;
     <div class="brand" onclick="bnNav('dashboard')">Bravo<span style="color:var(--tx);font-weight:400">Chore</span></div>
     <div class="nav-right">
       <button onclick="bnNav('shopping')" title="Shopping" id="shop-btn" style="background:none;border:none;cursor:pointer;padding:4px 6px;color:var(--tx2);display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></button>
-      <button onclick="openRemindersSheet()" title="Routines" style="background:none;border:none;cursor:pointer;font-size:16px;padding:4px 6px;color:var(--tx2);position:relative" id="reminder-bell">🔔<span id="reminder-badge" style="display:none;position:absolute;top:2px;right:2px;width:8px;height:8px;background:var(--amber);border-radius:50%"></span></button>
+      <!-- Reminders bell hidden per BRAND.md "discoverability" review — feature parked
+           until Alexa integration revives it. Code remains in js/reminders.js so the
+           module can be revived without rebuild. -->
+      <button onclick="openRemindersSheet()" title="Reminders" style="display:none;background:none;border:none;cursor:pointer;font-size:16px;padding:4px 6px;color:var(--tx2);position:relative" id="reminder-bell">🔔<span id="reminder-badge" style="display:none;position:absolute;top:2px;right:2px;width:8px;height:8px;background:var(--amber);border-radius:50%"></span></button>
       <button class="settings-btn" onclick="openSettings()" title="Settings">⚙</button>
       <div class="user-pill" onclick="switchUser()">
         <div id="pill-av" class="pill-av"></div>
@@ -685,8 +688,8 @@ document.querySelector('link[rel="manifest"]').href = url;
     <div class="dp-body" id="dp-body" style="flex:1;overflow-y:auto"></div>
     <div class="dp-footer">
       <button class="dp-pdf" onclick="generatePDFForTask()">🖨</button>
+      <button class="dp-shelve" onclick="dpShelveTask()" title="Move to Shelved">Shelve</button>
       <button class="dp-del" onclick="dpDelete()">Delete</button>
-      <button class="dp-del" onclick="dpShelveTask()" title="Move to Shelved">Shelve</button>
       <button class="dp-save" onclick="dpSave()">Save</button>
     </div>
   </div>

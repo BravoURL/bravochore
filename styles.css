@@ -304,7 +304,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 /* DP FOOTER */
 .dp-footer{padding:12px 16px;border-top:1px solid var(--bdr);display:flex;gap:8px;flex-shrink:0;padding-bottom:max(12px,env(safe-area-inset-bottom))}
 .dp-save{flex:1;padding:12px;background:var(--green);border:none;border-radius:var(--rs);color:#fff;font-family:'DM Sans',sans-serif;font-weight:700;font-size:14px;cursor:pointer}
-.dp-del{padding:12px 14px;background:none;border:1px solid var(--bdrm);border-radius:var(--rs);color:var(--tx2);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer}
+/* Shelve = neutral, reversible. */
+.dp-shelve{padding:12px 14px;background:none;border:1px solid var(--bdrm);border-radius:var(--rs);color:var(--tx2);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer}
+.dp-shelve:active{background:var(--surf2)}
+/* Delete = destructive. Red border + red text per BRAND.md so it can't be confused with Shelve. */
+.dp-del{padding:12px 14px;background:none;border:1px solid var(--red);border-radius:var(--rs);color:var(--red);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer}
+.dp-del:active{background:var(--rl)}
 .dp-pdf{padding:12px 14px;background:none;border:1px solid var(--bdrm);border-radius:var(--rs);color:var(--tx2);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer}
 
 /* SHOPPING */
@@ -355,6 +360,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 .person-info{flex:1}
 .person-name{font-size:14px;font-weight:600}
 .person-code{font-size:11px;color:var(--tx3);font-family:'DM Mono',monospace}
+.person-edit{width:30px;height:30px;border:none;background:none;cursor:pointer;color:var(--tx3);font-size:14px;display:flex;align-items:center;justify-content:center;border-radius:6px}
+.person-edit:active{background:var(--surf2);color:var(--green)}
 .person-del{width:30px;height:30px;border:none;background:none;cursor:pointer;color:var(--tx3);font-size:16px;display:flex;align-items:center;justify-content:center;border-radius:6px}
 .person-del:active{background:var(--rl);color:var(--red)}
 .add-person-row{display:flex;gap:8px;margin-top:12px}

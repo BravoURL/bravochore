@@ -168,10 +168,11 @@ function openSettings(){document.getElementById('settings-panel').classList.add(
 function closeSettings(){document.getElementById('settings-panel').classList.remove('open');}
 function renderPeopleList(){
   document.getElementById('people-list').innerHTML=people.map((p,i)=>`
-    <div class="person-row">
+    <div class="person-row" id="person-row-${p.code}">
       <div class="person-av" style="background:${p.bg};color:${p.color}">${p.code}</div>
       <div class="person-info"><div class="person-name">${p.name}</div><div class="person-code">${p.code}</div></div>
-      ${i>2?`<button class="person-del" onclick="deletePerson('${p.code}')">✕</button>`:'<div style="width:30px"></div>'}
+      <button class="person-edit" onclick="editPerson('${p.code}')" title="Rename">✎</button>
+      ${i>2?`<button class="person-del" onclick="deletePerson('${p.code}')" title="Remove">✕</button>`:'<div style="width:30px"></div>'}
     </div>`).join('');
 }
 function addPerson(){
@@ -186,6 +187,50 @@ function addPerson(){
   savePeople();renderPeopleList();renderExtraFilters();
   document.getElementById('new-person-name').value='';
   document.getElementById('new-person-code').value='';
+}
+async function editPerson(code){
+  const p=people.find(x=>x.code===code);if(!p)return;
+  const result=await promptSheet({
+    title:'Edit person',
+    subtitle:'Rename or change the short code (e.g. initials). Their tasks, owner tags and routines come along.',
+    confirmLabel:'Save',
+    fields:[
+      {name:'name',label:'Display name',value:p.name,required:true},
+      {name:'code',label:'Short code',value:p.code,required:true,placeholder:'e.g. BJ'}
+    ]
+  });
+  if(!result)return;
+  const newName=result.name;
+  const newCode=(result.code||'').toUpperCase().trim();
+  if(!newName||!newCode)return;
+  // If the code is changing, make sure it doesn't clash with another person
+  if(newCode!==p.code&&people.some(x=>x.code===newCode)){
+    chirp('That code is already in use.');return;
+  }
+  const oldCode=p.code;
+  p.name=newName;p.code=newCode;
+  // If code changed, propagate to any task / milestone / shopping owner that
+  // references the old code (token-aware so composite owners like "BW+BJ" rewrite correctly)
+  if(newCode!==oldCode){
+    const rewrite=ownerStr=>{
+      if(!ownerStr)return ownerStr;
+      return ownerStr.split(/([,+\/&\s]+)/).map(seg=>seg.trim()===oldCode?newCode:seg).join('');
+    };
+    tasks.forEach(t=>{if(t.owner)t.owner=rewrite(t.owner);});
+    milestones.forEach(m=>{if(m.owner)m.owner=rewrite(m.owner);});
+    // Persist quietly — best-effort, don't block UI on it
+    badge('sy','↻');
+    Promise.all([
+      ...tasks.filter(t=>t.owner).map(t=>api('bravochore_tasks','PATCH',{owner:t.owner},`?id=eq.${t.id}`).catch(()=>{})),
+      ...milestones.filter(m=>m.owner).map(m=>api('bravochore_milestones','PATCH',{owner:m.owner},`?id=eq.${m.id}`).catch(()=>{}))
+    ]).then(()=>badge('ok','✓')).catch(()=>badge('er','⚠'));
+    // If the user is renaming themselves, update CU too
+    if(typeof CU==='string'&&CU===oldCode){
+      CU=newCode;localStorage.setItem('bc_user',newCode);
+    }
+  }
+  savePeople();renderPeopleList();renderExtraFilters();rerender();
+  chirp('Updated.');
 }
 function deletePerson(code){
   people=people.filter(p=>p.code!==code);savePeople();renderPeopleList();renderExtraFilters();
@@ -470,6 +515,71 @@ function confirm2(title,body,btnCls='btn-ok'){
 function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 document.addEventListener('DOMContentLoaded',()=>document.querySelectorAll('.modal-bd').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');})));
+
+// promptSheet — styled replacement for native prompt(). Returns a Promise that
+// resolves to an object {fieldName: value, ...} on confirm, or null on cancel.
+// Use anywhere a single prompt() or chain of prompts() is needed.
+//
+// Field types: 'text' (default), 'textarea', 'number', 'select', 'date'.
+// See BRAND.md "Sheets vs modals" — this is a slide-up sheet.
+function promptSheet({title,subtitle,fields,confirmLabel='OK',cancelLabel='Cancel'}){
+  return new Promise(resolve=>{
+    const picker=document.createElement('div');
+    picker.setAttribute('data-picker','1');
+    picker.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:920;display:flex;align-items:flex-end;justify-content:center';
+    const inputId=n=>'psheet-'+n;
+    const escapeAttr=s=>String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+    const escapeText=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+    const fieldHtml=(fields||[]).map(f=>{
+      const id=inputId(f.name);
+      const label=`<label class="dp-label" for="${id}">${escapeText(f.label||f.name)}${f.required?' <span style="color:var(--red)">*</span>':''}</label>`;
+      let input;
+      if(f.type==='textarea'){
+        input=`<textarea class="dp-textarea" id="${id}" placeholder="${escapeAttr(f.placeholder||'')}" style="min-height:64px">${escapeText(f.value||'')}</textarea>`;
+      }else if(f.type==='select'&&Array.isArray(f.options)){
+        const opts=f.options.map(o=>`<option value="${escapeAttr(o.value)}" ${String(f.value)===String(o.value)?'selected':''}>${escapeText(o.label)}</option>`).join('');
+        input=`<select class="dp-select" id="${id}">${opts}</select>`;
+      }else if(f.type==='number'){
+        input=`<input class="dp-input" id="${id}" type="number" step="${escapeAttr(f.step||'1')}" ${f.min!=null?`min="${escapeAttr(f.min)}"`:''} ${f.max!=null?`max="${escapeAttr(f.max)}"`:''} value="${escapeAttr(f.value??'')}">`;
+      }else if(f.type==='date'){
+        input=`<input class="dp-input" id="${id}" type="date" value="${escapeAttr(f.value||'')}">`;
+      }else{
+        input=`<input class="dp-input" id="${id}" type="text" placeholder="${escapeAttr(f.placeholder||'')}" value="${escapeAttr(f.value||'')}">`;
+      }
+      return `<div class="dp-field">${label}${input}</div>`;
+    }).join('');
+    picker.innerHTML=`<div role="dialog" aria-modal="true" style="background:var(--surf);border-radius:20px 20px 0 0;width:100%;max-width:560px;padding:18px;padding-bottom:max(16px,env(safe-area-inset-bottom));max-height:90dvh;overflow-y:auto">
+      <div style="font-family:'Playfair Display',serif;font-size:17px;font-weight:500;margin-bottom:${subtitle?'4px':'14px'}">${escapeText(title||'')}</div>
+      ${subtitle?`<div style="font-size:12px;color:var(--tx2);margin-bottom:14px;line-height:1.5">${escapeText(subtitle)}</div>`:''}
+      ${fieldHtml}
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <button class="btn-cancel" style="flex:1" id="psheet-cancel">${escapeText(cancelLabel)}</button>
+        <button class="btn-ok" style="flex:1" id="psheet-confirm">${escapeText(confirmLabel)}</button>
+      </div>
+    </div>`;
+    const finish=result=>{picker.remove();resolve(result);};
+    picker.addEventListener('click',e=>{if(e.target===picker)finish(null);});
+    document.body.appendChild(picker);
+    picker.querySelector('#psheet-cancel').onclick=()=>finish(null);
+    picker.querySelector('#psheet-confirm').onclick=()=>{
+      const result={};
+      for(const f of (fields||[])){
+        const inp=picker.querySelector('#'+inputId(f.name));
+        const raw=inp?(inp.value||'').trim():'';
+        if(f.required&&!raw){
+          if(inp){inp.focus();inp.style.borderColor='var(--red)';}
+          return;
+        }
+        result[f.name]=f.type==='number'?(raw===''?null:(parseFloat(raw)||0)):raw;
+      }
+      finish(result);
+    };
+    setTimeout(()=>{
+      const first=picker.querySelector('#'+inputId((fields||[])[0]?.name));
+      if(first){first.focus();if(first.tagName==='INPUT'&&first.type==='text')first.select();}
+    },60);
+  });
+}
 
 // ================================================================
 // PDF / PRINT

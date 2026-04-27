@@ -167,8 +167,8 @@ function closeDetail(){
   if(footer&&dpShelvedId){
     footer.innerHTML=`
       <button class="dp-pdf" onclick="generatePDFForTask()">🖨</button>
+      <button class="dp-shelve" onclick="dpShelveTask()">Shelve</button>
       <button class="dp-del" onclick="dpDelete()">Delete</button>
-      <button class="dp-del" onclick="dpShelveTask()">Shelve</button>
       <button class="dp-save" onclick="dpSave()">Save</button>`;
   }
   dpTaskId=null;dpShelvedId=null;

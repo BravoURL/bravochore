@@ -824,10 +824,18 @@ async function saveEventAsTemplate(){
   const ev=events.find(e=>e.id===activeEventId);if(!ev)return;
   const evTasks=tasks.filter(t=>t.event_id===ev.id);
   if(!evTasks.length){chirp('No tasks to save — add some first.');return;}
-  const proposedName=ev.title;
-  const name=prompt('Save as template — name it:',proposedName);
-  if(!name)return;
-  const desc=prompt('Description (optional):',ev.description||'')||'';
+  const result=await promptSheet({
+    title:'Save as template',
+    subtitle:'Templates let you spin up similar events later with the same prep tasks pre-populated.',
+    confirmLabel:'Save template',
+    fields:[
+      {name:'name',label:'Template name',value:ev.title,required:true},
+      {name:'desc',label:'Description (optional)',type:'textarea',value:ev.description||'',placeholder:'A line or two about when to use this template.'}
+    ]
+  });
+  if(!result)return;
+  const name=result.name;
+  const desc=result.desc||'';
   badge('sy','↻ Saving template…');
   // Insert template row
   let templateId=null;
@@ -910,9 +918,18 @@ async function renderTemplateManager(){
 
 async function renameTemplate(id){
   const tpl=eventTemplates.find(t=>t.id===id);if(!tpl)return;
-  const name=prompt('New name:',tpl.name);
-  if(!name||name===tpl.name)return;
-  const desc=prompt('Description:',tpl.description||'')||'';
+  const result=await promptSheet({
+    title:'Rename template',
+    confirmLabel:'Save',
+    fields:[
+      {name:'name',label:'Template name',value:tpl.name,required:true},
+      {name:'desc',label:'Description',type:'textarea',value:tpl.description||''}
+    ]
+  });
+  if(!result)return;
+  const name=result.name;
+  const desc=result.desc||'';
+  if(name===tpl.name&&desc===(tpl.description||''))return;
   try{
     await api('bravochore_event_templates','PATCH',{name,description:desc},`?id=eq.${id}`);
     tpl.name=name;tpl.description=desc;
@@ -1009,11 +1026,23 @@ async function deleteTemplateTask(id){
 }
 
 async function addTemplateTask(templateId){
-  const title=prompt('Task title:');
-  if(!title)return;
-  const offset=parseInt(prompt('Days before event (e.g. -7 for week before, 0 for day of):','-1'))||0;
-  const owner=prompt('Default owner code (BJ for Bernadette, BW for Brent):','BJ')||'BJ';
-  const hours=parseFloat(prompt('Time estimate in hours:','0.5'))||0;
+  const ownerOptions=people.map(p=>({value:p.code,label:p.name+' ('+p.code+')'}));
+  const result=await promptSheet({
+    title:'Add task to template',
+    subtitle:'Day offset is days before the event (e.g. -7 = a week before, 0 = day of).',
+    confirmLabel:'Add task',
+    fields:[
+      {name:'title',label:'Task title',value:'',required:true,placeholder:'e.g. Confirm bookings'},
+      {name:'day_offset',label:'Days before event',type:'number',value:-1,step:1},
+      {name:'default_owner',label:'Default owner',type:'select',options:ownerOptions,value:ownerOptions[0]?.value||''},
+      {name:'time_hours',label:'Time estimate (hours)',type:'number',value:0.5,step:0.25,min:0}
+    ]
+  });
+  if(!result)return;
+  const title=result.title;
+  const offset=Math.round(result.day_offset||0);
+  const owner=result.default_owner||(people[0]?.code||'BJ');
+  const hours=result.time_hours||0;
   const newRow={template_id:templateId,title,default_owner:owner,time_hours:hours,day_offset:offset,prefer_weekend:false,bucket:'Indoor',notes:'',sort_order:((window._teTasks||[]).length+1)*10};
   try{
     const r=await api('bravochore_event_template_tasks','POST',[newRow]);
