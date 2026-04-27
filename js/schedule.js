@@ -15,41 +15,10 @@ const SCHED_SHORT=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 //  routineBlocks/routineItems by loadHouseholdRoutines(). Generic per
 //  household. Original constant content preserved in git history if ever
 //  needed for reference.)
-const LAUNDRY_DATA = [
-  {id:'lau-mon',day:'Monday',text:'Clothes load 1',dayNum:1},
-  {id:'lau-tue',day:'Tuesday',text:'Clothes load 2 + sheets (Week A: ours / Week B: kids\u2019)',dayNum:2},
-  {id:'lau-wed',day:'Wednesday',text:'Clothes load 3',dayNum:3},
-  {id:'lau-thu',day:'Thursday',text:'Clothes load 4 + sheets (Week A: kids\u2019 / Week B: ours)',dayNum:4},
-  {id:'lau-fri',day:'Friday',text:'Towels — every week',dayNum:5},
-  {id:'lau-sat',day:'Saturday',text:'Catch-up load if needed',dayNum:6},
-  {id:'lau-sun',day:'Sunday',text:'Rest — no laundry today',dayNum:0},
-];
-
-const FORTNIGHT_DATA = {
-  a:[
-    {day:'Monday',task:'Deep clean bathrooms'},
-    {day:'Tuesday',task:'Wash our sheets & pillowcases → remake bed'},
-    {day:'Tuesday',task:'Deep clean kitchen (oven, splashbacks, cupboard fronts, rangehood)'},
-    {day:'Thursday',task:'Wash kids’ sheets & pillowcases → remake beds'},
-    {day:'Thursday',task:'Deep dust (ceiling fans, blinds, shelves, picture frames)'},
-    {day:'Wednesday',task:'Long-term cleaning slot (see Long-Term tab)'},
-  ],
-  b:[
-    {day:'Monday',task:'Vacuum throughout'},
-    {day:'Tuesday',task:'Wash kids’ sheets & pillowcases → remake beds'},
-    {day:'Tuesday',task:'Deep clean laundry (machine drum, lint traps, tub, surfaces)'},
-    {day:'Thursday',task:'Wash our sheets & pillowcases → remake bed'},
-    {day:'Thursday',task:'Deep dust (ceiling fans, blinds, shelves, picture frames)'},
-    {day:'Wednesday',task:'Long-term cleaning slot (see Long-Term tab)'},
-  ],
-};
-
-const MONTHLY_ITEMS = [
-  {id:'mo-1',text:'Book or review medical & dental appointments for the family'},
-  {id:'mo-2',text:'Gift planning — check upcoming birthdays & events, order ahead'},
-  {id:'mo-3',text:'Review budget for the month ahead'},
-  {id:'mo-4',text:'Restock any low household or baby supplies not caught in weekly shop'},
-];
+// (LAUNDRY_DATA / FORTNIGHT_DATA / MONTHLY_ITEMS hardcoded constants removed —
+//  data now lives in bravochore_laundry_defs / bravochore_fortnight_defs /
+//  bravochore_monthly_defs and is loaded into laundryDefs / fortnightDefs /
+//  monthlyDefs by loadScheduleData(). Per-household via household_code.)
 
 // ---- STATE ----
 let schedSub='today';
@@ -65,6 +34,10 @@ let schedSlots=[]; // BravoChore tasks slotted into today
 // (any household can have its own routine) and unlocks drag-reorder via sort_order.
 let routineBlocks=[];  // [{id, household_code, owner, name, color, icon, sort_order, days, start_time, end_time}]
 let routineItems=[];   // [{id, household_code, block_id, title, owners, days, time_label, notes, sort_order, active}]
+// Laundry / Fortnightly / Monthly definitions — also DB-backed for generic-ness
+let laundryDefs=[];    // [{id, household_code, day_num, title, sort_order, active}]
+let fortnightDefs=[];  // [{id, household_code, week_label, day_label, task, sort_order, active}]
+let monthlyDefs=[];    // [{id, household_code, title, sort_order, active}]
 
 function getSchedState(key,def){return schedState[key]!==undefined?schedState[key]:def;}
 function setSchedState(key,val){schedState[key]=val;saveSchedState();}
@@ -124,13 +97,16 @@ async function loadScheduleData(){
       await api('bravochore_week_state','POST',[{user_code:CU,current_week:'a',last_open_date:tdStr()}]);
     }
   }catch(e){}
-  // Load this household's routine blocks + items from the DB
+  // Load this household's routine blocks + items + extras (laundry/fortnight/monthly) from the DB
   try{
     routineBlocks=await api('bravochore_blocks','GET',null,'?order=sort_order.asc')||[];
     routineItems=await api('bravochore_routines','GET',null,'?active=eq.true&order=sort_order.asc')||[];
+    laundryDefs=await api('bravochore_laundry_defs','GET',null,'?active=eq.true&order=sort_order.asc')||[];
+    fortnightDefs=await api('bravochore_fortnight_defs','GET',null,'?active=eq.true&order=sort_order.asc')||[];
+    monthlyDefs=await api('bravochore_monthly_defs','GET',null,'?active=eq.true&order=sort_order.asc')||[];
   }catch(e){
     console.warn('Routine load failed:',e);
-    routineBlocks=[];routineItems=[];
+    routineBlocks=[];routineItems=[];laundryDefs=[];fortnightDefs=[];monthlyDefs=[];
   }
   // Load TODAY's routine logs from DB into schedState so cross-device ticks sync
   await loadTodayRoutineLogs();
@@ -383,20 +359,22 @@ function renderSchedLaundry(){
   const container=document.getElementById('sched-laundry-content');if(!container)return;
   const todayNum=new Date().getDay();
   const weekStart=getWeekStart();
-  container.innerHTML=LAUNDRY_DATA.map(row=>{
-    const key=`laundry-${weekStart}-${row.dayNum}`;
+  if(!laundryDefs.length){container.innerHTML='<div class="empty-state">No laundry routine set up yet.</div>';return;}
+  container.innerHTML=laundryDefs.map(row=>{
+    const key=`laundry-${weekStart}-${row.day_num}`;
     const isChecked=getSchedState(key,false);
-    const isToday=row.dayNum===todayNum;
-    return `<div class="laundry-row ${isChecked?'checked':''}" onclick="toggleLaundryItem('${key}')" style="${row.dayNum===0?'opacity:.5;cursor:default':''}">
+    const isToday=row.day_num===todayNum;
+    const dayName=SCHED_DAYS[row.day_num]||'';
+    return `<div class="laundry-row ${isChecked?'checked':''}" onclick="toggleLaundryItem('${key}')" style="${row.day_num===0?'opacity:.5;cursor:default':''}">
       <div class="task-check ${isChecked?'checked':''}" style="flex-shrink:0"></div>
-      <span class="laundry-day-lbl ${isToday?'today-day':''}">${row.day}</span>
-      <span class="laundry-txt">${row.text}</span>
+      <span class="laundry-day-lbl ${isToday?'today-day':''}">${dayName}</span>
+      <span class="laundry-txt">${row.title}</span>
     </div>`;
   }).join('')+`<button onclick="resetLaundry()" style="margin-top:10px;padding:8px 16px;border-radius:100px;border:1px solid var(--bdrm);background:none;font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;color:var(--tx2)">Reset weekly laundry</button>`;
 }
 
 function toggleLaundryItem(key){setSchedState(key,!getSchedState(key,false));renderSchedLaundry();}
-function resetLaundry(){const ws=getWeekStart();LAUNDRY_DATA.forEach(r=>setSchedState(`laundry-${ws}-${r.dayNum}`,false));renderSchedLaundry();}
+function resetLaundry(){const ws=getWeekStart();laundryDefs.forEach(r=>setSchedState(`laundry-${ws}-${r.day_num}`,false));renderSchedLaundry();}
 function getWeekStart(){const d=new Date();d.setDate(d.getDate()-d.getDay()+1);return d.toISOString().slice(0,10);}
 
 // ---- FORTNIGHTLY ----
@@ -410,22 +388,23 @@ function setFortnightView(w){
 
 function renderSchedFortnight(){
   const container=document.getElementById('sched-fortnight-content');if(!container)return;
-  const data=FORTNIGHT_DATA[fortnightView];
-  container.innerHTML=data.map((item,i)=>{
-    const key=`fn-${fortnightView}-${i}`;
+  const data=fortnightDefs.filter(d=>d.week_label===fortnightView);
+  if(!data.length){container.innerHTML='<div class="empty-state">No fortnight routine set up for Week '+fortnightView.toUpperCase()+' yet.</div>';return;}
+  container.innerHTML=data.map(item=>{
+    const key=`fn-${fortnightView}-${item.id}`;
     const isChecked=getSchedState(key,false);
-    return `<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rs);margin-bottom:7px;cursor:pointer;${isChecked?'opacity:.55':''}" onclick="toggleFortnight('${key}',${i})">
+    return `<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rs);margin-bottom:7px;cursor:pointer;${isChecked?'opacity:.55':''}" onclick="toggleFortnight('${key}')">
       <div class="task-check ${isChecked?'checked':''}" style="flex-shrink:0"></div>
       <div style="flex:1">
         <div style="font-size:13px;${isChecked?'text-decoration:line-through;color:var(--tx3)':''}">${item.task}</div>
-        <div style="font-size:11px;color:var(--tx3);margin-top:2px">${item.day}</div>
+        <div style="font-size:11px;color:var(--tx3);margin-top:2px">${item.day_label||''}</div>
       </div>
     </div>`;
   }).join('')+`<button onclick="resetFortnight()" style="margin-top:6px;padding:7px 14px;border-radius:100px;border:1px solid var(--bdrm);background:none;font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;color:var(--tx2)">Reset Week ${fortnightView.toUpperCase()}</button>`;
 }
 
 function toggleFortnight(key){setSchedState(key,!getSchedState(key,false));renderSchedFortnight();}
-function resetFortnight(){FORTNIGHT_DATA[fortnightView].forEach((_,i)=>setSchedState(`fn-${fortnightView}-${i}`,false));renderSchedFortnight();}
+function resetFortnight(){fortnightDefs.filter(d=>d.week_label===fortnightView).forEach(item=>setSchedState(`fn-${fortnightView}-${item.id}`,false));renderSchedFortnight();}
 
 // ---- LONG-TERM ----
 function renderSchedLongterm(){
@@ -471,19 +450,20 @@ async function setLongtermDate(id,val){
 // ---- MONTHLY ----
 function renderSchedMonthly(){
   const container=document.getElementById('sched-monthly-content');if(!container)return;
+  if(!monthlyDefs.length){container.innerHTML='<div class="empty-state">No monthly routine set up yet.</div>';return;}
   const monthKey=new Date().toISOString().slice(0,7);
-  container.innerHTML=MONTHLY_ITEMS.map(item=>{
+  container.innerHTML=monthlyDefs.map(item=>{
     const key=`monthly-${monthKey}-${item.id}`;
     const isChecked=getSchedState(key,false);
     return `<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rs);margin-bottom:7px;cursor:pointer;${isChecked?'opacity:.55':''}" onclick="toggleMonthlyItem('${key}')">
       <div class="task-check ${isChecked?'checked':''}" style="flex-shrink:0"></div>
-      <div style="font-size:13px;flex:1;${isChecked?'text-decoration:line-through;color:var(--tx3)':''}">${item.text}</div>
+      <div style="font-size:13px;flex:1;${isChecked?'text-decoration:line-through;color:var(--tx3)':''}">${item.title}</div>
     </div>`;
   }).join('');
 }
 
 function toggleMonthlyItem(key){setSchedState(key,!getSchedState(key,false));renderSchedMonthly();}
-function resetMonthlyTasks(){const mk=new Date().toISOString().slice(0,7);MONTHLY_ITEMS.forEach(i=>setSchedState(`monthly-${mk}-${i.id}`,false));renderSchedMonthly();}
+function resetMonthlyTasks(){const mk=new Date().toISOString().slice(0,7);monthlyDefs.forEach(i=>setSchedState(`monthly-${mk}-${i.id}`,false));renderSchedMonthly();}
 
 // ---- BRAVOCHORE TASK SLOTTING ----
 function openSlotTaskSheet(sectionType,sectionLabel){
