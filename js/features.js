@@ -622,7 +622,7 @@ function doPrint(filtered,ownerLabel,code){
     const taskOwned=code==='All'||task.owner.includes(code);
     const msToShow=taskOwned?allMs:allMs.filter(m=>m.owner===code);
     if(!taskOwned&&!msToShow.length)return;
-    const contextNote=!taskOwned?`<div class="pv-notes" style="background:#fff3e0;border-left:3px solid #BA7517;padding:6px 10px"><strong>Context:</strong> Part of "${task.title}" (${getOwner(task.owner).name}'s task)</div>`:'';
+    const contextNote=!taskOwned?`<div class="pv-notes" style="background:var(--al);border-left:3px solid var(--amber);padding:6px 10px"><strong>Context:</strong> Part of "${task.title}" (${getOwner(task.owner).name}'s task)</div>`:'';
     html+=`<div class="pv-task">
       <h3>${taskOwned?task.title:msToShow[0]?.title||task.title}</h3>
       <div class="pv-meta">${taskOwned?'Owner: '+getOwner(task.owner).name+' · ':''}Due: ${fmtDate(task.due)} · Est: ${fmtHours(getEffectiveTime(task))} · ${task.bucket}</div>

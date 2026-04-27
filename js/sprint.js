@@ -426,8 +426,8 @@ function updateSprintProgress(){
     const routineRemH=(routineTotal-routineDone)*0.25;
     const totalRemH=taskRemH+routineRemH;
     remEl.textContent=totalRemH>0?fmtHours(totalRemH):'0m';
-    remEl.style.color=totalRemH<=0?'#5C8A4A':
-      totalRemH<0.5?'#BA7517':'rgba(255,255,255,.9)';
+    remEl.style.color=totalRemH<=0?'var(--green)':
+      totalRemH<0.5?'var(--amber)':'rgba(255,255,255,.9)';
   }
 
   // Legacy compatibility
