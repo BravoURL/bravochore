@@ -101,23 +101,31 @@ async function sendToBB(){
 
   bbSetState('thinking');
 
-  // Detect sprint intent FIRST
+  // Detect sprint intent FIRST (text-only — sprints don't take photos)
   if(detectSprintIntent(msg)&&!hasPhotos){
     bbSetState('idle');
     await startSprintFlow(msg);
     return;
   }
-  // Detect supplier-creation intent (saving a tradesperson / business contact)
-  // This must run BEFORE task-creation intent because phrases like "save this
-  // contact" / "this plumber" overlap with task-creation triggers.
-  if(typeof detectSupplierIntent==='function'&&detectSupplierIntent(msg,hasPhotos)){
+  // Photos go through a unified AI classifier — Claude decides whether the
+  // photo is a contact to save (business card / van / signage) or a task to
+  // add (broken thing / job to do). This replaces the previous regex-based
+  // intent detection which misfired when a photo of a tradie's van was sent
+  // without explicit "save contact" wording.
+  if(hasPhotos){
     const snapshotPhotos=[...bbPendingPhotos];
     bbPendingPhotos=[];renderBBPhotoStrip();
-    await runSupplierExtraction(msg,snapshotPhotos);
+    await runPhotoBackedIntent(msg,snapshotPhotos);
     bbSetState('idle');
     return;
   }
-  // Detect add-task intent
+  // Text-only path: explicit supplier-create command (no photo) takes priority
+  if(typeof detectSupplierIntent==='function'&&detectSupplierIntent(msg,false)){
+    bbMsg("To save a contact I need a photo of their van, business card, or signage. Snap one and try again — or open Settings → Manage suppliers to add manually.",'from-bb');
+    bbSetState('idle');
+    return;
+  }
+  // Detect add-task intent (text-only)
   const addIntent=/add|create|new task|remind|schedule|put.*on.*list|add.*list|need to|remember to|fertilise|trim|fix|paint|install|buy|get|order|plant|clean|wash|repair|replace|sort|organise|organize/i.test(msg);
 
   const today=tdStr();
@@ -132,15 +140,12 @@ ${CUN}'s upcoming: ${myPending.map(t=>`"${t.title}" due ${fmtDate(t.due)||'no da
 
   const taskCtx=bbCtx?`Currently viewing task: "${bbCtx.title}" (${bbCtx.bucket}, due ${fmtDate(bbCtx.due)}).`:'';
 
-  // Build message content — include images if present
-  const userContent=hasPhotos
-    ? [...bbPendingPhotos.map(p=>({type:'image',source:{type:'base64',media_type:p.file.type||'image/jpeg',data:p.dataUrl.split(',')[1]}})),{type:'text',text:msg||'What can you see in this photo? Help me add it as a task.'}]
-    : msg;
+  // Photo cases were already handled above by runPhotoBackedIntent. From here
+  // on it's text-only.
+  const userContent=msg;
+  const snapshotPhotos=[];
 
-  const snapshotPhotos=[...bbPendingPhotos];
-  bbPendingPhotos=[];renderBBPhotoStrip();
-
-  if(addIntent||hasPhotos){
+  if(addIntent){
     // TASK CREATION MODE — ask Claude to return structured JSON
     const sys=`You are Blackbird, the AI inside BravoChore. Be warm, direct and genuinely helpful — like a smart friend who knows the household inside out. User: ${CUN}, Perth WA. Respond conversationally. Use bullet points only for steps. Don't be corporate.
 ${taskSummary}
@@ -358,53 +363,85 @@ function bbMsgHTML(html,cls){
   msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;
 }
 
-// Send the photo + user message to Claude with a supplier-extraction system
-// prompt. Claude returns structured JSON; we hand it to showBBSupplierPreview
-// (defined in suppliers.js) for confirm-before-save.
-async function runSupplierExtraction(msg,photos){
+// Unified photo-driven intent: send the photo + message to Claude and let it
+// classify whether this is a supplier (business card / van / signage) or a
+// task (work to do). Single API call returns both the kind and the extracted
+// fields. Replaces the regex-based intent detection that misfired on photos
+// of branded vehicles without explicit "save contact" wording.
+async function runPhotoBackedIntent(msg,photos){
   if(!photos||!photos.length){
-    bbMsg("To save a contact I need a photo of their van, business card, or signage. Snap one and try again.",'from-bb');
+    bbMsg("Send a photo so I can see what you mean.",'from-bb');
     return;
   }
-  bbSetState('thinking');
   const photoBlocks=photos.map(p=>({type:'image',source:{type:'base64',media_type:p.file?.type||'image/jpeg',data:p.dataUrl.split(',')[1]}}));
-  const userContent=[...photoBlocks,{type:'text',text:msg||'Save this person as a supplier in my contacts.'}];
-  const sys=`You are Blackbird, the AI inside BravoChore. The user wants to save a tradesperson, contractor or service supplier as a CRM contact. Look at the photo (typically a van, business card, signage, or shopfront) and extract the contact details.
+  const userContent=[...photoBlocks,{type:'text',text:msg||'What is this?'}];
+  const tomorrow=new Date(Date.now()+86400000).toISOString().slice(0,10);
+  const sys=`You are Blackbird, the AI inside BravoChore — a household task app. The user has sent a PHOTO and possibly a message. Your job is to figure out whether they want to:
 
-Respond ONLY with valid JSON in this exact shape (no markdown, no explanation):
+A) SAVE A SUPPLIER — the photo shows business signage, a vehicle with company branding, a business card, a shopfront, or any contact-info source for a tradesperson / service / supplier.
+
+B) ADD A TASK — the photo shows a chore to do (a broken thing, a garden bed, a room, plant, surface) and the user wants to track this work.
+
+C) JUST CHAT — the photo is shown for context but no creation is needed.
+
+Respond ONLY with valid JSON in this exact shape (no markdown):
 {
-  "business_name": "trading name e.g. Jim's Mowing, or null",
-  "name": "person's name if visible, or null",
-  "phone": "phone number with spaces stripped, or null",
-  "email": "email if visible, or null",
-  "website": "URL if visible, or null",
-  "trades": "comma-separated trade tags using lowercase singular nouns — e.g. plumber,gas-fitter or mowing,landscaping or painter",
-  "notes": "anything else worth remembering: hours, area covered, specialties, or null",
-  "blackbird_comment": "one short warm sentence confirming what you saw"
+  "kind": "supplier" | "task" | "chat",
+  "supplier": { "business_name": "...", "name": "...", "phone": "...", "email": "...", "website": "...", "trades": "comma-separated lowercase tags", "notes": "..." } or null,
+  "task": { "title": "...", "bucket": "Indoor or Outdoor", "owner": "${CU}", "due": "YYYY-MM-DD or null", "time_hours": number or null, "notes": "...", "shopping": [], "shopping_store": "Bunnings or Coles or ABI or Other" } or null,
+  "blackbird_comment": "one short warm sentence confirming what you saw and what you're saving"
 }
 
-Rules:
-- "trades" should be searchable tags. If the van says "Jim's Mowing & Landscaping" → "mowing,landscaping". If it says "ABC Plumbing & Gas" → "plumber,gas-fitter".
-- Phone numbers: keep the original formatting if it's readable, else strip to digits.
-- If you genuinely cannot read a field, return null for it. Don't make stuff up.
-- The comment should be human and brief, like "Got it — Jim's Mowing, lives in Beechboro, mowing + landscaping."`;
+Critical decision rules — read carefully:
+- Photo of a VEHICLE with company branding + phone number = SUPPLIER (almost always — this is the canonical case Brent uses: snapping a tradie's van at the lights).
+- Photo of a BUSINESS CARD = SUPPLIER.
+- Photo of SHOPFRONT / SIGNAGE with contact info = SUPPLIER.
+- Photo of damage / broken thing / overgrown garden / messy room / plant = TASK.
+- When the photo is a clearly-branded service vehicle, return SUPPLIER even if the user's message is vague (e.g. just "this guy", "add this", or empty). Do NOT default to TASK for photos of vehicles with phone numbers visible.
+- If the user's message explicitly says "add task" / "remind me" / "I need to" → TASK regardless of photo.
+- If the user's message explicitly says "save contact" / "add supplier" → SUPPLIER regardless of photo.
+
+For SUPPLIER:
+- "trades" = lowercase comma-separated searchable tags. "Jim's Mowing & Landscaping" → "mowing,landscaping". "ABC Plumbing & Gas" → "plumber,gas-fitter". Common tags: plumber, electrician, painter, carpenter, mowing, landscaping, gardener, builder, tiler, cleaner, roofing, fencing, concreting, tree-service, gas-fitter, glazier.
+- Keep phone formatting readable.
+- Return null for fields you genuinely can't read. Don't invent.
+
+For TASK:
+- owner defaults to ${CU}.
+- "tomorrow" → ${tomorrow}. "this weekend" → next Saturday.
+- bucket: garden / outdoor / exterior = Outdoor; everything else = Indoor.
+- shopping: only items that need to be bought.
+
+Set null for the kind that doesn't apply. The blackbird_comment is shown to the user — keep it warm and brief like a smart friend confirming the plan.`;
   try{
     const res=await fetch(BB_PROXY,{
       method:'POST',
       headers:{'Content-Type':'application/json','apikey':SK},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:500,system:sys,messages:[{role:'user',content:userContent}]})
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:700,system:sys,messages:[{role:'user',content:userContent}]})
     });
     const data=await res.json();
     const raw=data.content?.find(c=>c.type==='text')?.text||'null';
     let parsed=null;
-    try{parsed=JSON.parse(raw.replace(/```json|```/g,'').trim());}catch(e){}
-    if(parsed&&(parsed.business_name||parsed.name||parsed.phone)){
-      if(typeof showBBSupplierPreview==='function')showBBSupplierPreview(parsed,photos);
-      else bbMsg("Couldn't show the preview card — supplier module not loaded.",'from-bb');
+    try{parsed=JSON.parse(raw.replace(/```json|```/g,'').trim());}catch(e){console.warn('Photo-intent JSON parse failed:',raw);}
+    if(!parsed||!parsed.kind){
+      bbMsg("I couldn't read that one. Could you try a clearer shot?",'from-bb');
+      return;
+    }
+    if(parsed.kind==='supplier'&&parsed.supplier&&(parsed.supplier.business_name||parsed.supplier.name||parsed.supplier.phone)){
+      const supplier={...parsed.supplier,blackbird_comment:parsed.blackbird_comment};
+      if(typeof showBBSupplierPreview==='function')showBBSupplierPreview(supplier,photos);
+      else bbMsg("Suppliers module not loaded — open Settings → Manage suppliers to add manually.",'from-bb');
+    }else if(parsed.kind==='task'&&parsed.task&&parsed.task.title){
+      const taskParsed={...parsed.task,blackbird_comment:parsed.blackbird_comment};
+      bbHistory.push({role:'user',content:'[photo + message]'});
+      bbHistory.push({role:'assistant',content:raw});
+      showBBPreview(taskParsed,photos);
     }else{
-      bbMsg("I couldn't read enough from that photo to save a contact. Try a clearer shot of the van/card/signage.",'from-bb');
+      // 'chat' or insufficient data
+      bbMsg(parsed.blackbird_comment||"Got it — let me know what you'd like me to do with this.",'from-bb');
     }
   }catch(e){
+    console.warn('runPhotoBackedIntent failed:',e);
     bbMsg("Connection issue — try again.",'from-bb');
   }
 }
