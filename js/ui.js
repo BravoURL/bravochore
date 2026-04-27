@@ -481,17 +481,58 @@ async function quickTick(id,e){
       saveSprintState();
     }
   }
-  rerender();
-  // If sprint active, re-render sprint tasks too
-  if(sprintActive&&sprintData&&sprintData.taskIds.includes(id)){
-    setTimeout(renderSprintTasks,50);
+  // OPTIMISTIC UI — immediately collapse the card visually so the tap feels
+  // instant. Without this, on slower devices the user sees the card linger
+  // until rerender() finishes its full re-paint. We hide every instance of
+  // this task's card across the page (the same task can appear in the Tasks
+  // list, the dashboard's "Your tasks", and the event panel simultaneously).
+  if(task.done){
+    document.querySelectorAll(`.task-card[data-id="${id}"]`).forEach(card=>{
+      card.style.transition='opacity .18s ease, max-height .25s ease, margin .25s ease, padding .25s ease';
+      card.style.maxHeight=card.offsetHeight+'px';
+      // next frame, collapse
+      requestAnimationFrame(()=>{
+        card.style.opacity='0';
+        card.style.maxHeight='0';
+        card.style.marginTop='0';
+        card.style.marginBottom='0';
+        card.style.paddingTop='0';
+        card.style.paddingBottom='0';
+        card.style.overflow='hidden';
+      });
+    });
   }
-  // If event panel is open, refresh it so the ticked task disappears immediately
-  if(typeof activeEventId!=='undefined'&&activeEventId&&document.getElementById('event-panel')?.classList.contains('open')){
-    const ev=events.find(e=>e.id===activeEventId);
-    if(ev&&typeof renderEventPanel==='function')renderEventPanel(ev);
+  // Full re-render after a beat so the card collapse animation has time to
+  // play. The re-render is what truly removes the DOM element from each list.
+  setTimeout(()=>{
+    rerender();
+    if(sprintActive&&sprintData&&sprintData.taskIds.includes(id)){renderSprintTasks();}
+    if(typeof activeEventId!=='undefined'&&activeEventId&&document.getElementById('event-panel')?.classList.contains('open')){
+      const ev=events.find(e=>e.id===activeEventId);
+      if(ev&&typeof renderEventPanel==='function')renderEventPanel(ev);
+    }
+  },task.done?280:0);
+  // Persist to DB and surface any failure loudly so it can't go unnoticed
+  // (silent PATCH failures = local UI updates, but the tick is lost on next
+  // refresh because the server never got it. That made events look like they
+  // were resetting on app reopen).
+  try{
+    badge('sy','↻');
+    await api('bravochore_tasks','PATCH',{done:task.done},`?id=eq.${id}`);
+    badge('ok','✓');
+  }catch(err){
+    console.error('Tick PATCH failed for task',id,err);
+    badge('er','⚠');
+    chirp("Couldn't save tick — check connection. Tap to retry.");
+    // Revert local state so the UI matches the server. Otherwise the user
+    // thinks it ticked, refreshes, and sees it un-ticked, which is the worst
+    // of both worlds.
+    task.done=!task.done;
+    rerender();
+    if(typeof activeEventId!=='undefined'&&activeEventId&&document.getElementById('event-panel')?.classList.contains('open')){
+      const ev=events.find(e=>e.id===activeEventId);
+      if(ev&&typeof renderEventPanel==='function')renderEventPanel(ev);
+    }
   }
-  try{badge('sy','↻');await api('bravochore_tasks','PATCH',{done:task.done},`?id=eq.${id}`);badge('ok','✓');}
-  catch(err){badge('er','⚠');}
 }
 

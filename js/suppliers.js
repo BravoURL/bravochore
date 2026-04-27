@@ -364,8 +364,12 @@ async function bbConfirmSupplier(btn){
     if(r&&r[0])suppliers.unshift(r[0]);
     card.innerHTML=`<div style="color:var(--gd);font-weight:600;font-size:13px;padding:4px 0">✓ "${row.business_name||row.name||'Supplier'}" saved to your contacts</div>`;
   }catch(e){
+    console.error('Supplier save failed:',e);
     btn.textContent='✓ Save to Suppliers';btn.disabled=false;
-    bbMsg('Could not save — try again.','from-bb');
+    // Surface the actual error so we can diagnose future failures rather than
+    // showing the same opaque "could not save" every time.
+    const detail=(e&&e.message)?e.message.slice(0,120):'unknown error';
+    bbMsg('Could not save — '+detail+'. Try again or save manually via Settings → Suppliers.','from-bb');
   }
 }
 

@@ -195,7 +195,20 @@ async function dpToggleTask(){
   if(task.done){playChime('task');spawnConfettiCenter();}
   rerender();
   refreshEventPanelIfOpen();
-  try{await api('bravochore_tasks','PATCH',{done:task.done},`?id=eq.${dpTaskId}`);}catch(e){}
+  try{
+    badge('sy','↻');
+    await api('bravochore_tasks','PATCH',{done:task.done},`?id=eq.${dpTaskId}`);
+    badge('ok','✓');
+  }catch(e){
+    console.error('dpToggleTask PATCH failed:',e);
+    badge('er','⚠');
+    chirp("Couldn't save tick — check connection.");
+    // Revert so we don't leave a phantom tick that vanishes on next reload
+    task.done=!task.done;
+    document.getElementById('dp-check').classList.toggle('checked',task.done);
+    document.getElementById('dp-title').classList.toggle('done-txt',task.done);
+    rerender();refreshEventPanelIfOpen();
+  }
 }
 
 // Helper used by every code path that mutates a task's done state — keeps the
@@ -358,7 +371,20 @@ async function dpTickMs(msId){
   if(el){el.querySelector('.ms-chk').classList.toggle('checked',ms.done);el.querySelector('.ms-name').classList.toggle('done-txt',ms.done);}
   rerender();
   refreshEventPanelIfOpen();
-  try{await api('bravochore_milestones','PATCH',{done:ms.done},`?id=eq.${msId}`);}catch(e){}
+  try{
+    badge('sy','↻');
+    await api('bravochore_milestones','PATCH',{done:ms.done},`?id=eq.${msId}`);
+    badge('ok','✓');
+  }catch(e){
+    console.error('dpTickMs PATCH failed:',e);
+    badge('er','⚠');
+    chirp("Couldn't save milestone tick — check connection.");
+    // Revert so the next reload doesn't surprise the user with the milestone un-ticked
+    ms.done=!ms.done;
+    if(el){el.querySelector('.ms-chk').classList.toggle('checked',ms.done);el.querySelector('.ms-name').classList.toggle('done-txt',ms.done);}
+    rerender();refreshEventPanelIfOpen();
+    return;
+  }
   // After persisting the milestone tick, if every milestone is now done and the
   // task is still open, prompt the user to mark it complete (rather than auto-closing).
   const taskMs=getMs(ms.task_id);
