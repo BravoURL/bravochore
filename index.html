@@ -149,6 +149,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 .mc-amber .metric-value{color:var(--amber)}
 .mc-red .metric-value{color:var(--red)}
 
+/* HEAD-TO-HEAD — friendly comparison */
+.h2h{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rs);padding:12px 14px;margin-bottom:14px;display:flex;flex-direction:column;gap:8px}
+.h2h-row{display:grid;grid-template-columns:60px 1fr 14px 1fr;align-items:center;gap:10px}
+.h2h-label{font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px}
+.h2h-side{display:flex;align-items:baseline;justify-content:flex-start;gap:6px;min-width:0}
+.h2h-side.right{justify-content:flex-end}
+.h2h-num{font-family:'DM Mono',monospace;font-weight:700;font-size:20px;letter-spacing:-.5px;color:var(--tx2);transition:color .2s}
+.h2h-num.lead{color:var(--green);font-size:24px}
+.h2h-num.tied{color:var(--tx)}
+.h2h-name{font-size:11px;color:var(--tx3);font-weight:500}
+.h2h-vs{font-size:10px;color:var(--tx3);text-align:center;font-style:italic}
+
 /* PROGRESS */
 .progress-section{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:14px;margin-bottom:14px}
 .progress-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
@@ -568,8 +580,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 .bbfs-msgs{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:8px;-webkit-overflow-scrolling:touch}
 .bbfs-photo-strip{display:none;padding:6px 14px;gap:6px;flex-wrap:wrap;border-top:1px solid var(--bdr);background:var(--surf2)}
 .bbfs-photo-strip.visible{display:flex}
-.bbfs-input-row{padding:8px 10px;border-top:1px solid var(--bdr);display:flex;gap:6px;align-items:center;background:var(--surf);flex-shrink:0;padding-bottom:max(8px,env(safe-area-inset-bottom))}
-.bbfs-input{flex:1;padding:9px 13px;border:1px solid var(--bdrm);border-radius:100px;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;background:var(--bg);color:var(--tx);min-width:0}
+.bbfs-input-row{padding:8px 10px;border-top:1px solid var(--bdr);display:flex;gap:6px;align-items:flex-end;background:var(--surf);flex-shrink:0;padding-bottom:max(8px,env(safe-area-inset-bottom))}
+.bbfs-input{flex:1;padding:9px 13px;border:1px solid var(--bdrm);border-radius:18px;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;background:var(--bg);color:var(--tx);min-width:0;resize:none;max-height:140px;line-height:1.4}
 .bbfs-input:focus{border-color:var(--green)}
 .bbfs-icon-btn{width:36px;height:36px;border-radius:50%;background:none;border:1px solid var(--bdrm);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--tx2);transition:all .15s}
 .bbfs-icon-btn:active{background:var(--surf2)}
@@ -907,15 +919,21 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 
 /* TASK CHAT */
 .tc-msgs{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:8px;-webkit-overflow-scrolling:touch}
-.tc-msg{max-width:88%;padding:9px 12px;border-radius:14px;font-size:13px;line-height:1.5}
+.tc-msg{max-width:88%;padding:9px 12px;border-radius:14px;font-size:13px;line-height:1.5;white-space:pre-wrap;word-wrap:break-word}
 .tc-msg.user{background:var(--tx);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
 .tc-msg.assistant{background:var(--surf2);color:var(--tx);align-self:flex-start;border-bottom-left-radius:4px}
 .tc-msg.thinking{background:var(--gl);color:var(--gd);align-self:flex-start;font-style:italic}
-.tc-input-row{padding:8px 10px;border-top:1px solid var(--bdr);display:flex;gap:6px;align-items:center;background:var(--surf);flex-shrink:0;padding-bottom:max(8px,env(safe-area-inset-bottom))}
-.tc-input{flex:1;padding:9px 13px;border:1px solid var(--bdrm);border-radius:100px;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;background:var(--bg);color:var(--tx);min-width:0}
+.tc-msg img{max-width:200px;max-height:200px;border-radius:10px;display:block;margin-top:6px}
+.tc-input-row{padding:8px 10px;border-top:1px solid var(--bdr);display:flex;gap:6px;align-items:flex-end;background:var(--surf);flex-shrink:0;padding-bottom:max(8px,env(safe-area-inset-bottom))}
+.tc-input{flex:1;padding:9px 13px;border:1px solid var(--bdrm);border-radius:18px;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;background:var(--bg);color:var(--tx);min-width:0;resize:none;max-height:120px;line-height:1.4}
 .tc-input:focus{border-color:var(--green)}
 .tc-send{width:34px;height:34px;background:var(--green);border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .tc-send:active{background:var(--gd)}
+.tc-icon-btn{width:32px;height:32px;border-radius:50%;background:none;border:1px solid var(--bdrm);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--tx2);transition:all .15s}
+.tc-icon-btn:active{background:var(--surf2)}
+.tc-pending-thumb{display:inline-block;position:relative;margin-right:6px;vertical-align:middle}
+.tc-pending-thumb img{width:48px;height:48px;border-radius:8px;object-fit:cover;border:1px solid var(--bdr)}
+.tc-pending-thumb .x{position:absolute;top:-4px;right:-4px;width:18px;height:18px;background:var(--red);color:#fff;border-radius:50%;border:none;font-size:11px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
 
 /* MASTER BB — history sidebar concept */
 .bb-sessions-bar{padding:8px 14px;border-bottom:1px solid var(--bdr);display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;background:var(--surf2)}
@@ -1101,6 +1119,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 
       <!-- HOUSEHOLD SNAPSHOT — 4 tappable tiles -->
       <div class="metric-grid" id="metric-grid" style="margin-bottom:14px"></div>
+
+      <!-- HEAD-TO-HEAD COMPARISON — friendly competition, no leaderboard -->
+      <div id="h2h-card"></div>
 
       <!-- QUICK ACTIONS -->
       <div class="quick-actions">
@@ -1369,7 +1390,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
     </label>
     <input type="file" id="bb-photo-lib" accept="image/*" multiple style="display:none">
-    <input class="bbfs-input" id="bb-input" placeholder="Describe a task, or ask anything..." onkeydown="if(event.key==='Enter')sendToBB()">
+    <textarea class="bbfs-input" id="bb-input" placeholder="Describe a task, or ask anything..." rows="1"></textarea>
     <button class="bbfs-icon-btn bb-mic" id="bb-mic" onclick="toggleMic()" title="Voice input">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
     </button>
@@ -1467,6 +1488,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
     <button class="ep-back" onclick="closeEventPanel()">←</button>
     <div class="ep-title" id="ep-title">Event</div>
     <div class="ep-actions">
+      <button class="qa-btn" style="font-size:11px;padding:6px 10px" onclick="saveEventAsTemplate()" title="Save this event's task list as a reusable template">★ Save as template</button>
       <button class="qa-btn" style="font-size:11px;padding:6px 10px" onclick="editCurrentEvent()">Edit</button>
     </div>
   </div>
@@ -1489,20 +1511,58 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 
 <!-- NEW EVENT SHEET -->
 <div class="modal-bd" id="new-event-modal">
-  <div class="modal" style="max-width:420px">
-    <h3 id="nem-title">New Event</h3>
-    <div class="dp-field" style="margin-top:12px"><label class="dp-label">Event name</label>
-      <input class="dp-input" id="nem-name" placeholder="e.g. House Valuation, Weekend Visitors">
+  <div class="modal" style="max-width:560px;width:94vw;max-height:88vh;display:flex;flex-direction:column;padding:0">
+    <!-- Step 1: choose -->
+    <div id="nem-step-choose" class="nem-step" style="padding:20px;display:flex;flex-direction:column;gap:14px">
+      <h3 style="margin:0">New Event</h3>
+      <p style="font-size:13px;color:var(--tx2);margin:0">Start blank, or use a template to pre-populate prep tasks back-calculated from the event date.</p>
+      <div id="nem-tpl-list" style="display:flex;flex-direction:column;gap:8px;max-height:46vh;overflow-y:auto;margin-top:6px">
+        <div style="font-size:12px;color:var(--tx3)">Loading templates…</div>
+      </div>
+      <button class="btn-cancel" style="margin-top:4px" onclick="nemPickBlank()">Start blank →</button>
+      <div class="modal-acts" style="margin-top:6px">
+        <button class="btn-cancel" onclick="closeModal('new-event-modal')">Cancel</button>
+      </div>
     </div>
-    <div class="dp-field"><label class="dp-label">Date</label>
-      <input type="date" class="dp-input" id="nem-date">
+
+    <!-- Step 2: details -->
+    <div id="nem-step-details" class="nem-step" style="padding:20px;display:none;flex-direction:column;gap:14px">
+      <h3 id="nem-title" style="margin:0">Event details</h3>
+      <div class="dp-field"><label class="dp-label">Event name</label>
+        <input class="dp-input" id="nem-name" placeholder="e.g. Bryony's Wedding, The Break">
+      </div>
+      <div class="dp-field" style="background:var(--gl);border:1.5px solid var(--green);padding:12px;border-radius:var(--rs)">
+        <label class="dp-label" style="color:var(--gd);font-weight:700">Event date</label>
+        <input type="date" class="dp-input" id="nem-date" style="font-size:16px;font-weight:600">
+        <div id="nem-date-hint" style="font-size:11px;color:var(--tx3);margin-top:5px"></div>
+      </div>
+      <div class="dp-field"><label class="dp-label">Description (optional)</label>
+        <input class="dp-input" id="nem-desc" placeholder="A short note about this event">
+      </div>
+      <div class="modal-acts" style="margin-top:6px;justify-content:space-between">
+        <button class="btn-cancel" onclick="nemBack()">← Back</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn-cancel" onclick="closeModal('new-event-modal')">Cancel</button>
+          <button class="btn-ok" id="nem-next-btn" onclick="nemNext()">Continue →</button>
+        </div>
+      </div>
     </div>
-    <div class="dp-field"><label class="dp-label">Description (optional)</label>
-      <input class="dp-input" id="nem-desc" placeholder="A short note about this event">
-    </div>
-    <div class="modal-acts" style="margin-top:16px">
-      <button class="btn-cancel" onclick="closeModal('new-event-modal')">Cancel</button>
-      <button class="btn-ok" onclick="saveNewEvent()">Create</button>
+
+    <!-- Step 3: customise -->
+    <div id="nem-step-customise" class="nem-step" style="padding:0;display:none;flex-direction:column;flex:1;min-height:0">
+      <div style="padding:18px 20px 6px;border-bottom:1px solid var(--bdr)">
+        <h3 style="margin:0">Customise tasks</h3>
+        <div id="nem-cust-summary" style="font-size:12px;color:var(--tx2);margin-top:4px"></div>
+        <div id="nem-cust-warning" style="display:none;font-size:12px;color:var(--orange,#c97a2e);margin-top:6px;padding:8px;background:#fff4e6;border:1px solid #f0c98a;border-radius:8px"></div>
+      </div>
+      <div id="nem-cust-list" style="flex:1;overflow-y:auto;padding:10px 14px"></div>
+      <div class="modal-acts" style="padding:14px 20px;border-top:1px solid var(--bdr);justify-content:space-between;background:var(--surf)">
+        <button class="btn-cancel" onclick="nemBack()">← Back</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn-cancel" onclick="closeModal('new-event-modal')">Cancel</button>
+          <button class="btn-ok" onclick="nemCommit()">Create event</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -1622,11 +1682,20 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
   <div class="dp-tab-panel" id="dp-panel-chat">
     <div class="tc-msgs" id="tc-msgs"></div>
     <div class="tc-input-row">
-      <input class="tc-input" id="tc-input" placeholder="Ask Blackbird about this task..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendTaskChat();}">
-      <button class="tc-send" onclick="sendTaskChat()">
+      <label for="tc-photo-cam" class="tc-icon-btn" title="Take photo">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      </label>
+      <input type="file" id="tc-photo-cam" accept="image/*" capture="environment" style="display:none" onchange="tcAttachPhotos(this)">
+      <label for="tc-photo-lib" class="tc-icon-btn" title="Choose from album">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      </label>
+      <input type="file" id="tc-photo-lib" accept="image/*" multiple style="display:none" onchange="tcAttachPhotos(this)">
+      <textarea class="tc-input" id="tc-input" placeholder="Ask Blackbird about this task..." rows="1"></textarea>
+      <button class="tc-send" onclick="sendTaskChat()" title="Send">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
       </button>
     </div>
+    <div id="tc-pending-photos" style="display:none;padding:6px 12px;border-top:1px solid var(--bdr);background:var(--surf2);overflow-x:auto;white-space:nowrap"></div>
   </div>
 </div>
 
@@ -1678,6 +1747,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
       <div class="sp-toggle-row"><span class="sp-toggle-label">Week A/B reminder on switch</span><label class="sp-toggle"><input type="checkbox" id="pref-weekab" onchange="savePref('weekABReminder',this.checked)" checked><span class="sp-slider"></span></label></div>
     </div>
     <div class="sp-section">
+      <h3>Events</h3>
+      <div style="font-size:12px;color:var(--tx2);margin-bottom:8px;line-height:1.4">Templates pre-populate prep tasks back-calculated from the event date — perfect for recurring occasions like hosted meals.</div>
+      <button class="qa-btn" style="width:100%;justify-content:center" onclick="openTemplateManager()">📋 Manage event templates</button>
+    </div>
+    <div class="sp-section">
       <h3>Data</h3>
       <button class="qa-btn" style="width:100%;justify-content:center;margin-bottom:8px" onclick="exportData()">📤 Export all tasks</button>
       <button class="qa-btn urgent" style="width:100%;justify-content:center" onclick="resetData()">⚠ Reset all data</button>
@@ -1691,8 +1765,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
     <h3 id="cm-title">Confirm</h3>
     <p id="cm-body"></p>
     <div class="modal-acts">
-      <button class="btn-cancel" onclick="closeModal('confirm-modal');cmReject&&cmReject()">Cancel</button>
-      <button id="cm-ok" class="btn-ok" onclick="closeModal('confirm-modal');cmResolve&&cmResolve()">OK</button>
+      <button class="btn-cancel" onclick="closeModal('confirm-modal');cmResolve&&cmResolve(false)">Cancel</button>
+      <button id="cm-ok" class="btn-ok" onclick="closeModal('confirm-modal');cmResolve&&cmResolve(true)">OK</button>
     </div>
   </div>
 </div>
@@ -1940,6 +2014,7 @@ async function loadData(){
         startTimerInterval();
       }
     }
+    refreshShelvedView();
     badge('ok','✓ Synced');
   }catch(e){
     console.error(e);badge('er','⚠ Offline');
@@ -2028,7 +2103,6 @@ function bnNav(name){
   else if(name==='schedule'){initScheduleView();}
   else if(name==='events'){loadEvents().then(renderEvents);}
   else if(name==='shelved'){loadEvents().then(renderShelved);}
-  else if(name==='schedule'){initScheduleView();}
   else renderDashboard();
 }
 function showView(name,tab){bnNav(name);}
@@ -2212,9 +2286,12 @@ function renderDashboard(){
     </div>
     <div class="metric-card" style="cursor:pointer" onclick="bnNav('tasks')">
       <div class="metric-label">Active</div>
-      <div class="metric-value">${tasks.filter(t=>!t.done).length}</div>
+      <div class="metric-value">${tasks.filter(t=>!t.done&&t.status!=='shelved').length}</div>
       <div class="metric-sub">tasks in progress</div>
     </div>`;
+
+  // Head-to-head — Brent vs Bernadette friendly comparison
+  renderHeadToHead();
 
   // Active events strip
   const activeEvents=events.filter(e=>e.status!=='completed');
@@ -2292,6 +2369,54 @@ function showDoneList(){
     if(ct&&!ct.nextElementSibling?.classList.contains('open'))ct.click();
     ct?.scrollIntoView({behavior:'smooth',block:'start'});
   },200);
+}
+
+// ── HEAD-TO-HEAD: friendly Brent-vs-Bernadette comparison on the dashboard ──
+// Three rows: Done (lifetime), Pending, and Due this week. Leader's number is
+// emphasised — green and slightly larger. No leaderboard, no copy. Just numbers.
+function renderHeadToHead(){
+  const host=document.getElementById('h2h-card');
+  if(!host)return;
+  // Identify the two primary household members. Default to BW + BJ if present;
+  // otherwise fall back to the first two non-system people in the people list.
+  const primaryCodes=['BW','BJ'];
+  const a=people.find(p=>p.code===primaryCodes[0])||people[0];
+  const b=people.find(p=>p.code===primaryCodes[1])||people[1];
+  if(!a||!b||a.code===b.code){host.innerHTML='';return;}
+  // Counts (ignore shelved tasks throughout)
+  const active=tasks.filter(t=>t.status!=='shelved');
+  const tally=(code,pred)=>active.filter(t=>t.owner&&t.owner.includes(code)&&pred(t)).length;
+  const aDone=tally(a.code,t=>t.done);
+  const bDone=tally(b.code,t=>t.done);
+  const aPend=tally(a.code,t=>!t.done);
+  const bPend=tally(b.code,t=>!t.done);
+  // "This week" = due in next 7 days OR today (open tasks)
+  const today=tdStr();
+  const wkAhead=new Date();wkAhead.setDate(wkAhead.getDate()+7);
+  const wk=wkAhead.toISOString().slice(0,10);
+  const aWeek=tally(a.code,t=>!t.done&&t.due&&t.due>=today&&t.due<=wk);
+  const bWeek=tally(b.code,t=>!t.done&&t.due&&t.due>=today&&t.due<=wk);
+  // Higher-is-better for Done; lower-is-better for Pending and This week.
+  // Leader logic per row:
+  const row=(label,aVal,bVal,higherIsBetter)=>{
+    let aCls='h2h-num',bCls='h2h-num';
+    if(aVal===bVal&&aVal>0){aCls+=' tied';bCls+=' tied';}
+    else if(aVal!==bVal){
+      const aIsLeading=higherIsBetter?aVal>bVal:aVal<bVal;
+      if(aIsLeading)aCls+=' lead'; else bCls+=' lead';
+    }
+    return `<div class="h2h-row">
+      <span class="h2h-label">${label}</span>
+      <span class="h2h-side"><span class="${aCls}">${aVal}</span><span class="h2h-name">${a.name}</span></span>
+      <span class="h2h-vs">vs</span>
+      <span class="h2h-side right"><span class="h2h-name">${b.name}</span><span class="${bCls}">${bVal}</span></span>
+    </div>`;
+  };
+  host.innerHTML=`<div class="h2h">
+    ${row('Done',aDone,bDone,true)}
+    ${row('This wk',aWeek,bWeek,false)}
+    ${row('Pending',aPend,bPend,false)}
+  </div>`;
 }
 
 
@@ -2395,8 +2520,8 @@ function renderTasksView(){
     else if(sort==='owner')arr.sort((a,b)=>(a.owner||'').localeCompare(b.owner||''));
     return arr;
   };
-  const active=sortF(applyF(tasks.filter(t=>!t.done)));
-  const done=applyF(tasks.filter(t=>t.done));
+  const active=sortF(applyF(tasks.filter(t=>!t.done&&t.status!=='shelved')));
+  const done=applyF(tasks.filter(t=>t.done&&t.status!=='shelved'));
   document.getElementById('all-tasks-list').innerHTML=active.length?active.map(taskCard).join(''):'<div class="empty-state">No tasks match.</div>';
   const cs=document.getElementById('completed-section');
   if(done.length){
@@ -2707,31 +2832,23 @@ function dpConfirmCustomTime(){
   });
 }
 async function dpShelveTask(){
-  // Snapshot everything BEFORE any async — dpTaskId may be nulled by closeDetail mid-await
+  // Snapshot — dpTaskId may be nulled by closeDetail mid-await
   const taskId=dpTaskId;
   const task=tasks.find(t=>t.id===taskId);
   if(!task||!taskId)return;
   const taskTitle=task.title;
-  const taskNotes=task.notes||'';
-
-  // Close detail panel FIRST so the backdrop doesn't interfere with confirm modal
+  // Close detail panel FIRST so backdrop doesn't clash with confirm modal
   closeDetail();
-
-  // Now show confirm — detail is closed, no backdrop interference
-  const confirmed=await confirm2('Shelve "'+taskTitle+'"?','It will move to your Shelved list and can be activated when ready.','btn-ok');
+  const confirmed=await confirm2('Shelve "'+taskTitle+'"?','It moves to your Shelved list with all chat, photos and history intact. Activate any time.','btn-ok');
   if(!confirmed)return;
-
-  const ns={title:taskTitle,notes:taskNotes,sort_order:shelved.length+1};
-  let saved=false;
+  // Single source of truth — flip status, ID + chat + photos + everything stays
+  task.status='shelved';
+  badge('sy','↻');
   try{
-    const res=await api('bravochore_shelved','POST',[ns]);
-    if(res&&res[0]){shelved.push(res[0]);saved=true;}
-  }catch(e){console.error('Shelve POST failed:',e);}
-  if(!saved){chirp('Could not shelve — please try again.');return;}
-  tasks=tasks.filter(t=>t.id!==taskId);
-  milestones=milestones.filter(m=>m.task_id!==taskId);
-  try{await api('bravochore_tasks','DELETE',null,`?id=eq.${taskId}`);}catch(e){}
-  try{await api('bravochore_milestones','DELETE',null,`?task_id=eq.${taskId}`);}catch(e){}
+    await api('bravochore_tasks','PATCH',{status:'shelved'},`?id=eq.${taskId}`);
+    badge('sy','✓');
+  }catch(e){console.error('Shelve PATCH failed:',e);chirp('Could not shelve — please try again.');task.status='active';return;}
+  refreshShelvedView();
   bnNav('shelved');
   chirp('"'+taskTitle+'" shelved.');
 }
@@ -2751,7 +2868,7 @@ async function dpSave(){
       const ev_id=document.getElementById('dp-event')?.value||null;if(task)task.event_id=ev_id?parseInt(ev_id):null;await api('bravochore_tasks','PATCH',{title,owner,due,time_hours,bucket,notes,event_id:ev_id?parseInt(ev_id):null},`?id=eq.${dpTaskId}`);
     }else{
       const nid=Date.now();
-      const nt={id:nid,title,owner,due,time_hours,bucket,notes,done:false,sort_order:tasks.length+1,photo_urls:[],task_code:getNextCode(),event_id:getActiveEvent()||null};
+      const nt={id:nid,title,owner,due,time_hours,bucket,notes,done:false,sort_order:tasks.length+1,photo_urls:[],task_code:getNextCode(),event_id:getActiveEvent()||null,status:'active'};
       tasks.push(nt);dpTaskId=nid;
       await api('bravochore_tasks','POST',[nt]);
     }
@@ -3302,7 +3419,16 @@ function bbNewConversation(){
 function openBBFullscreen(){
   document.getElementById('bb-fullscreen').classList.add('open');
   document.getElementById('bb-fab').style.display='none';
-  setTimeout(()=>document.getElementById('bb-input').focus(),100);
+  setTimeout(()=>{
+    const ta=document.getElementById('bb-input');
+    if(ta){
+      ta.focus();
+      if(!ta.dataset.wired){
+        ta.dataset.wired='1';
+        ta.addEventListener('input',()=>{ta.style.height='auto';ta.style.height=Math.min(ta.scrollHeight,140)+'px';});
+      }
+    }
+  },100);
 }
 function closeBBFullscreen(){
   document.getElementById('bb-fullscreen').classList.remove('open');
@@ -3361,6 +3487,7 @@ async function sendToBB(){
   const hasPhotos=bbPendingPhotos.length>0;
   if(!msg&&!hasPhotos)return;
   inp.value='';
+  inp.style.height='auto'; // reset textarea growth
 
   // Show user message with photo thumbnails
   if(hasPhotos){
@@ -3829,8 +3956,9 @@ function dragFinishInList(list){
   const newOrder=Array.from((list||document.getElementById('all-tasks-list')).querySelectorAll(selector))
     .map(c=>parseInt(isShelved?c.dataset.sid:c.dataset.id)).filter(n=>!isNaN(n));
   if(isShelved){
-    newOrder.forEach((id,i)=>{const s=shelved.find(x=>x.id===id);if(s)s.sort_order=i+1;});
-    newOrder.forEach((id,i)=>api('bravochore_shelved','PATCH',{sort_order:i+1},`?id=eq.${id}`).catch(()=>{}));
+    newOrder.forEach((id,i)=>{const t=tasks.find(x=>x.id===id);if(t)t.sort_order=i+1;});
+    refreshShelvedView();
+    newOrder.forEach((id,i)=>api('bravochore_tasks','PATCH',{sort_order:i+1},`?id=eq.${id}`).catch(()=>{}));
   }else{
     newOrder.forEach((id,i)=>{const t=tasks.find(x=>x.id===id);if(t)t.sort_order=i+1;});
     tasks.sort((a,b)=>(a.sort_order||999)-(b.sort_order||999));
@@ -5028,15 +5156,30 @@ async function dismissNudge(){
 
 // Entry point called from bnNav
 async function initScheduleView(){
-  await loadScheduleData();
-  // Set owner toggle labels to actual user codes
-  const meBtn=document.getElementById('sv-me');
-  const partnerBtn=document.getElementById('sv-partner');
-  if(meBtn)meBtn.textContent=CU;
-  if(partnerBtn)partnerBtn.textContent=getPartnerCode();
-  // Set active view state
-  setSchedView(schedView); // applies current user filter
-  setSchedSub('today',document.getElementById('ssn-today'));
+  // Render synchronously first so something appears immediately, even before data loads
+  try{
+    const meBtn=document.getElementById('sv-me');
+    const partnerBtn=document.getElementById('sv-partner');
+    if(meBtn)meBtn.textContent=CU;
+    if(partnerBtn)partnerBtn.textContent=getPartnerCode();
+    setSchedSub('today',document.getElementById('ssn-today'));
+  }catch(e){console.warn('Schedule pre-render warning:',e);}
+  // Then load data and re-render today with the fresh data
+  try{await loadScheduleData();}catch(e){console.warn('Schedule data load failed:',e);}
+  try{
+    setSchedView(schedView);
+    if(schedSub==='today')renderSchedToday();
+  }catch(e){console.warn('Schedule re-render warning:',e);}
+}
+
+// Returns the partner code for the current user — first non-CU active person in the household
+function getPartnerCode(){
+  const others=people.filter(p=>p.code!==CU);
+  if(!others.length)return CU;
+  // Prefer BJ↔BW pairing if both exist
+  if(CU==='BW'&&others.some(p=>p.code==='BJ'))return 'BJ';
+  if(CU==='BJ'&&others.some(p=>p.code==='BW'))return 'BW';
+  return others[0].code;
 }
 
 // ================================================================
@@ -5102,17 +5245,11 @@ async function doShelveFromTasks(){
   let count=0;
   for(const id of sel){
     const task=tasks.find(t=>t.id===id);if(!task)continue;
-    const ns={title:task.title,notes:task.notes||'',owner:task.owner,due:task.due,
-      time_hours:task.time_hours,bucket:task.bucket||'Indoor',
-      photo_urls:task.photo_urls||[],task_code:task.task_code,sort_order:shelved.length+1};
-    let saved=false;
-    try{const res=await api('bravochore_shelved','POST',[ns]);if(res&&res[0]){shelved.push(res[0]);saved=true;}}catch(e){}
-    if(!saved)continue;
-    tasks=tasks.filter(t=>t.id!==id);
-    milestones=milestones.filter(m=>m.task_id!==id);
-    try{await api('bravochore_tasks','DELETE',null,`?id=eq.${id}`);}catch(e){}
-    count++;
+    task.status='shelved';
+    try{await api('bravochore_tasks','PATCH',{status:'shelved'},`?id=eq.${id}`);count++;}
+    catch(e){task.status='active';}
   }
+  refreshShelvedView();
   renderShelved();rerender();
   chirp(count+' task'+(count!==1?'s':'')+' shelved.');
 }
@@ -5167,11 +5304,11 @@ async function shelveSelected(){
   for(const id of ids){
     const task=tasks.find(t=>t.id===id);
     if(!task)continue;
-    const ns={title:task.title,notes:task.notes||'',sort_order:shelved.length+1};
-    try{const res=await api('bravochore_shelved','POST',[ns]);if(res&&res[0])shelved.push(res[0]);}catch(e){}
-    tasks=tasks.filter(t=>t.id!==id);
-    try{await api('bravochore_tasks','DELETE',null,`?id=eq.${id}`);}catch(e){}
+    task.status='shelved';
+    try{await api('bravochore_tasks','PATCH',{status:'shelved'},`?id=eq.${id}`);}
+    catch(e){task.status='active';}
   }
+  refreshShelvedView();
   toggleSelectMode();
   bnNav('shelved');
   chirp(ids.length+' task'+(ids.length>1?'s':'')+' shelved.');
@@ -5184,14 +5321,31 @@ let events=[],shelved=[];
 let activeEventId=null;
 let nextEventId=null; // for task assignment on creation
 
+// Splits tasks/shelved client-side by status. DB has both in bravochore_tasks
+// (one source of truth, transfer in place); client splits for clean rendering.
+// Idempotent — can be called from any handler after a status change.
+function refreshShelvedView(){
+  // Move any shelved-status rows out of tasks → shelved
+  const toShelve=tasks.filter(t=>t.status==='shelved');
+  if(toShelve.length){
+    shelved.push(...toShelve);
+    tasks=tasks.filter(t=>t.status!=='shelved');
+  }
+  // Move any active-status rows out of shelved → tasks
+  const toActivate=shelved.filter(t=>t.status!=='shelved');
+  if(toActivate.length){
+    tasks.push(...toActivate);
+    shelved=shelved.filter(t=>t.status==='shelved');
+  }
+  // Sort shelved by sort_order
+  shelved.sort((a,b)=>(a.sort_order||999)-(b.sort_order||999));
+}
+
 async function loadEvents(){
   try{
-    const[ev,sh]=await Promise.all([
-      api('bravochore_events','GET',null,'?order=due.asc'),
-      api('bravochore_shelved','GET',null,'?order=sort_order.asc')
-    ]);
-    events=ev;shelved=sh;
-  }catch(e){events=[];shelved=[];}
+    const ev=await api('bravochore_events','GET',null,'?order=due.asc');
+    events=ev||[];
+  }catch(e){events=[];}
 }
 
 function renderEvents(){
@@ -5412,42 +5566,592 @@ async function confirmCompleteEvent(){
   chirp('Event closed. Unfinished tasks rolled back to your list.');
 }
 
-function openNewEventSheet(){openModal('new-event-modal');setTimeout(()=>document.getElementById('nem-name')?.focus(),100);}
+// ================================================================
+// EVENT TEMPLATES + NEW-EVENT WIZARD
+// ================================================================
+let eventTemplates=[];     // [{id,name,description,...}]
+let nemState={             // wizard transient state
+  step:'choose',
+  templateId:null,         // null = blank
+  templateName:'',
+  templateTasks:[],        // working copy: [{title,owner,time_hours,day_offset,prefer_weekend,bucket,notes,enabled,custom_due}]
+  isEdit:false             // editing existing event vs creating
+};
+
+async function loadEventTemplates(){
+  try{
+    const t=await api('bravochore_event_templates','GET',null,'?order=name.asc');
+    eventTemplates=t||[];
+  }catch(e){eventTemplates=[];}
+}
+
+async function loadTemplateTasks(templateId){
+  try{
+    const r=await api('bravochore_event_template_tasks','GET',null,
+      `?template_id=eq.${templateId}&order=sort_order.asc`);
+    return r||[];
+  }catch(e){return[];}
+}
+
+function openNewEventSheet(){
+  // Reset state
+  nemState={step:'choose',templateId:null,templateName:'',templateTasks:[],isEdit:false};
+  activeEventId=null;
+  document.getElementById('nem-title').textContent='Event details';
+  document.getElementById('nem-name').value='';
+  document.getElementById('nem-date').value='';
+  document.getElementById('nem-desc').value='';
+  document.getElementById('nem-next-btn').textContent='Continue →';
+  nemShowStep('choose');
+  // Populate template list
+  loadEventTemplates().then(()=>nemRenderTemplateList());
+  openModal('new-event-modal');
+}
+
+function nemShowStep(step){
+  nemState.step=step;
+  ['choose','details','customise'].forEach(s=>{
+    const el=document.getElementById('nem-step-'+s);
+    if(el)el.style.display=(s===step)?'flex':'none';
+  });
+}
+
+function nemRenderTemplateList(){
+  const list=document.getElementById('nem-tpl-list');
+  if(!list)return;
+  if(!eventTemplates.length){
+    list.innerHTML='<div style="font-size:12px;color:var(--tx3);padding:8px">No templates yet. Save an event as a template later to build your library.</div>';
+    return;
+  }
+  list.innerHTML=eventTemplates.map(t=>`
+    <button class="qa-btn" style="text-align:left;padding:14px;background:var(--surf2);border:1px solid var(--bdr);border-radius:var(--rs);cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;gap:4px;width:100%" onclick="nemPickTemplate(${t.id})">
+      <div style="font-family:'Playfair Display',serif;font-size:16px;font-weight:500;color:var(--tx)">${t.name}</div>
+      ${t.description?`<div style="font-size:11px;color:var(--tx2);line-height:1.4;text-align:left">${t.description}</div>`:''}
+    </button>
+  `).join('');
+}
+
+async function nemPickTemplate(id){
+  const tpl=eventTemplates.find(t=>t.id===id);
+  if(!tpl)return;
+  nemState.templateId=id;
+  nemState.templateName=tpl.name;
+  const taskRows=await loadTemplateTasks(id);
+  // Working copy with enabled flag and slot for user-overridden due
+  nemState.templateTasks=taskRows.map(r=>({...r,enabled:true,custom_due:null}));
+  // Pre-fill name from template
+  document.getElementById('nem-name').value=tpl.name;
+  document.getElementById('nem-desc').value=tpl.description||'';
+  document.getElementById('nem-date').value='';
+  // Default the date to next Saturday so users see the engine working immediately
+  const d=new Date();
+  const daysUntilSat=(6-d.getDay()+7)%7||7;
+  d.setDate(d.getDate()+daysUntilSat);
+  document.getElementById('nem-date').value=d.toISOString().slice(0,10);
+  nemUpdateDateHint();
+  nemShowStep('details');
+}
+
+function nemPickBlank(){
+  nemState.templateId=null;nemState.templateName='';nemState.templateTasks=[];
+  document.getElementById('nem-name').value='';
+  document.getElementById('nem-desc').value='';
+  document.getElementById('nem-date').value='';
+  nemShowStep('details');
+  document.getElementById('nem-next-btn').textContent='Create →';
+}
+
+function nemBack(){
+  if(nemState.step==='customise')nemShowStep('details');
+  else if(nemState.step==='details'){
+    if(nemState.isEdit){closeModal('new-event-modal');return;}
+    nemShowStep('choose');
+  }
+}
+
+function nemUpdateDateHint(){
+  const dateStr=document.getElementById('nem-date')?.value;
+  const hint=document.getElementById('nem-date-hint');
+  if(!hint)return;
+  if(!dateStr){hint.textContent='Pick the day of the event.';return;}
+  if(nemState.templateId){
+    const today=tdStr();
+    const eventD=new Date(dateStr+'T00:00:00');
+    const todayD=new Date(today+'T00:00:00');
+    const daysAvail=Math.round((eventD-todayD)/86400000);
+    const dayName=eventD.toLocaleDateString('en-AU',{weekday:'long'});
+    if(daysAvail<0)hint.innerHTML=`<span style="color:var(--red)">Date is in the past. Pick a future date.</span>`;
+    else if(daysAvail===0)hint.innerHTML=`Hosting <b>today</b> (${dayName}). All prep tasks will land today.`;
+    else hint.innerHTML=`Hosting <b>${dayName}</b>, ${daysAvail} day${daysAvail===1?'':'s'} away. Prep tasks will back-calculate from this date.`;
+  }else{
+    hint.textContent='';
+  }
+}
+
+// Wire date input live update
+document.addEventListener('DOMContentLoaded',()=>{
+  const d=document.getElementById('nem-date');
+  if(d)d.addEventListener('change',nemUpdateDateHint);
+});
+
+// ── DATE ENGINE ──
+// For each template task, compute its actual due date given the event date.
+// Rules:
+//  1. baseDate = eventDate + day_offset (offsets are negative; -7 = 7 days before)
+//  2. If prefer_weekend AND baseDate falls Mon-Fri, snap backward to the prior Saturday.
+//  3. If the longest offset would put a task in the past, COMPRESS the whole schedule
+//     proportionally so the most-distant task lands today (never past).
+//  4. Tasks at offset 0 always land on event day regardless of compression.
+function computeTemplateDueDates(templateTasks,eventDateStr){
+  if(!eventDateStr)return templateTasks.map(t=>({...t,_due:null}));
+  const today=new Date(tdStr()+'T00:00:00');
+  const event=new Date(eventDateStr+'T00:00:00');
+  const daysAvail=Math.round((event-today)/86400000);
+  const minOffset=Math.min(0,...templateTasks.filter(t=>t.enabled).map(t=>t.day_offset||0));  // most negative
+  const neededLead=Math.abs(minOffset);
+  // Compression: if not enough lead time, scale offsets proportionally
+  // factor < 1 compresses; factor === 1 means no change
+  let factor=1;
+  if(neededLead>0&&daysAvail<neededLead)factor=Math.max(0,daysAvail)/neededLead;
+  return templateTasks.map(t=>{
+    if(t.day_offset===0||t.day_offset==null){
+      // Day-of tasks always land on event day
+      return{...t,_due:eventDateStr};
+    }
+    const scaledOffset=Math.round(t.day_offset*factor);   // negative or zero
+    const d=new Date(event);
+    d.setDate(d.getDate()+scaledOffset);
+    // Weekend prefer
+    if(t.prefer_weekend){
+      const dow=d.getDay(); // 0=Sun, 6=Sat
+      if(dow>=1&&dow<=5){
+        // Snap backward to prior Saturday
+        const back=dow===1?2:dow===2?3:dow===3?4:dow===4?5:6;
+        d.setDate(d.getDate()-back);
+        // But never into the past
+        if(d<today){d.setTime(today.getTime());}
+      }
+    }
+    // Final guard: never set past
+    if(d<today)d.setTime(today.getTime());
+    return{...t,_due:d.toISOString().slice(0,10)};
+  });
+}
+
+function nemNext(){
+  const name=document.getElementById('nem-name')?.value.trim();
+  const date=document.getElementById('nem-date')?.value;
+  const desc=document.getElementById('nem-desc')?.value||'';
+  if(!name){chirp('Please enter an event name.');return;}
+  if(!date){chirp('Please pick an event date.');return;}
+  // For blank events with no template, just create directly
+  if(!nemState.templateId&&!nemState.isEdit){
+    nemCommitBlank(name,date,desc);return;
+  }
+  // For edit-mode, just save
+  if(nemState.isEdit){nemCommitEdit(name,date,desc);return;}
+  // Template path: go to customise
+  nemRenderCustomise();
+  nemShowStep('customise');
+}
+
+function nemRenderCustomise(){
+  const date=document.getElementById('nem-date')?.value;
+  const computed=computeTemplateDueDates(nemState.templateTasks,date);
+  // Save back to state so commit uses the same dates the user sees
+  nemState.templateTasks=computed.map((t,i)=>({...nemState.templateTasks[i],_due:t._due}));
+  // Group by computed due date
+  const byDate={};
+  computed.filter(t=>t.enabled).forEach(t=>{
+    const k=t._due||'unscheduled';
+    (byDate[k]=byDate[k]||[]).push(t);
+  });
+  const sortedDates=Object.keys(byDate).sort();
+  // Compression check
+  const today=tdStr();
+  const eventD=new Date(date+'T00:00:00');
+  const todayD=new Date(today+'T00:00:00');
+  const daysAvail=Math.round((eventD-todayD)/86400000);
+  const minOff=Math.min(0,...nemState.templateTasks.filter(t=>t.enabled).map(t=>t.day_offset||0));
+  const compressed=daysAvail<Math.abs(minOff);
+  const warn=document.getElementById('nem-cust-warning');
+  if(compressed){
+    warn.style.display='block';
+    warn.innerHTML=`<b>Tight lead time:</b> only ${daysAvail} day${daysAvail===1?'':'s'} until the event but the template wants ${Math.abs(minOff)} days of lead. Tasks have been compressed proportionally — none scheduled in the past. Drop tasks you don't need below.`;
+  }else{
+    warn.style.display='none';
+  }
+  // Summary
+  const enabledCount=nemState.templateTasks.filter(t=>t.enabled).length;
+  const totalHours=nemState.templateTasks.filter(t=>t.enabled).reduce((s,t)=>s+(parseFloat(t.time_hours)||0),0);
+  document.getElementById('nem-cust-summary').textContent=
+    `${enabledCount} of ${nemState.templateTasks.length} tasks · ~${fmtHours(totalHours)} total · for "${document.getElementById('nem-name').value}"`;
+  // Render grouped task list
+  const list=document.getElementById('nem-cust-list');
+  list.innerHTML=sortedDates.map(d=>{
+    const tasks=byDate[d];
+    const dateLabel=d==='unscheduled'?'Unscheduled':(d===date?`${fmtDate(d)} · Event day`:fmtDate(d));
+    return `<div style="margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;padding:0 4px">${dateLabel}</div>
+      ${tasks.map(t=>nemRowHtml(t)).join('')}
+    </div>`;
+  }).join('')+
+  `<div style="margin-top:8px;padding:10px 4px;border-top:1px dashed var(--bdr)">
+    <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Disabled</div>
+    ${nemState.templateTasks.filter(t=>!t.enabled).map(t=>nemRowHtml(t)).join('')||'<div style="font-size:11px;color:var(--tx3);padding:0 4px">All tasks enabled.</div>'}
+  </div>`;
+}
+
+function nemRowHtml(t){
+  const idx=nemState.templateTasks.findIndex(x=>x===t||(x.title===t.title&&x.day_offset===t.day_offset&&x.sort_order===t.sort_order));
+  const ownerName=getOwner(t.default_owner||'BJ').name;
+  const initials=getOwner(t.default_owner||'BJ').initials||(t.default_owner||'?');
+  const bg=getOwner(t.default_owner||'BJ').bg||'#eee';
+  const color=getOwner(t.default_owner||'BJ').color||'#333';
+  return `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surf);border:1px solid var(--bdr);border-radius:10px;margin-bottom:6px;${t.enabled?'':'opacity:.45'}">
+    <input type="checkbox" ${t.enabled?'checked':''} onchange="nemToggleTask(${idx},this.checked)" style="width:18px;height:18px;flex-shrink:0;cursor:pointer">
+    <div style="flex:1;min-width:0">
+      <input type="text" value="${(t.title||'').replace(/"/g,'&quot;')}" onchange="nemEditField(${idx},'title',this.value)" style="width:100%;font-size:13px;font-weight:500;color:var(--tx);background:none;border:none;padding:0;outline:none">
+      <div style="display:flex;gap:8px;font-size:11px;color:var(--tx3);margin-top:2px;align-items:center">
+        <span style="display:inline-flex;align-items:center;gap:4px">
+          <span style="width:18px;height:18px;border-radius:50%;background:${bg};color:${color};display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700">${initials}</span>
+          <select onchange="nemEditField(${idx},'default_owner',this.value)" style="background:none;border:none;font-size:11px;color:var(--tx2);padding:0;cursor:pointer">
+            ${people.map(p=>`<option value="${p.code}" ${p.code===t.default_owner?'selected':''}>${p.name}</option>`).join('')}
+          </select>
+        </span>
+        <span>·</span>
+        <input type="number" value="${t.time_hours||0}" min="0" step="0.25" onchange="nemEditField(${idx},'time_hours',parseFloat(this.value)||0)" style="width:48px;font-size:11px;background:none;border:1px solid var(--bdr);border-radius:4px;padding:1px 4px;color:var(--tx2)"> hrs
+        <span>·</span>
+        <input type="date" value="${t._due||''}" onchange="nemEditField(${idx},'custom_due',this.value)" style="background:none;border:1px solid var(--bdr);border-radius:4px;padding:1px 4px;font-size:11px;color:var(--tx2)">
+      </div>
+    </div>
+  </div>`;
+}
+
+function nemToggleTask(idx,enabled){
+  if(nemState.templateTasks[idx]){
+    nemState.templateTasks[idx].enabled=enabled;
+    nemRenderCustomise();
+  }
+}
+
+function nemEditField(idx,field,val){
+  if(nemState.templateTasks[idx]){
+    nemState.templateTasks[idx][field]=val;
+    if(field==='custom_due'){
+      nemState.templateTasks[idx]._due=val;
+    }
+    // Don't re-render to avoid losing focus on inputs
+    // Just update summary
+    if(field==='time_hours'){
+      const totalHours=nemState.templateTasks.filter(t=>t.enabled).reduce((s,t)=>s+(parseFloat(t.time_hours)||0),0);
+      const enabledCount=nemState.templateTasks.filter(t=>t.enabled).length;
+      const summaryEl=document.getElementById('nem-cust-summary');
+      if(summaryEl)summaryEl.textContent=`${enabledCount} of ${nemState.templateTasks.length} tasks · ~${fmtHours(totalHours)} total · for "${document.getElementById('nem-name').value}"`;
+    }
+  }
+}
+
+async function nemCommitBlank(name,date,desc){
+  closeModal('new-event-modal');
+  const nev={title:name,due:date||null,description:desc||null,color:'#5C8A4A',status:'active'};
+  try{
+    const res=await api('bravochore_events','POST',[nev]);
+    if(res&&res[0])events.push(res[0]);
+    chirp('Event created.');
+  }catch(e){console.error('Event save failed:',e);badge('er','⚠ Event not saved');}
+  renderEvents();
+}
+
+async function nemCommitEdit(name,date,desc){
+  closeModal('new-event-modal');
+  const ev=events.find(e=>e.id===activeEventId);
+  if(!ev)return;
+  ev.title=name;ev.due=date||null;ev.description=desc;
+  try{await api('bravochore_events','PATCH',{title:name,due:ev.due,description:desc},`?id=eq.${activeEventId}`);}catch(e){}
+  document.getElementById('ep-title')&&(document.getElementById('ep-title').textContent=name);
+  renderEvents();
+  if(typeof renderEventPanel==='function')renderEventPanel(ev);
+}
+
+async function nemCommit(){
+  const name=document.getElementById('nem-name')?.value.trim();
+  const date=document.getElementById('nem-date')?.value;
+  const desc=document.getElementById('nem-desc')?.value||'';
+  if(!name||!date){chirp('Need a name and date.');return;}
+  closeModal('new-event-modal');
+  badge('sy','↻ Creating event…');
+  // 1. Create event
+  const nev={title:name,due:date,description:desc||null,color:'#5C8A4A',status:'active'};
+  let evId=null;
+  try{
+    const res=await api('bravochore_events','POST',[nev]);
+    if(res&&res[0]){events.push(res[0]);evId=res[0].id;}
+  }catch(e){console.error('Event save failed:',e);chirp('Could not create event.');return;}
+  if(!evId){chirp('Event creation failed.');return;}
+  // 2. Create tasks for each enabled template task
+  const enabled=nemState.templateTasks.filter(t=>t.enabled);
+  let nextSort=tasks.length+1;
+  const newTasks=enabled.map(t=>({
+    id:Date.now()+Math.floor(Math.random()*10000),
+    title:t.title,
+    owner:t.default_owner||'BJ',
+    due:t._due||t.custom_due||date,
+    time_hours:parseFloat(t.time_hours)||0,
+    bucket:t.bucket||'Indoor',
+    notes:t.notes||'',
+    done:false,
+    sort_order:nextSort++,
+    photo_urls:[],
+    task_code:null, // assigned by getNextCode after tasks loaded
+    event_id:evId,
+    status:'active'
+  }));
+  // Assign task codes locally
+  newTasks.forEach(nt=>{
+    tasks.push(nt);
+    nt.task_code=getNextCode();
+  });
+  try{
+    const inserted=await api('bravochore_tasks','POST',newTasks);
+    if(inserted&&inserted.length){
+      // Replace local copies with server-returned rows (which have stable IDs/timestamps)
+      newTasks.forEach((nt,i)=>{
+        const idx=tasks.findIndex(x=>x.id===nt.id);
+        if(idx>=0&&inserted[i])tasks[idx]=inserted[i];
+      });
+    }
+    badge('ok','✓');
+    chirp(`"${name}" created with ${enabled.length} tasks.`);
+  }catch(e){
+    console.error('Task batch insert failed:',e);
+    chirp('Event created but tasks failed to save. Please check connection.');
+  }
+  renderEvents();rerender();
+}
+
+// Edit-existing event (called from the event panel)
 function editCurrentEvent(){
   if(!activeEventId)return;
   const ev=events.find(e=>e.id===activeEventId);if(!ev)return;
+  nemState={step:'details',templateId:null,templateName:'',templateTasks:[],isEdit:true};
   document.getElementById('nem-title').textContent='Edit Event';
   document.getElementById('nem-name').value=ev.title;
   document.getElementById('nem-date').value=ev.due||'';
   document.getElementById('nem-desc').value=ev.description||'';
+  document.getElementById('nem-next-btn').textContent='Save →';
+  nemShowStep('details');
   openModal('new-event-modal');
 }
 
-async function saveNewEvent(){
-  const name=document.getElementById('nem-name')?.value.trim();
-  if(!name){chirp('Please enter an event name.');return;}
-  const due=document.getElementById('nem-date')?.value||null;
-  const desc=document.getElementById('nem-desc')?.value||'';
-  closeModal('new-event-modal');
-  // Reset form title
-  document.getElementById('nem-title').textContent='New Event';
-  if(activeEventId&&events.find(e=>e.id===activeEventId)){
-    // Editing
-    const ev=events.find(e=>e.id===activeEventId);
-    ev.title=name;ev.due=due;ev.description=desc;
-    try{await api('bravochore_events','PATCH',{title:name,due,description:desc},`?id=eq.${activeEventId}`);}catch(e){}
-    document.getElementById('ep-title').textContent=name;
-    renderEventPanel(ev);
-  }else{
-    // New event
-    const nev={title:name,due:due||null,description:desc||null,color:'#5C8A4A',status:'active'};
-    try{
-      const res=await api('bravochore_events','POST',[nev]);
-      if(res&&res[0])events.push(res[0]);
-    }catch(e){console.error('Event save failed:',e);badge('er','⚠ Event not saved — check connection');}
-    renderEvents();
+async function saveNewEvent(){nemNext();} // back-compat shim
+
+// ================================================================
+// SAVE EVENT AS TEMPLATE
+// ================================================================
+async function saveEventAsTemplate(){
+  if(!activeEventId)return;
+  const ev=events.find(e=>e.id===activeEventId);if(!ev)return;
+  const evTasks=tasks.filter(t=>t.event_id===ev.id);
+  if(!evTasks.length){chirp('No tasks to save — add some first.');return;}
+  const proposedName=ev.title;
+  const name=prompt('Save as template — name it:',proposedName);
+  if(!name)return;
+  const desc=prompt('Description (optional):',ev.description||'')||'';
+  badge('sy','↻ Saving template…');
+  // Insert template row
+  let templateId=null;
+  try{
+    const r=await api('bravochore_event_templates','POST',[{name,description:desc}]);
+    if(r&&r[0])templateId=r[0].id;
+  }catch(e){console.error(e);chirp('Could not save template.');return;}
+  if(!templateId){chirp('Template save failed.');return;}
+  // Compute day_offset for each task
+  const eventDate=new Date(ev.due+'T00:00:00');
+  const rows=evTasks.map((t,i)=>{
+    let offset=0;
+    if(t.due){
+      const td=new Date(t.due+'T00:00:00');
+      offset=Math.round((td-eventDate)/86400000);
+    }
+    return{
+      template_id:templateId,
+      title:t.title,
+      default_owner:t.owner||'BJ',
+      time_hours:parseFloat(t.time_hours)||0,
+      day_offset:offset,
+      prefer_weekend:false,
+      bucket:t.bucket||'Indoor',
+      notes:t.notes||'',
+      sort_order:(i+1)*10
+    };
+  });
+  try{await api('bravochore_event_template_tasks','POST',rows);}
+  catch(e){console.error(e);}
+  badge('ok','✓');
+  chirp(`Saved as template "${name}".`);
+  await loadEventTemplates();
+}
+
+// ================================================================
+// TEMPLATE MANAGER
+// ================================================================
+function openTemplateManager(){
+  const bd=document.createElement('div');bd.className='modal-bd open';
+  bd.innerHTML=`
+    <div class="modal" style="max-width:640px;width:94vw;max-height:88vh;display:flex;flex-direction:column;padding:0">
+      <div style="padding:18px 20px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between">
+        <h3 style="margin:0">Event templates</h3>
+        <button onclick="this.closest('.modal-bd').remove()" style="background:none;border:none;font-size:22px;color:var(--tx3);cursor:pointer;padding:0;line-height:1">×</button>
+      </div>
+      <div id="tm-body" style="flex:1;overflow-y:auto;padding:14px 18px">Loading…</div>
+    </div>`;
+  bd.addEventListener('click',e=>{if(e.target===bd)bd.remove();});
+  document.body.appendChild(bd);
+  loadEventTemplates().then(renderTemplateManager);
+}
+
+async function renderTemplateManager(){
+  const body=document.getElementById('tm-body');
+  if(!body)return;
+  if(!eventTemplates.length){
+    body.innerHTML='<div style="font-size:13px;color:var(--tx2);padding:10px">No templates yet. Save an event as a template to start a library.</div>';
+    return;
   }
-  renderEvents();
+  // Load task counts in parallel
+  const counts=await Promise.all(eventTemplates.map(t=>loadTemplateTasks(t.id).then(r=>r.length)));
+  body.innerHTML=eventTemplates.map((t,i)=>`
+    <div style="border:1px solid var(--bdr);background:var(--surf);border-radius:var(--rs);padding:14px;margin-bottom:10px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px">
+        <div style="flex:1;min-width:0">
+          <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:500;color:var(--tx)">${t.name}</div>
+          <div style="font-size:11px;color:var(--tx3);margin-top:2px">${counts[i]} task${counts[i]===1?'':'s'}</div>
+          ${t.description?`<div style="font-size:12px;color:var(--tx2);margin-top:6px;line-height:1.4">${t.description}</div>`:''}
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:10px">
+        <button class="qa-btn" style="font-size:11px;padding:6px 12px" onclick="openTemplateEditor(${t.id})">Edit tasks</button>
+        <button class="qa-btn" style="font-size:11px;padding:6px 12px" onclick="renameTemplate(${t.id})">Rename</button>
+        <button class="qa-btn" style="font-size:11px;padding:6px 12px;color:var(--red);border-color:var(--red)" onclick="deleteTemplate(${t.id})">Delete</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function renameTemplate(id){
+  const tpl=eventTemplates.find(t=>t.id===id);if(!tpl)return;
+  const name=prompt('New name:',tpl.name);
+  if(!name||name===tpl.name)return;
+  const desc=prompt('Description:',tpl.description||'')||'';
+  try{
+    await api('bravochore_event_templates','PATCH',{name,description:desc},`?id=eq.${id}`);
+    tpl.name=name;tpl.description=desc;
+    renderTemplateManager();
+    chirp('Renamed.');
+  }catch(e){chirp('Rename failed.');}
+}
+
+async function deleteTemplate(id){
+  const tpl=eventTemplates.find(t=>t.id===id);if(!tpl)return;
+  const ok=await confirm2(`Delete template "${tpl.name}"?`,'This removes the template and all its task definitions. Events already created from it are unaffected.','btn-ok');
+  if(!ok)return;
+  try{
+    await api('bravochore_event_template_tasks','DELETE',null,`?template_id=eq.${id}`);
+    await api('bravochore_event_templates','DELETE',null,`?id=eq.${id}`);
+    eventTemplates=eventTemplates.filter(t=>t.id!==id);
+    renderTemplateManager();
+    chirp('Template deleted.');
+  }catch(e){chirp('Delete failed.');}
+}
+
+async function openTemplateEditor(id){
+  const tpl=eventTemplates.find(t=>t.id===id);if(!tpl)return;
+  const tasks=await loadTemplateTasks(id);
+  const bd=document.createElement('div');bd.className='modal-bd open';
+  bd.innerHTML=`
+    <div class="modal" style="max-width:680px;width:94vw;max-height:90vh;display:flex;flex-direction:column;padding:0">
+      <div style="padding:18px 20px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <h3 style="margin:0">${tpl.name}</h3>
+          <div style="font-size:11px;color:var(--tx3);margin-top:2px">${tasks.length} task${tasks.length===1?'':'s'} · offsets are days from event day</div>
+        </div>
+        <button onclick="this.closest('.modal-bd').remove()" style="background:none;border:none;font-size:22px;color:var(--tx3);cursor:pointer;padding:0;line-height:1">×</button>
+      </div>
+      <div id="te-body" style="flex:1;overflow-y:auto;padding:12px 16px"></div>
+      <div style="padding:12px 18px;border-top:1px solid var(--bdr);display:flex;gap:8px;justify-content:space-between;background:var(--surf2)">
+        <button class="qa-btn" onclick="addTemplateTask(${id})">+ Add task</button>
+        <button class="btn-ok" onclick="this.closest('.modal-bd').remove()">Done</button>
+      </div>
+    </div>`;
+  bd.addEventListener('click',e=>{if(e.target===bd)bd.remove();});
+  document.body.appendChild(bd);
+  window._teTasks=tasks;window._teTemplateId=id;
+  renderTemplateEditor();
+}
+
+function renderTemplateEditor(){
+  const body=document.getElementById('te-body');
+  if(!body)return;
+  const ts=window._teTasks||[];
+  // Group by offset
+  const byOff={};
+  ts.forEach(t=>{(byOff[t.day_offset]=byOff[t.day_offset]||[]).push(t);});
+  const offsets=Object.keys(byOff).map(Number).sort((a,b)=>a-b);
+  body.innerHTML=offsets.map(off=>{
+    const label=off===0?'Day of event':off===-1?'Day before':`${Math.abs(off)} days before`;
+    return `<div style="margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">${label}</div>
+      ${byOff[off].map(t=>teRowHtml(t)).join('')}
+    </div>`;
+  }).join('');
+}
+
+function teRowHtml(t){
+  return `<div style="display:flex;align-items:center;gap:6px;padding:8px 10px;background:var(--surf);border:1px solid var(--bdr);border-radius:10px;margin-bottom:6px;flex-wrap:wrap">
+    <input type="text" value="${(t.title||'').replace(/"/g,'&quot;')}" onchange="updateTemplateTask(${t.id},'title',this.value)" style="flex:1;min-width:120px;font-size:13px;font-weight:500;background:none;border:none;outline:none;color:var(--tx)">
+    <select onchange="updateTemplateTask(${t.id},'default_owner',this.value)" style="font-size:11px;background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;padding:3px 6px;color:var(--tx2)">
+      ${people.map(p=>`<option value="${p.code}" ${p.code===t.default_owner?'selected':''}>${p.name}</option>`).join('')}
+    </select>
+    <input type="number" value="${t.time_hours||0}" min="0" step="0.25" onchange="updateTemplateTask(${t.id},'time_hours',parseFloat(this.value)||0)" style="width:54px;font-size:11px;background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;padding:3px 6px;color:var(--tx2)" title="Hours">
+    <input type="number" value="${t.day_offset||0}" max="0" step="1" onchange="updateTemplateTask(${t.id},'day_offset',parseInt(this.value)||0)" style="width:46px;font-size:11px;background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;padding:3px 6px;color:var(--tx2)" title="Day offset">
+    <label style="font-size:10px;color:var(--tx3);display:inline-flex;align-items:center;gap:3px;cursor:pointer">
+      <input type="checkbox" ${t.prefer_weekend?'checked':''} onchange="updateTemplateTask(${t.id},'prefer_weekend',this.checked)"> wknd
+    </label>
+    <button onclick="deleteTemplateTask(${t.id})" style="background:none;border:none;color:var(--red);font-size:14px;cursor:pointer;padding:2px 6px" title="Delete">×</button>
+  </div>`;
+}
+
+async function updateTemplateTask(id,field,val){
+  const t=(window._teTasks||[]).find(x=>x.id===id);if(!t)return;
+  t[field]=val;
+  try{await api('bravochore_event_template_tasks','PATCH',{[field]:val},`?id=eq.${id}`);badge('ok','✓');}
+  catch(e){badge('er','⚠');}
+  // Re-render only on offset change so groupings update
+  if(field==='day_offset')renderTemplateEditor();
+}
+
+async function deleteTemplateTask(id){
+  const ok=await confirm2('Delete this task from the template?','Existing events that used this template are unaffected.','btn-ok');
+  if(!ok)return;
+  try{await api('bravochore_event_template_tasks','DELETE',null,`?id=eq.${id}`);}catch(e){}
+  window._teTasks=(window._teTasks||[]).filter(x=>x.id!==id);
+  renderTemplateEditor();
+}
+
+async function addTemplateTask(templateId){
+  const title=prompt('Task title:');
+  if(!title)return;
+  const offset=parseInt(prompt('Days before event (e.g. -7 for week before, 0 for day of):','-1'))||0;
+  const owner=prompt('Default owner code (BJ for Bernadette, BW for Brent):','BJ')||'BJ';
+  const hours=parseFloat(prompt('Time estimate in hours:','0.5'))||0;
+  const newRow={template_id:templateId,title,default_owner:owner,time_hours:hours,day_offset:offset,prefer_weekend:false,bucket:'Indoor',notes:'',sort_order:((window._teTasks||[]).length+1)*10};
+  try{
+    const r=await api('bravochore_event_template_tasks','POST',[newRow]);
+    if(r&&r[0]){
+      window._teTasks=(window._teTasks||[]).concat([r[0]]);
+      renderTemplateEditor();
+    }
+  }catch(e){chirp('Could not add task.');}
 }
 
 // ── Event auto-assign on task creation ──
@@ -5503,38 +6207,42 @@ async function saveShelvedItem(){
   if(!title){chirp('Please enter a title.');return;}
   const notes=document.getElementById('asm-notes')?.value||'';
   closeModal('add-shelved-modal');
-  const ns={title,notes,sort_order:shelved.length+1};
+  const nid=Date.now();
+  const nt={id:nid,title,notes,owner:CU,due:null,time_hours:0,bucket:'Indoor',done:false,
+    sort_order:shelved.length+1,photo_urls:[],task_code:getNextCode(),
+    event_id:null,status:'shelved'};
+  tasks.push(nt);
   try{
-    const res=await api('bravochore_shelved','POST',[ns]);
-    if(res&&res[0])shelved.push(res[0]);else shelved.push({...ns,id:Date.now()});
-  }catch(e){shelved.push({...ns,id:Date.now()});}
+    const res=await api('bravochore_tasks','POST',[nt]);
+    if(res&&res[0]){const idx=tasks.findIndex(t=>t.id===nid);if(idx>=0)tasks[idx]=res[0];}
+  }catch(e){}
+  refreshShelvedView();
   renderShelved();
 }
 
 async function promoteShelved(id){
-  const s=shelved.find(x=>x.id===id);if(!s)return;
-  // Create as active task
-  const nid=Date.now();
-  const newCode=getNextCode();
-  const nt={id:nid,title:s.title,owner:CU,due:null,time_hours:0,bucket:'Indoor',
-    notes:s.notes||'',done:false,sort_order:tasks.length+1,photo_urls:[],task_code:newCode,event_id:getActiveEvent()};
-  tasks.push(nt);
-  try{await api('bravochore_tasks','POST',[nt]);}catch(e){}
-  // Mark shelved as promoted
-  shelved=shelved.filter(x=>x.id!==id);
-  try{await api('bravochore_shelved','DELETE',null,`?id=eq.${id}`);}catch(e){}
+  const t=tasks.find(x=>x.id===id&&x.status==='shelved');if(!t)return;
+  // In-place activate: same task ID, all chats/photos/milestones come with it automatically
+  t.status='active';
+  if(!t.event_id)t.event_id=getActiveEvent()||null;
+  try{await api('bravochore_tasks','PATCH',{status:'active',event_id:t.event_id},`?id=eq.${id}`);}
+  catch(e){t.status='shelved';chirp('Could not activate — please try again.');return;}
+  refreshShelvedView();
   renderShelved();rerender();
-  chirp(`"${s.title}" moved to active tasks.`);
+  chirp(`"${t.title}" moved to active tasks.`);
 }
 
 async function deleteShelved(id){
-  shelved=shelved.filter(x=>x.id!==id);
+  tasks=tasks.filter(x=>x.id!==id);
+  refreshShelvedView();
   renderShelved();
-  try{await api('bravochore_shelved','DELETE',null,`?id=eq.${id}`);}catch(e){}
+  try{await api('bravochore_tasks','DELETE',null,`?id=eq.${id}`);}catch(e){}
+  try{await api('bravochore_milestones','DELETE',null,`?task_id=eq.${id}`);}catch(e){}
+  try{await api('bravochore_task_chats','DELETE',null,`?task_id=eq.${id}`);}catch(e){}
 }
 
 function openShelvedDetail(id){
-  const s=shelved.find(x=>x.id===id);if(!s)return;
+  const s=tasks.find(x=>x.id===id&&x.status==='shelved');if(!s)return;
   // Build a task-like object and open the detail panel
   dpTaskId=null; // signal shelved mode
   dpShelvedId=id;
@@ -5615,44 +6323,45 @@ function sdpSetTime(val,btn){
 }
 
 async function saveShelvedFromDetail(){
-  const s=shelved.find(x=>x.id===dpShelvedId);if(!s)return;
-  s.title=document.getElementById('dp-title').textContent.trim()||s.title;
-  s.owner=document.getElementById('sdp-owner')?.value||s.owner;
-  s.due=document.getElementById('sdp-due')?.value||null;
-  s.time_hours=parseFloat(document.getElementById('sdp-time')?.value)||0;
-  s.bucket=document.getElementById('sdp-bucket')?.value||s.bucket;
-  s.notes=document.getElementById('sdp-notes')?.value||'';
-  try{await api('bravochore_shelved','PATCH',{title:s.title,owner:s.owner,due:s.due,time_hours:s.time_hours,bucket:s.bucket,notes:s.notes},`?id=eq.${s.id}`);}catch(e){}
+  const t=tasks.find(x=>x.id===dpShelvedId);if(!t)return;
+  t.title=document.getElementById('dp-title').textContent.trim()||t.title;
+  t.owner=document.getElementById('sdp-owner')?.value||t.owner;
+  t.due=document.getElementById('sdp-due')?.value||null;
+  t.time_hours=parseFloat(document.getElementById('sdp-time')?.value)||0;
+  t.bucket=document.getElementById('sdp-bucket')?.value||t.bucket;
+  t.notes=document.getElementById('sdp-notes')?.value||'';
+  try{await api('bravochore_tasks','PATCH',{title:t.title,owner:t.owner,due:t.due,time_hours:t.time_hours,bucket:t.bucket,notes:t.notes},`?id=eq.${t.id}`);}catch(e){}
+  refreshShelvedView();
   closeDetail();renderShelved();chirp('Saved.');
 }
 
 async function deleteShelvedFromDetail(){
   const id=dpShelvedId;
-  const confirmed=await confirm2('Delete this shelved task?','This cannot be undone.','btn-ok');
+  const confirmed=await confirm2('Delete this shelved task?','This permanently removes the task and any chat or photos attached to it. Cannot be undone.','btn-ok');
   if(!confirmed)return;
-  shelved=shelved.filter(x=>x.id!==id);
-  try{await api('bravochore_shelved','DELETE',null,`?id=eq.${id}`);}catch(e){}
+  tasks=tasks.filter(x=>x.id!==id);
+  refreshShelvedView();
+  try{await api('bravochore_tasks','DELETE',null,`?id=eq.${id}`);}catch(e){}
+  try{await api('bravochore_milestones','DELETE',null,`?task_id=eq.${id}`);}catch(e){}
+  try{await api('bravochore_task_chats','DELETE',null,`?task_id=eq.${id}`);}catch(e){}
   closeDetail();renderShelved();chirp('Deleted.');
 }
 
 async function promoteShelvedFromDetail(){
-  const s=shelved.find(x=>x.id===dpShelvedId);if(!s)return;
-  const title=document.getElementById('dp-title').textContent.trim()||s.title;
-  const owner=document.getElementById('sdp-owner')?.value||s.owner||CU;
+  const id=dpShelvedId;
+  const t=tasks.find(x=>x.id===id);if(!t)return;
+  // Capture any field edits made in the detail panel before activating
+  const title=document.getElementById('dp-title').textContent.trim()||t.title;
+  const owner=document.getElementById('sdp-owner')?.value||t.owner||CU;
   const due=document.getElementById('sdp-due')?.value||null;
   const time_hours=parseFloat(document.getElementById('sdp-time')?.value)||0;
-  const bucket=document.getElementById('sdp-bucket')?.value||'Indoor';
-  const notes=document.getElementById('sdp-notes')?.value||'';
-  const newCode=getNextCode();
-  const nt={id:Date.now(),title,owner,due,time_hours,bucket,notes,done:false,sort_order:tasks.length+1,
-    photo_urls:s.photo_urls||[],task_code:newCode,event_id:null};
-  tasks.push(nt);
-  let saved=false;
-  try{const r=await api('bravochore_tasks','POST',[nt]);if(r&&r[0]){const idx=tasks.findIndex(t=>t.id===nt.id);if(idx>=0)tasks[idx]=r[0];}saved=true;}catch(e){}
-  if(saved){
-    const id=dpShelvedId;shelved=shelved.filter(x=>x.id!==id);
-    try{await api('bravochore_shelved','DELETE',null,`?id=eq.${id}`);}catch(e){}
-  }
+  const bucket=document.getElementById('sdp-bucket')?.value||t.bucket||'Indoor';
+  const notes=document.getElementById('sdp-notes')?.value||t.notes||'';
+  // In-place activate: same task ID, all related data (chats, photos, milestones) follows
+  Object.assign(t,{title,owner,due,time_hours,bucket,notes,status:'active'});
+  try{await api('bravochore_tasks','PATCH',{title,owner,due,time_hours,bucket,notes,status:'active'},`?id=eq.${id}`);}
+  catch(e){t.status='shelved';chirp('Could not activate.');return;}
+  refreshShelvedView();
   closeDetail();bnNav('tasks');chirp('"'+title+'" is now active.');
 }
 
@@ -5692,8 +6401,19 @@ function switchDpTab(tab){
   if(tabBtn)tabBtn.classList.add('active');
   if(tabPanel)tabPanel.classList.add('active');
   if(tab==='chat'){
+    tcPendingPhotos=[];tcRenderPendingStrip();
     loadTaskChat(dpTaskId);
-    setTimeout(()=>document.getElementById('tc-input')?.focus(),150);
+    setTimeout(()=>{
+      const ta=document.getElementById('tc-input');
+      if(ta){
+        ta.focus();
+        // Autoresize on input
+        if(!ta.dataset.wired){
+          ta.dataset.wired='1';
+          ta.addEventListener('input',()=>{ta.style.height='auto';ta.style.height=Math.min(ta.scrollHeight,120)+'px';});
+        }
+      }
+    },150);
   }
 }
 
@@ -5702,6 +6422,7 @@ function switchDpTab(tab){
 // ================================================================
 let tcMessages=[]; // local cache for current task chat
 let tcLoading=false;
+let tcPendingPhotos=[]; // {url,thumb,name} — uploaded photo URLs waiting to be sent with next message
 
 async function loadTaskChat(taskId){
   if(!taskId)return;
@@ -5728,43 +6449,117 @@ async function loadTaskChat(taskId){
 function renderTaskChat(){
   const msgs=document.getElementById('tc-msgs');if(!msgs)return;
   if(!tcMessages.length){msgs.innerHTML='';return;}
-  msgs.innerHTML=tcMessages.map(m=>`<div class="tc-msg ${m.role}">${mdToHtml(m.content)}</div>`).join('');
+  msgs.innerHTML=tcMessages.map(m=>{
+    const photos=Array.isArray(m.photo_urls)&&m.photo_urls.length
+      ? '<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px">'+m.photo_urls.map(u=>`<img src="${u}" style="max-width:140px;max-height:140px;border-radius:10px;cursor:pointer" onclick="window.open('${u}','_blank')">`).join('')+'</div>'
+      : '';
+    return `<div class="tc-msg ${m.role}">${mdToHtml(m.content||'')}${photos}</div>`;
+  }).join('');
   msgs.scrollTop=msgs.scrollHeight;
 }
 
-function tcMsg(role,content,save=true){
+function tcMsg(role,content,save=true,photoUrls=null){
   const msgs=document.getElementById('tc-msgs');if(!msgs)return;
-  // Remove thinking indicator
   msgs.querySelector('.thinking')?.remove();
   const d=document.createElement('div');
   d.className='tc-msg '+role;
-  d.innerHTML=mdToHtml(content);
+  let html=mdToHtml(content||'');
+  if(photoUrls&&photoUrls.length){
+    html+='<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px">'+photoUrls.map(u=>`<img src="${u}" style="max-width:140px;max-height:140px;border-radius:10px;cursor:pointer" onclick="window.open('${u}','_blank')">`).join('')+'</div>';
+  }
+  d.innerHTML=html;
   msgs.appendChild(d);
   msgs.scrollTop=msgs.scrollHeight;
   if(save&&dpTaskId){
-    const m={task_id:dpTaskId,user_code:CU,role,content};
+    const m={task_id:dpTaskId,user_code:CU,role,content:content||'',photo_urls:photoUrls||[]};
     tcMessages.push(m);
     api('bravochore_task_chats','POST',[m]).catch(()=>{});
   }
 }
 
-function mdToHtml(text){
-  return (text||'')
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/[*][*](.*?)[*][*]/g,'<strong>$1</strong>')
-    .replace(/[*](.*?)[*]/g,'<em>$1</em>')
-    .split('\n').join('<br>');
+// Photo attachment for task chat — mirrors the master Blackbird flow
+async function tcAttachPhotos(input){
+  if(!dpTaskId){chirp('Open a task first.');return;}
+  const files=Array.from(input.files||[]);
+  if(!files.length)return;
+  const strip=document.getElementById('tc-pending-photos');
+  if(strip)strip.style.display='block';
+  for(const f of files){
+    // Local preview while uploading
+    const reader=new FileReader();
+    const localUrl=await new Promise(res=>{reader.onload=()=>res(reader.result);reader.readAsDataURL(f);});
+    const placeholder={url:null,thumb:localUrl,name:f.name,uploading:true};
+    tcPendingPhotos.push(placeholder);
+    tcRenderPendingStrip();
+    try{
+      const url=await uploadPhoto(f,dpTaskId);
+      placeholder.url=url;placeholder.uploading=false;
+      tcRenderPendingStrip();
+    }catch(e){
+      const i=tcPendingPhotos.indexOf(placeholder);
+      if(i>=0)tcPendingPhotos.splice(i,1);
+      tcRenderPendingStrip();
+      chirp('Photo upload failed.');
+    }
+  }
+  input.value='';
+}
+
+function tcRenderPendingStrip(){
+  const strip=document.getElementById('tc-pending-photos');
+  if(!strip)return;
+  if(!tcPendingPhotos.length){strip.innerHTML='';strip.style.display='none';return;}
+  strip.style.display='block';
+  strip.innerHTML=tcPendingPhotos.map((p,i)=>`
+    <span class="tc-pending-thumb">
+      <img src="${p.thumb}" style="${p.uploading?'opacity:.45':''}">
+      ${p.uploading?'<span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;background:rgba(0,0,0,.4);border-radius:8px">…</span>':''}
+      <button class="x" onclick="tcRemovePendingPhoto(${i})">×</button>
+    </span>`).join('');
+}
+
+function tcRemovePendingPhoto(i){
+  tcPendingPhotos.splice(i,1);
+  tcRenderPendingStrip();
+}
+
+// Pick a companion persona based on task content
+function tcInferCompanion(task){
+  if(!task)return{label:'general assistant',mode:'general'};
+  const t=(task.title+' '+(task.notes||'')).toLowerCase();
+  // Cooking
+  if(/\b(cook|bake|roast|grill|bbq|meat|salad|recipe|meal|dinner|lunch|breakfast|deep ?fry|webber|weber|sauce|marinade|potato|veggie|vegetable|tray|platter|food|fridge)\b/.test(t))
+    return{label:'cooking companion',mode:'cooking',hint:'Help plan, time and execute the cooking. Ask about quantities, weights, oven temps, doneness. Reference photos of packaging or ingredients when given.'};
+  // Garden / horticulture
+  if(/\b(garden|lawn|mow|whippersnip|whipper ?snipper|prune|weed|plant|tree|bush|shrub|mulch|soil|water|hose|fertilis|fertiliz|veggie patch|flower|rose|hedge|cobweb|verandah|porch|leaf|leaves)\b/.test(t))
+    return{label:'horticulture companion',mode:'horticulture',hint:'Diagnose plant issues, recommend treatments and seasonally-appropriate care. When given a photo of a plant, identify it if possible and assess its health.'};
+  // DIY / repair / install
+  if(/\b(fix|repair|replace|install|paint|sand|drill|screw|nail|mount|hang|holder|tile|caulk|grout|seal|leak|patch|wood|timber|frame|edge|skirting|chandelier|window|door|hinge|wardrobe|fitting|carpet|floor|ceiling|wall)\b/.test(t))
+    return{label:'DIY companion',mode:'diy',hint:'Walk through the steps, suggest tools and materials, troubleshoot what is shown in photos. Be safety-aware.'};
+  // Cleaning
+  if(/\b(clean|wipe|scrub|mop|vacuum|dust|wash|launder|laundry|towel|bath|shower|toilet|kitchen|sink|fridge|oven|stove|range hood|chair|couch|window|skirting)\b/.test(t))
+    return{label:'cleaning companion',mode:'cleaning',hint:'Suggest cleaning products, the right order of operations, and how long things should take.'};
+  // Shopping / errands
+  if(/\b(shop|buy|order|pickup|store|grocery|fresh|stock|restock|drink|bar)\b/.test(t))
+    return{label:'errands companion',mode:'errands',hint:'Help build lists, identify alternatives, and sequence stops efficiently.'};
+  return{label:'task companion',mode:'general',hint:'Help break down the work into steps, anticipate what might go wrong, and stay focused on getting it done.'};
 }
 
 async function sendTaskChat(){
   if(tcLoading)return;
   const input=document.getElementById('tc-input');
-  const text=input?.value.trim();
-  if(!text)return;
-  input.value='';
-  tcMsg('user',text);
+  const text=(input?.value||'').trim();
+  // Wait for any in-flight uploads
+  if(tcPendingPhotos.some(p=>p.uploading)){chirp('Photo still uploading…');return;}
+  const photoUrls=tcPendingPhotos.filter(p=>p.url).map(p=>p.url);
+  if(!text&&!photoUrls.length)return;
+  if(input)input.value='';
+  // Reset textarea height
+  if(input){input.style.height='auto';}
+  // Clear pending photos before send so the strip reflows immediately
+  tcPendingPhotos=[];tcRenderPendingStrip();
+  tcMsg('user',text,true,photoUrls);
   tcLoading=true;
-  // Show thinking indicator
   const msgs=document.getElementById('tc-msgs');
   const thinking=document.createElement('div');
   thinking.className='tc-msg thinking';thinking.textContent='Blackbird is thinking…';
@@ -5772,6 +6567,7 @@ async function sendTaskChat(){
   // Build context from task
   const task=tasks.find(t=>t.id===dpTaskId);
   const ms=getMs(dpTaskId);
+  const companion=tcInferCompanion(task);
   const context=task?`Task: "${task.title}"
 Owner: ${getOwner(task.owner).name}
 Due: ${task.due?fmtDate(task.due):'not set'}
@@ -5780,11 +6576,21 @@ Notes: ${task.notes||'none'}
 Milestones: ${ms.length?ms.map(m=>(m.done?'✓ ':'○ ')+m.title).join(', '):'none'}
 Code: ${task.task_code||''}
 Status: ${task.done?'Done':'Pending'}`:'No task context.';
-  const sysPrompt=`You are Blackbird, the AI assistant inside BravoChore — a household task management app. You are embedded inside a specific task and have full context about it. Be warm, direct and practical. This is a persistent conversation — you remember what was discussed before in this thread. Keep responses concise and actionable.
+  const sysPrompt=`You are Blackbird, the AI assistant inside BravoChore — a household task management app. You are embedded inside a specific task as the user's ${companion.label}. ${companion.hint||''}
+
+You have full context about this specific task and remember the entire conversation in this thread. The user can stop and resume any time. Be warm, direct and practical. Keep responses concise and actionable. When the user shares a photo, look at it carefully and respond to what you actually see.
 
 ${context}`;
-  // Build message history for API
-  const apiMsgs=tcMessages.slice(-20).map(m=>({role:m.role,content:m.content}));
+  // Build message history for API — include photo URLs so the model sees them
+  const apiMsgs=tcMessages.slice(-20).map(m=>{
+    if(Array.isArray(m.photo_urls)&&m.photo_urls.length){
+      // Multimodal content array — vision-capable
+      const blocks=m.photo_urls.map(u=>({type:'image',source:{type:'url',url:u}}));
+      if(m.content)blocks.push({type:'text',text:m.content});
+      return{role:m.role,content:blocks};
+    }
+    return{role:m.role,content:m.content||''};
+  });
   try{
     const resp=await fetch('https://xgmnyhpzuwngdngtttux.supabase.co/functions/v1/blackbird-proxy',{
       method:'POST',
@@ -5800,6 +6606,14 @@ ${context}`;
     tcMsg('assistant','Something went wrong. Try again in a moment.',false);
   }
   tcLoading=false;
+}
+
+function mdToHtml(text){
+  return (text||'')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/[*][*](.*?)[*][*]/g,'<strong>$1</strong>')
+    .replace(/[*](.*?)[*]/g,'<em>$1</em>')
+    .split('\n').join('<br>');
 }
 
 
