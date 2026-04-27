@@ -28,6 +28,7 @@ async function boot(){
     setupPill();renderExtraFilters();renderDashboard();initLottie();assignMissingCodes();loadPrefs();setTimeout(checkForActiveSprint,1500);document.getElementById('bn-dashboard')?.classList.add('active');
     if(typeof updateSprintFAB==='function')updateSprintFAB();
     if(typeof loadSuppliers==='function')loadSuppliers();
+    if(typeof loadStores==='function')loadStores().then(()=>{if(typeof renderShopping==='function')renderShopping();});
     // Reminders module is parked (UI hidden in index.html) — skip the check so no
     // dormant banner appears. Re-enable when Alexa integration revives the feature.
     // setTimeout(()=>checkReminders(),700);

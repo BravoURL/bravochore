@@ -46,19 +46,166 @@ function categoriseItems(items,store){
   return Object.entries(result).filter(([,items])=>items.length).map(([cat,items])=>({cat,items}));
 }
 
+// Per-household shopping stores. Loaded from bravochore_stores into this
+// state array on boot. Replaces the old hardcoded Bunnings/Coles/ABI/Other.
+let stores=[];
+
+async function loadStores(){
+  try{
+    stores=await api('bravochore_stores','GET',null,'?active=eq.true&order=sort_order.asc')||[];
+  }catch(e){stores=[];}
+}
+
 function renderShopping(){
-  const stores={Bunnings:[],Coles:[],ABI:[],Other:[]};
-  shopping.forEach(i=>(stores[i.store]||stores.Other).push(i));
-  [['Bunnings','bun'],['Coles','coles'],['ABI','abi'],['Other','oth']].forEach(([store,key])=>{
-    const list=document.getElementById(key+'-list'),count=document.getElementById(key+'-count');
-    const items=stores[store];
-    if(list)list.innerHTML=items.length?items.map(i=>`<div class="cart-item">
+  const container=document.getElementById('shopping-stores');
+  if(!container)return;
+  // If stores haven't loaded yet, fall back to grouping by the unique store
+  // values found on shopping items themselves so the user still sees their
+  // stuff. Once stores load we'll re-render with the proper styling.
+  let displayStores=stores.length?stores:Array.from(new Set(shopping.map(s=>s.store||'Other')))
+    .map((sc,i)=>({id:'fallback-'+i,short_code:sc,name:sc,icon:'📦',bg_color:'var(--surf2)',cta_label:null,sort_order:i}));
+  // Group items by short_code; items whose store doesn't match a known store
+  // bucket into the "Other" store if one exists, else the last store.
+  const knownCodes=new Set(displayStores.map(s=>s.short_code));
+  const buckets={};displayStores.forEach(s=>{buckets[s.short_code]=[];});
+  const fallbackKey=displayStores.find(s=>s.short_code==='Other')?.short_code||displayStores[displayStores.length-1]?.short_code;
+  shopping.forEach(i=>{
+    const code=knownCodes.has(i.store)?i.store:fallbackKey;
+    if(code&&buckets[code])buckets[code].push(i);
+  });
+  container.innerHTML=displayStores.map(s=>{
+    const items=buckets[s.short_code]||[];
+    const pendingCount=items.filter(i=>!i.done).length;
+    const itemsHtml=items.length?items.map(i=>`<div class="cart-item">
       <div class="cart-chk ${i.done?'checked':''}" onclick="toggleShop('${i.id}')"></div>
       <div style="flex:1"><div style="${i.done?'text-decoration:line-through;color:var(--tx3)':''}">${i.name}</div><div style="font-size:11px;color:var(--tx3)">${i.note||''}</div></div>
       <button class="icon-btn" onclick="removeShop('${i.id}')" style="font-size:13px">✕</button>
     </div>`).join(''):'<p style="color:var(--tx3);font-size:13px;padding:6px 0">Nothing here yet.</p>';
-    if(count)count.textContent=`${items.filter(i=>!i.done).length} items`;
+    return `<div class="cart-sec">
+      <div class="cart-hdr">
+        <div class="cart-ttl"><div class="cart-ico" style="background:${s.bg_color||'var(--surf2)'}">${s.icon||'📦'}</div>${s.name}</div>
+        <span class="sec-count">${pendingCount} item${pendingCount===1?'':'s'}</span>
+      </div>
+      <div>${itemsHtml}</div>
+      ${s.cta_label?`<button class="shop-btn" onclick="openShopList('${s.short_code.replace(/'/g,"&#39;")}')">${s.cta_label}</button>`:''}
+    </div>`;
+  }).join('');
+}
+
+// ── Stores manager (Settings → Shopping → Manage stores) ─────────
+function openStoresPanel(){
+  const bd=document.createElement('div');
+  bd.className='modal-bd open';
+  bd.innerHTML=`
+    <div class="modal" style="max-width:520px;width:94vw;max-height:90vh;display:flex;flex-direction:column;padding:0">
+      <div style="padding:18px 20px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <h3 style="margin:0">Shopping stores</h3>
+          <div style="font-size:11px;color:var(--tx3);margin-top:2px">Edit the stores that appear in your shopping list.</div>
+        </div>
+        <button onclick="this.closest('.modal-bd').remove()" style="background:none;border:none;font-size:22px;color:var(--tx3);cursor:pointer;padding:0;line-height:1">×</button>
+      </div>
+      <div id="stores-body" style="flex:1;overflow-y:auto;padding:14px 16px"></div>
+      <div style="padding:12px 18px;border-top:1px solid var(--bdr);background:var(--surf2)">
+        <button class="qa-btn" style="width:100%" onclick="addStore()">+ Add store</button>
+      </div>
+    </div>`;
+  bd.addEventListener('click',e=>{if(e.target===bd)bd.remove();});
+  document.body.appendChild(bd);
+  renderStoresList();
+}
+
+function renderStoresList(){
+  const body=document.getElementById('stores-body');
+  if(!body)return;
+  if(!stores.length){
+    body.innerHTML='<div style="padding:30px 16px;text-align:center;color:var(--tx2);font-size:13px">No stores yet — tap + Add store below.</div>';
+    return;
+  }
+  body.innerHTML=stores.map(s=>`<div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--bdr);align-items:center">
+    <div style="width:36px;height:36px;border-radius:8px;background:${s.bg_color||'var(--surf2)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">${s.icon||'📦'}</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:14px;font-weight:600">${s.name}</div>
+      <div style="font-size:11px;color:var(--tx3);font-family:'DM Mono',monospace">${s.short_code}</div>
+    </div>
+    <button class="qa-btn" style="font-size:10px;padding:4px 8px" onclick="editStore(${s.id})">Edit</button>
+    <button class="qa-btn" style="font-size:10px;padding:4px 8px;color:var(--red);border-color:var(--red)" onclick="deleteStore(${s.id})">×</button>
+  </div>`).join('');
+}
+
+async function addStore(){
+  const result=await promptSheet({
+    title:'Add store',
+    subtitle:'A new shopping destination. The short code is what gets stored on each shopping item — keep it brief and stable.',
+    confirmLabel:'Add',
+    fields:[
+      {name:'name',label:'Display name',required:true,placeholder:'e.g. Aldi'},
+      {name:'short_code',label:'Short code',required:true,placeholder:'e.g. Aldi'},
+      {name:'icon',label:'Icon (emoji)',value:'🛒'},
+      {name:'bg_color',label:'Icon background (hex)',value:'#F4F3F0'},
+      {name:'cta_label',label:'Button label (optional)',value:'',placeholder:'🛒 Start Shopping at Aldi'}
+    ]
   });
+  if(!result)return;
+  const row={
+    short_code:result.short_code.trim(),
+    name:result.name.trim(),
+    icon:result.icon||'📦',
+    bg_color:result.bg_color||null,
+    cta_label:result.cta_label||null,
+    sort_order:stores.length+1
+  };
+  badge('sy','↻');
+  try{
+    const r=await api('bravochore_stores','POST',[row]);
+    if(r&&r[0])stores.push(r[0]);
+    badge('ok','✓');
+    renderStoresList();
+    renderShopping();
+  }catch(e){badge('er','⚠');chirp('Could not add store.');}
+}
+
+async function editStore(id){
+  const s=stores.find(x=>x.id===id);if(!s)return;
+  const result=await promptSheet({
+    title:'Edit store',
+    confirmLabel:'Save',
+    fields:[
+      {name:'name',label:'Display name',value:s.name||'',required:true},
+      {name:'short_code',label:'Short code',value:s.short_code||'',required:true},
+      {name:'icon',label:'Icon (emoji)',value:s.icon||''},
+      {name:'bg_color',label:'Icon background (hex)',value:s.bg_color||''},
+      {name:'cta_label',label:'Button label (blank = no button)',value:s.cta_label||''}
+    ]
+  });
+  if(!result)return;
+  Object.assign(s,{
+    name:result.name,
+    short_code:result.short_code,
+    icon:result.icon||null,
+    bg_color:result.bg_color||null,
+    cta_label:result.cta_label||null
+  });
+  badge('sy','↻');
+  try{
+    await api('bravochore_stores','PATCH',{
+      name:s.name,short_code:s.short_code,icon:s.icon,bg_color:s.bg_color,cta_label:s.cta_label
+    },`?id=eq.${id}`);
+    badge('ok','✓');
+    renderStoresList();
+    renderShopping();
+  }catch(e){badge('er','⚠');}
+}
+
+async function deleteStore(id){
+  const s=stores.find(x=>x.id===id);if(!s)return;
+  const ok=await confirm2('Delete '+s.name+'?','Items currently assigned to this store will fall back to "Other" or the last store in your list.','btn-ok');
+  if(!ok)return;
+  stores=stores.filter(x=>x.id!==id);
+  try{await api('bravochore_stores','DELETE',null,`?id=eq.${id}`);chirp('Deleted.');}
+  catch(e){chirp('Delete failed.');}
+  renderStoresList();
+  renderShopping();
 }
 
 let activeShopStore=null;
@@ -147,6 +294,10 @@ async function toggleShop(id){
 }
 async function removeShop(id){shopping=shopping.filter(x=>x.id!==id);renderShopping();try{await api('bravochore_shopping','DELETE',null,`?id=eq.${id}`);}catch(e){}}
 function addShopItem(){
+  // Build the store dropdown dynamically from the user's configured stores.
+  // Falls back to "Other" if the stores list hasn't loaded yet.
+  const storeOptions=(stores&&stores.length?stores:[{short_code:'Other',name:'Other'}])
+    .map(s=>`<option value="${s.short_code}">${s.name}</option>`).join('');
   const picker=document.createElement('div');
   picker.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;display:flex;align-items:flex-end;justify-content:center';picker.setAttribute('data-picker','1');
   picker.innerHTML=`<div style="background:var(--surf);border-radius:20px 20px 0 0;width:100%;max-width:700px;padding:20px;padding-bottom:max(20px,env(safe-area-inset-bottom))">
@@ -154,7 +305,7 @@ function addShopItem(){
     <div class="dp-field"><label class="dp-label">Item</label><input class="dp-input" id="asi-name" placeholder="e.g. Boston ivy" style="margin-bottom:10px"></div>
     <div class="dp-field"><label class="dp-label">Store</label>
       <select class="dp-select" id="asi-store" style="margin-bottom:10px">
-        <option>Bunnings</option><option>Coles</option><option>ABI</option><option>Other</option>
+        ${storeOptions}
       </select>
     </div>
     <div class="dp-field"><label class="dp-label">Note (optional)</label><input class="dp-input" id="asi-note" placeholder="e.g. For courtyard fountain area" style="margin-bottom:16px"></div>

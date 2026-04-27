@@ -218,31 +218,16 @@ document.querySelector('link[rel="manifest"]').href = url;
       <div id="completed-section"></div>
     </div>
 
-    <!-- SHOPPING -->
+    <!-- SHOPPING — store sections dynamically rendered from bravochore_stores -->
     <div id="view-shopping" class="view">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
         <h2 style="font-family:'Playfair Display',serif;font-size:20px;font-weight:500">Shopping</h2>
-        <button class="qa-btn" style="font-size:11px;padding:6px 10px" onclick="addShopItem()">+ Add Item</button>
+        <div style="display:flex;gap:6px">
+          <button class="qa-btn" style="font-size:11px;padding:6px 10px" onclick="openStoresPanel()" title="Manage stores">🏪</button>
+          <button class="qa-btn" style="font-size:11px;padding:6px 10px" onclick="addShopItem()">+ Add Item</button>
+        </div>
       </div>
-      <div class="cart-sec">
-        <div class="cart-hdr"><div class="cart-ttl"><div class="cart-ico" style="background:#EAF3DE">🌿</div>Bunnings</div><span class="sec-count" id="bun-count">0</span></div>
-        <div id="bun-list"></div>
-        <button class="shop-btn" onclick="openShopList('Bunnings')">🛒 Start Shopping at Bunnings</button>
-      </div>
-      <div class="cart-sec">
-        <div class="cart-hdr"><div class="cart-ttl"><div class="cart-ico" style="background:#FFF3E0">🛒</div>Coles</div><span class="sec-count" id="coles-count">0</span></div>
-        <div id="coles-list"></div>
-        <button class="shop-btn" onclick="openShopList('Coles')">🛒 Start Shopping at Coles</button>
-      </div>
-      <div class="cart-sec">
-        <div class="cart-hdr"><div class="cart-ttl"><div class="cart-ico" style="background:#E6F1FB">🔩</div>ABI Interiors</div><span class="sec-count" id="abi-count">0</span></div>
-        <div id="abi-list"></div>
-        <button class="shop-btn" onclick="openShopList('ABI')">🛒 View ABI List</button>
-      </div>
-      <div class="cart-sec">
-        <div class="cart-hdr"><div class="cart-ttl"><div class="cart-ico" style="background:#F4F3F0">📦</div>Other</div><span class="sec-count" id="oth-count">0</span></div>
-        <div id="oth-list"></div>
-      </div>
+      <div id="shopping-stores"></div>
     </div>
 
     <!-- SCHEDULE / DAY VIEW -->
