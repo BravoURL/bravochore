@@ -136,6 +136,7 @@ async function shelveSelected(){
 let events=[],shelved=[];
 let activeEventId=null;
 let nextEventId=null; // for task assignment on creation
+let evOwnerFilter='all'; // 'all' | 'me' | 'partner' — filter event task list by owner
 
 // Splits tasks/shelved client-side by status. DB has both in bravochore_tasks
 // (one source of truth, transfer in place); client splits for clean rendering.
@@ -204,10 +205,40 @@ function eventCard(ev,done=false){
 
 function openEventPanel(eventId){
   activeEventId=eventId;
+  evOwnerFilter='all'; // reset to All every time you open an event
   const ev=events.find(e=>e.id===eventId);if(!ev)return;
   document.getElementById('ep-title').textContent=ev.title;
   renderEventPanel(ev);
   document.getElementById('event-panel').classList.add('open');
+}
+
+function setEvOwnerFilter(v){
+  evOwnerFilter=v;
+  if(activeEventId){
+    const ev=events.find(e=>e.id===activeEventId);
+    if(ev)renderEventPanel(ev);
+  }
+}
+
+// Open the detail panel for a brand-new task already attached to this event.
+// dpSave() picks up the active event via getActiveEvent(), so the new row
+// will land with event_id set automatically.
+function openNewTaskInEvent(eventId){
+  if(typeof openDetail!=='function')return;
+  // openDetail(null) opens a blank detail panel; getActiveEvent() will read activeEventId
+  // from the still-open event panel and assign the task to it.
+  openDetail(null);
+  // Pre-set the due date to the event's due date if one isn't set, so the wizard
+  // doesn't drop the task with no schedule.
+  const ev=events.find(e=>e.id===eventId);
+  if(ev&&ev.due){
+    setTimeout(()=>{
+      const due=document.getElementById('dp-due');
+      if(due&&!due.value)due.value=ev.due;
+      const eventSel=document.getElementById('dp-event');
+      if(eventSel)eventSel.value=String(eventId);
+    },120);
+  }
 }
 
 function closeEventPanel(){
@@ -217,14 +248,28 @@ function closeEventPanel(){
 
 function renderEventPanel(ev){
   const body=document.getElementById('ep-body');if(!body)return;
-  const evTasks=tasks.filter(t=>t.event_id==ev.id);
+  const allEvTasks=tasks.filter(t=>t.event_id==ev.id);
+  // Apply owner filter — 'all' shows everyone, 'me' = logged-in user, 'partner' = the other person
+  const ownerFilterFn=t=>{
+    if(evOwnerFilter==='all')return true;
+    const target=evOwnerFilter==='partner'?(typeof getPartnerCode==='function'?getPartnerCode():CU):CU;
+    return t.owner&&t.owner.includes(target);
+  };
+  const evTasks=allEvTasks.filter(ownerFilterFn);
   const done=evTasks.filter(t=>t.done);
   const pending=evTasks.filter(t=>!t.done);
+  // Dashboard metrics use the unfiltered totals so the event-level numbers don't shift when toggling
+  const allDone=allEvTasks.filter(t=>t.done);
   const daysLeft=ev.due?Math.ceil((new Date(ev.due+'T00:00:00')-new Date())/86400000):null;
-  const totalH=evTasks.reduce((s,t)=>s+getEffectiveTime(t),0);
-  const doneH=done.reduce((s,t)=>s+getEffectiveTime(t),0);
-  const pct=evTasks.length?Math.round((done.length/evTasks.length)*100):0;
+  const pct=allEvTasks.length?Math.round((allDone.length/allEvTasks.length)*100):0;
   const color=ev.color||'#5C8A4A';
+  const partnerCode=typeof getPartnerCode==='function'?getPartnerCode():null;
+  const meName=getOwner(CU).name;
+  const partnerName=partnerCode?getOwner(partnerCode).name:'';
+  const filterPill=(value,label)=>{
+    const active=evOwnerFilter===value;
+    return `<button onclick="setEvOwnerFilter('${value}')" style="padding:5px 11px;border-radius:100px;border:1.5px solid ${active?'var(--green)':'var(--bdrm)'};background:${active?'var(--green)':'var(--surf)'};color:${active?'#fff':'var(--tx2)'};font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0">${label}</button>`;
+  };
 
   body.innerHTML=`
     <div style="background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:14px;margin-bottom:14px">
@@ -235,14 +280,23 @@ function renderEventPanel(ev){
       <div class="event-pbar" style="height:8px"><div class="event-pfill" style="width:${pct}%;background:${color}"></div></div>
     </div>
     <div class="ep-dash">
-      <div class="ep-metric"><div class="ep-metric-val">${done.length}</div><div class="ep-metric-lbl">Done</div></div>
-      <div class="ep-metric"><div class="ep-metric-val">${pending.length}</div><div class="ep-metric-lbl">To go</div></div>
+      <div class="ep-metric"><div class="ep-metric-val">${allDone.length}</div><div class="ep-metric-lbl">Done</div></div>
+      <div class="ep-metric"><div class="ep-metric-val">${allEvTasks.length-allDone.length}</div><div class="ep-metric-lbl">To go</div></div>
       <div class="ep-metric"><div class="ep-metric-val" style="color:${daysLeft<0?'var(--red)':'var(--tx)'}">${daysLeft!==null?(daysLeft<0?Math.abs(daysLeft)+'d over':(daysLeft===0?'Today':daysLeft+'d')):'—'}</div><div class="ep-metric-lbl">Days left</div></div>
     </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;flex-wrap:wrap">
       <span style="font-family:'Playfair Display',serif;font-size:15px;font-weight:500">Tasks</span>
-      <button class="qa-btn" style="font-size:11px;padding:5px 10px" onclick="openAssignTasksSheet(${ev.id})">+ Assign tasks</button>
+      <div style="display:flex;gap:6px">
+        <button class="qa-btn" style="font-size:11px;padding:5px 10px" onclick="openNewTaskInEvent(${ev.id})">+ New task</button>
+        <button class="qa-btn" style="font-size:11px;padding:5px 10px" onclick="openAssignTasksSheet(${ev.id})">+ Assign existing</button>
+      </div>
     </div>
+    ${partnerCode?`<div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+      ${filterPill('all','All')}
+      ${filterPill('me',meName)}
+      ${filterPill('partner',partnerName)}
+    </div>`:''}
+    ${pending.length===0&&done.length===0?`<div style="padding:14px;background:var(--surf);border:1px dashed var(--bdr);border-radius:var(--rs);font-size:12px;color:var(--tx3);text-align:center">${evOwnerFilter==='all'?'No tasks yet — add one above.':'Nothing for '+(evOwnerFilter==='me'?meName:partnerName)+' on this event.'}</div>`:''}
     ${pending.map(t=>{
       const o=getOwner(t.owner);
       return `<div class="task-card" data-id="${t.id}" style="margin-bottom:6px">

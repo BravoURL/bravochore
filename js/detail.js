@@ -296,6 +296,11 @@ async function dpSave(){
       await api('bravochore_tasks','POST',[nt]);
     }
     badge('ok','✓ Saved');closeDetail();rerender();
+    // Refresh the event panel underneath if we created/edited inside one
+    if(typeof activeEventId!=='undefined'&&activeEventId&&document.getElementById('event-panel')?.classList.contains('open')){
+      const ev=events.find(e=>e.id===activeEventId);
+      if(ev&&typeof renderEventPanel==='function')renderEventPanel(ev);
+    }
   }catch(e){badge('er','⚠ Failed');}
 }
 

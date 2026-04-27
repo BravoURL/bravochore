@@ -547,19 +547,26 @@ function rerender(){
 // ================================================================
 const WHISPER_PROXY='https://xgmnyhpzuwngdngtttux.supabase.co/functions/v1/whisper-proxy';
 let mediaRecorder=null, audioChunks=[], micActive=false;
+// Default target = master Blackbird. Per-task chat overrides via toggleMic('tc-input','tc-mic').
+// recBarId is optional — pass null to skip the recording-bar UI (the per-task chat doesn't have one).
+let micCtx={inputId:'bb-input',buttonId:'bb-mic',recBarId:'bb-rec-bar',isMaster:true};
+const MIC_SVG_LISTENING='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
+const MIC_SVG_IDLE='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
 
-async function toggleMic(){
-  if(micActive){
-    stopMic();
+async function toggleMic(inputId,buttonId,recBarId){
+  // If the mic is already running, just stop — ignore any new context, finish the current capture
+  if(micActive){stopMic();return;}
+  if(inputId){
+    micCtx={inputId,buttonId:buttonId||'bb-mic',recBarId:recBarId||null,isMaster:false};
   }else{
-    await startMic();
+    micCtx={inputId:'bb-input',buttonId:'bb-mic',recBarId:'bb-rec-bar',isMaster:true};
   }
+  await startMic();
 }
 
 async function startMic(){
   try{
     const stream=await navigator.mediaDevices.getUserMedia({audio:true});
-    // Pick best supported format
     const mimeType=['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/mp4'].find(m=>MediaRecorder.isTypeSupported(m))||'';
     mediaRecorder=new MediaRecorder(stream, mimeType?{mimeType}:{});
     audioChunks=[];
@@ -568,28 +575,30 @@ async function startMic(){
       stream.getTracks().forEach(t=>t.stop());
       await transcribeAudio();
     };
-    mediaRecorder.start(250); // collect in 250ms chunks for reliability
+    mediaRecorder.start(250);
     micActive=true;
-    document.getElementById('bb-mic')?.classList.add('listening');
-    const micBtn=document.getElementById('bb-mic');if(micBtn){micBtn.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';}
-    document.getElementById('bb-rec-bar').classList.add('visible');
+    const micBtn=document.getElementById(micCtx.buttonId);
+    if(micBtn){micBtn.classList.add('listening');micBtn.innerHTML=MIC_SVG_LISTENING;}
+    if(micCtx.recBarId){const rb=document.getElementById(micCtx.recBarId);if(rb)rb.classList.add('visible');}
   }catch(e){
-    if(e.name==='NotAllowedError'){
-      bbMsg("Microphone access denied. Please allow microphone in your browser settings.",'from-bb');
-    }else{
-      bbMsg("Couldn't start microphone: "+e.message,'from-bb');
+    const note=e.name==='NotAllowedError'
+      ? 'Microphone access denied. Please allow microphone in your browser settings.'
+      : "Couldn't start microphone: "+e.message;
+    if(micCtx.isMaster){bbMsg(note,'from-bb');}
+    else{
+      // Per-task chat: deliver the error inside the chat thread
+      if(typeof tcMsg==='function')tcMsg('assistant',note,false);
+      else if(typeof chirp==='function')chirp(note);
     }
   }
 }
 
 function stopMic(){
-  if(mediaRecorder&&mediaRecorder.state!=='inactive'){
-    mediaRecorder.stop();
-  }
+  if(mediaRecorder&&mediaRecorder.state!=='inactive')mediaRecorder.stop();
   micActive=false;
-  document.getElementById('bb-mic')?.classList.remove('listening');
-  const micBtn2=document.getElementById('bb-mic');if(micBtn2){micBtn2.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';}
-  document.getElementById('bb-rec-bar').classList.remove('visible');
+  const micBtn=document.getElementById(micCtx.buttonId);
+  if(micBtn){micBtn.classList.remove('listening');micBtn.innerHTML=MIC_SVG_IDLE;}
+  if(micCtx.recBarId){const rb=document.getElementById(micCtx.recBarId);if(rb)rb.classList.remove('visible');}
 }
 
 async function transcribeAudio(){
@@ -599,39 +608,43 @@ async function transcribeAudio(){
   const blob=new Blob(audioChunks,{type:mimeType});
   audioChunks=[];
 
-  // Show thinking state
-  document.getElementById('bb-mic')?.setAttribute('style','opacity:.4');
-  if(document.getElementById('bb-mic'))document.getElementById('bb-mic').disabled=true;
-  bbSetState('thinking');
+  // Show busy state on whichever mic is active
+  const micBtn=document.getElementById(micCtx.buttonId);
+  if(micBtn){micBtn.style.opacity='.4';micBtn.disabled=true;}
+  if(micCtx.isMaster&&typeof bbSetState==='function')bbSetState('thinking');
 
   try{
     const form=new FormData();
     form.append('file',blob,'audio.'+ext);
     const res=await fetch(WHISPER_PROXY,{
       method:'POST',
-      headers:{'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhnbW55aHB6dXduZ2RuZ3R0dHV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0MDYxOTgsImV4cCI6MjA4OTk4MjE5OH0.aQvdjbOSRqQJmBKF-9z7KOXhC2M_gKPZ1m4rQhPZ9eo'},
+      headers:{'apikey':SK},
       body:form
     });
     const data=await res.json();
     if(data.text){
-      const inp=document.getElementById('bb-input');
-      inp.value=data.text.trim();
-      inp.focus();
-      // Auto-send after brief pause so user can see transcript
-      setTimeout(()=>{
-        // Flash the input so user sees it was filled
+      const inp=document.getElementById(micCtx.inputId);
+      if(inp){
+        inp.value=(inp.value?inp.value+' ':'')+data.text.trim();
+        inp.focus();
+        // Trigger any input listeners (e.g., textarea autosize)
+        inp.dispatchEvent(new Event('input',{bubbles:true}));
         inp.style.background='var(--gl)';
         setTimeout(()=>{inp.style.background='';},400);
-      },50);
+      }
     }else{
-      bbMsg("Couldn't catch that. Try again or type it.",'from-bb');
+      const note="Couldn't catch that. Try again or type it.";
+      if(micCtx.isMaster){bbMsg(note,'from-bb');}
+      else if(typeof tcMsg==='function'){tcMsg('assistant',note,false);}
     }
   }catch(e){
-    bbMsg("Transcription failed — check your OpenAI API key in Supabase secrets.",'from-bb');
+    const note='Transcription failed — check your OpenAI API key in Supabase secrets.';
+    if(micCtx.isMaster){bbMsg(note,'from-bb');}
+    else if(typeof tcMsg==='function'){tcMsg('assistant',note,false);}
   }finally{
-    const micBtn2=document.getElementById('bb-mic');if(micBtn2){micBtn2.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';}
-    document.getElementById('bb-mic').disabled=false;
-    bbSetState('idle');
+    const micBtn2=document.getElementById(micCtx.buttonId);
+    if(micBtn2){micBtn2.innerHTML=MIC_SVG_IDLE;micBtn2.style.opacity='';micBtn2.disabled=false;}
+    if(micCtx.isMaster&&typeof bbSetState==='function')bbSetState('idle');
   }
 }
 
