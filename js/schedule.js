@@ -632,9 +632,15 @@ async function checkScheduleNudge(){
     const ack=await api('bravochore_nudges_ack','GET',null,`?user_code=eq.${CU}&ack_date=eq.${tdStr()}`);
     if(ack&&ack.length)return;
   }catch(e){}
-  const yesterSlots=schedSlots.filter(s=>s.slot_date===yStr&&!s.completed_at&&s.user_code===CU);
+  // Filter by who the user is currently viewing, not by who is logged in.
+  // schedView 'partner' on a BW login means show BJ's misses, etc.
+  const showBoth=schedView==='both';
+  const displayedOwner=schedView==='partner'?getPartnerCode():CU;
+  const ownerMatch=t=>showBoth?true:(t.owner&&t.owner.includes(displayedOwner));
+  const slotMatch=s=>showBoth?true:s.user_code===displayedOwner;
+  const yesterSlots=schedSlots.filter(s=>s.slot_date===yStr&&!s.completed_at&&slotMatch(s));
   const missedTasks=yesterSlots.map(s=>tasks.find(t=>t.id==s.task_id)).filter(Boolean);
-  const overdueTasks=tasks.filter(t=>!t.done&&t.due&&t.due<tdStr()&&t.owner===CU).slice(0,5);
+  const overdueTasks=tasks.filter(t=>!t.done&&t.due&&t.due<tdStr()&&ownerMatch(t)).slice(0,5);
   const allMissed=[...missedTasks,...overdueTasks.filter(t=>!missedTasks.find(m=>m.id===t.id))];
   if(!allMissed.length)return;
   const nudge=document.getElementById('sched-nudge');

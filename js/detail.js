@@ -272,7 +272,7 @@ async function dpShelveTask(){
     badge('sy','✓');
   }catch(e){console.error('Shelve PATCH failed:',e);chirp('Could not shelve — please try again.');task.status='active';return;}
   refreshShelvedView();
-  bnNav('shelved');
+  rerender();
   chirp('"'+taskTitle+'" shelved.');
 }
 async function dpSave(){
@@ -548,8 +548,13 @@ async function sendTaskChat(){
   tcLoading=true;
   const msgs=document.getElementById('tc-msgs');
   const thinking=document.createElement('div');
-  thinking.className='tc-msg thinking';thinking.textContent='Blackbird is thinking…';
-  msgs?.appendChild(thinking);msgs&&(msgs.scrollTop=msgs.scrollHeight);
+  thinking.className='tc-msg thinking';
+  thinking.innerHTML='<div class="tc-thinking-bird"></div>';
+  msgs?.appendChild(thinking);
+  if(typeof lottie!=='undefined'&&typeof BLACKBIRD_ANIM!=='undefined'){
+    try{thinking._anim=lottie.loadAnimation({container:thinking.querySelector('.tc-thinking-bird'),renderer:'svg',loop:true,autoplay:true,animationData:BLACKBIRD_ANIM});}catch(e){}
+  }
+  msgs&&(msgs.scrollTop=msgs.scrollHeight);
   // Build context from task
   const task=tasks.find(t=>t.id===dpTaskId);
   const ms=getMs(dpTaskId);
@@ -584,12 +589,20 @@ ${context}`;
       body:JSON.stringify({system:sysPrompt,messages:apiMsgs})
     });
     const data=await resp.json();
-    const reply=data?.content?.[0]?.text||'Sorry, I couldn’t respond just now.';
+    const reply=data?.content?.[0]?.text;
+    thinking._anim?.destroy();
     thinking.remove();
-    tcMsg('assistant',reply);
+    if(reply){
+      tcMsg('assistant',reply);
+    }else{
+      console.warn('Blackbird empty response payload:',data);
+      tcMsg('assistant','Hmm, that one didn’t come back with anything. Tap send again to retry.',false);
+    }
   }catch(e){
+    console.warn('Blackbird fetch failed:',e);
+    thinking._anim?.destroy();
     thinking.remove();
-    tcMsg('assistant','Something went wrong. Try again in a moment.',false);
+    tcMsg('assistant','Connection wobble — try sending again in a moment.',false);
   }
   tcLoading=false;
 }

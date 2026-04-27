@@ -236,7 +236,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 /* DETAIL PANEL - slides up from bottom */
 #detail-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:820;display:none}
 #detail-backdrop.open{display:block}
-#detail-panel{position:fixed;left:0;right:0;bottom:-100%;height:92vh;background:var(--surf);z-index:821;display:flex;flex-direction:column;border-radius:20px 20px 0 0;box-shadow:0 -8px 40px rgba(0,0,0,.15);transition:bottom .3s ease;overflow:hidden;max-width:700px;margin:0 auto}
+#detail-panel{position:fixed;left:0;right:0;bottom:-100%;height:92vh;height:92dvh;background:var(--surf);z-index:821;display:flex;flex-direction:column;border-radius:20px 20px 0 0;box-shadow:0 -8px 40px rgba(0,0,0,.15);transition:bottom .3s ease;overflow:hidden;max-width:700px;margin:0 auto}
 #detail-panel.open{bottom:0}
 .dp-drag-handle{width:40px;height:4px;background:var(--bdrm);border-radius:100px;margin:10px auto 0;flex-shrink:0}
 .dp-header{padding:12px 16px 10px;border-bottom:1px solid var(--bdr);flex-shrink:0}
@@ -881,7 +881,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 .tc-msg{max-width:88%;padding:9px 12px;border-radius:14px;font-size:13px;line-height:1.5;white-space:pre-wrap;word-wrap:break-word}
 .tc-msg.user{background:var(--tx);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
 .tc-msg.assistant{background:var(--surf2);color:var(--tx);align-self:flex-start;border-bottom-left-radius:4px}
-.tc-msg.thinking{background:var(--gl);color:var(--gd);align-self:flex-start;font-style:italic}
+.tc-msg.thinking{background:var(--gl);color:var(--gd);align-self:flex-start;font-style:italic;padding:6px 10px;display:flex;align-items:center;gap:8px}
+.tc-thinking-bird{width:38px;height:38px;flex-shrink:0;display:inline-block}
 .tc-msg img{max-width:200px;max-height:200px;border-radius:10px;display:block;margin-top:6px}
 .tc-input-row{padding:8px 10px;border-top:1px solid var(--bdr);display:flex;gap:6px;align-items:flex-end;background:var(--surf);flex-shrink:0;padding-bottom:max(8px,env(safe-area-inset-bottom))}
 .tc-input{flex:1;padding:9px 13px;border:1px solid var(--bdrm);border-radius:18px;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;background:var(--bg);color:var(--tx);min-width:0;resize:none;max-height:120px;line-height:1.4}

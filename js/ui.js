@@ -516,6 +516,11 @@ async function quickTick(id,e){
   if(sprintActive&&sprintData&&sprintData.taskIds.includes(id)){
     setTimeout(renderSprintTasks,50);
   }
+  // If event panel is open, refresh it so the ticked task disappears immediately
+  if(typeof activeEventId!=='undefined'&&activeEventId&&document.getElementById('event-panel')?.classList.contains('open')){
+    const ev=events.find(e=>e.id===activeEventId);
+    if(ev&&typeof renderEventPanel==='function')renderEventPanel(ev);
+  }
   try{badge('sy','↻');await api('bravochore_tasks','PATCH',{done:task.done},`?id=eq.${id}`);badge('ok','✓');}
   catch(err){badge('er','⚠');}
 }

@@ -126,7 +126,7 @@ async function shelveSelected(){
   }
   refreshShelvedView();
   toggleSelectMode();
-  bnNav('shelved');
+  rerender();
   chirp(ids.length+' task'+(ids.length>1?'s':'')+' shelved.');
 }
 
@@ -440,9 +440,9 @@ function nemRenderTemplateList(){
     return;
   }
   list.innerHTML=eventTemplates.map(t=>`
-    <button class="qa-btn" style="text-align:left;padding:14px;background:var(--surf2);border:1px solid var(--bdr);border-radius:var(--rs);cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;gap:4px;width:100%" onclick="nemPickTemplate(${t.id})">
-      <div style="font-family:'Playfair Display',serif;font-size:16px;font-weight:500;color:var(--tx)">${t.name}</div>
-      ${t.description?`<div style="font-size:11px;color:var(--tx2);line-height:1.4;text-align:left">${t.description}</div>`:''}
+    <button class="qa-btn" style="text-align:left;white-space:normal;padding:14px;background:var(--surf2);border:1px solid var(--bdr);border-radius:var(--rs);cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;gap:4px;width:100%" onclick="nemPickTemplate(${t.id})">
+      <div style="font-family:'Playfair Display',serif;font-size:16px;font-weight:500;color:var(--tx);white-space:normal">${t.name}</div>
+      ${t.description?`<div style="font-size:11px;color:var(--tx2);line-height:1.4;text-align:left;white-space:normal">${t.description}</div>`:''}
     </button>
   `).join('');
 }
