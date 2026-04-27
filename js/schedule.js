@@ -1,185 +1,20 @@
 // ================================================================
 // SCHEDULE MODULE
 // ================================================================
-// Bernadette's full routine, faithfully ported + BravoChore integration
+// Renders household routine blocks + items from Supabase
+// (bravochore_blocks + bravochore_routines). Generic per household —
+// no hardcoded routine data. Laundry / fortnight / monthly / longterm
+// sub-views still use small hardcoded constants (next migration target).
 // ================================================================
 
 const SCHED_DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 const SCHED_SHORT=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
-// ---- DATA: Bernadette's full day tasks (from remixed app) ----
-const DAY_TASKS = {
-  Monday: [
-    {section:'morning',label:'Morning Block',time:'9:00\u201310:45 am',tasks:[
-      {id:'mon-m1',text:'Fridge cleanout, meal plan, grocery list',recur:'weekly'},
-      {id:'mon-m2',text:'Clothes wash \u2014 load 1',recur:'daily'},
-      {id:'mon-m3',text:'Deep clean bathrooms',recur:'daily',week:'a'},
-      {id:'mon-m4',text:'Vacuum throughout',recur:'daily',week:'b'},
-    ]},
-    {section:'afternoon',label:'Afternoon Block',time:'12:30\u20132:52 pm',tasks:[
-      {id:'mon-a1',text:'Online grocery order or click & collect',recur:'weekly'},
-      {id:'mon-a2',text:'Fold & put away, ironing (small batch)',recur:'daily'},
-    ]},
-    {section:'afterschool',label:'After School',time:'3:15\u20135:00 pm',tasks:[
-      {id:'mon-as1',text:'Snack & reading with Laurel',recur:'daily'},
-      {id:'mon-as2',text:'Afternoon jobs (overflow tasks)',recur:'daily'},
-    ]},
-    {section:'church',label:'The Meeting',time:'6:55\u20137:30 pm',tasks:[
-      {id:'mon-c1',text:'Dinner ready before leaving',recur:'daily',note:true},
-    ]},
-    {section:'night',label:'Night Prep',time:'8:00\u20138:30 pm',tasks:[
-      {id:'mon-n1',text:'Pack Laurel\u2019s lunchbox',recur:'daily'},
-      {id:'mon-n2',text:'Set washing machine delay timer',recur:'daily'},
-      {id:'mon-n3',text:'Check school bag \u2014 notes, library books, forms',recur:'daily'},
-      {id:'mon-n4',text:'Lay out kids\u2019 clothes for tomorrow',recur:'daily'},
-      {id:'mon-n5',text:'Quick kitchen reset',recur:'daily'},
-      {id:'mon-n6',text:'Check tomorrow\u2019s schedule',recur:'daily'},
-    ]},
-  ],
-  Tuesday: [
-    {section:'morning',label:'Morning Block',time:'9:00\u201310:45 am',tasks:[
-      {id:'tue-m1',text:'Clothes wash \u2014 load 2',recur:'daily'},
-      {id:'tue-m2',text:'Kitchen deep clean (benches, appliances, sink, microwave)',recur:'weekly'},
-      {id:'tue-m3',text:'Wash our sheets & pillowcases \u2192 remake bed',recur:'daily',week:'a'},
-      {id:'tue-m4',text:'Wash kids\u2019 sheets & pillowcases \u2192 remake beds',recur:'daily',week:'b'},
-    ]},
-    {section:'afternoon',label:'Afternoon Block',time:'12:30\u20132:22 pm',tasks:[
-      {id:'tue-a1',text:'Grocery pickup / shop if not done Monday',recur:'weekly'},
-      {id:'tue-a2',text:'Fold & put away',recur:'daily'},
-      {id:'tue-a3',text:'Dusting throughout',recur:'weekly'},
-      {id:'tue-a4',text:'Meal prep & batch cooking',recur:'weekly'},
-    ]},
-    {section:'afterschool',label:'After School',time:'3:15\u20135:00 pm',tasks:[
-      {id:'tue-as1',text:'Snack & reading with Laurel',recur:'daily'},
-      {id:'tue-as2',text:'Afternoon jobs (overflow tasks)',recur:'daily'},
-    ]},
-    {section:'church',label:'The Meeting',time:'7:00\u20137:15 pm',tasks:[
-      {id:'tue-c1',text:'Very brief \u2014 evening mostly free',recur:'daily',note:true},
-    ]},
-    {section:'night',label:'Night Prep',time:'8:00\u20138:30 pm',tasks:[
-      {id:'tue-n1',text:'Pack Laurel\u2019s lunchbox',recur:'daily'},
-      {id:'tue-n2',text:'Set washing machine delay timer',recur:'daily'},
-      {id:'tue-n3',text:'Check school bag; process school notes & paperwork',recur:'daily'},
-      {id:'tue-n4',text:'Lay out kids\u2019 clothes for tomorrow',recur:'daily'},
-      {id:'tue-n5',text:'Quick kitchen reset',recur:'daily'},
-      {id:'tue-n6',text:'Check tomorrow\u2019s schedule (Georgette alt. Wed?)',recur:'daily'},
-    ]},
-  ],
-  Wednesday: [
-    {section:'note',label:'Note',time:'',tasks:[
-      {id:'wed-note1',text:'Georgette at school on alternating Wednesdays \u2014 use quieter morning for tasks needing focus',note:true},
-    ]},
-    {section:'morning',label:'Morning Block',time:'9:00\u201310:45 am',tasks:[
-      {id:'wed-m1',text:'Clothes wash \u2014 load 3',recur:'daily'},
-      {id:'wed-m2',text:'Mop floors (kitchen, bathrooms, entryway)',recur:'weekly'},
-      {id:'wed-m3',text:'Long-term cleaning slot (see Long-Term tab)',recur:'weekly'},
-    ]},
-    {section:'afternoon',label:'Afternoon Block',time:'12:30\u20132:52 pm',tasks:[
-      {id:'wed-a1',text:'Budgeting \u2014 weekly review, bill payments, accounts check',recur:'weekly'},
-      {id:'wed-a2',text:'Fold & put away',recur:'daily'},
-      {id:'wed-a3',text:'Gardening \u2014 dedicated weekly session',recur:'weekly'},
-    ]},
-    {section:'afterschool',label:'After School',time:'3:15\u20135:00 pm',tasks:[
-      {id:'wed-as1',text:'Snack & reading with Laurel',recur:'daily'},
-      {id:'wed-as2',text:'Afternoon jobs (overflow tasks)',recur:'daily'},
-    ]},
-    {section:'church',label:'The Meeting',time:'6:45\u20137:45 pm',tasks:[
-      {id:'wed-c1',text:'Dinner ready before leaving',recur:'daily',note:true},
-    ]},
-    {section:'night',label:'Night Prep',time:'8:00\u20138:30 pm',tasks:[
-      {id:'wed-n1',text:'Pack Laurel\u2019s & Georgette\u2019s lunchboxes (Georgette Thu)',recur:'daily'},
-      {id:'wed-n2',text:'Set washing machine delay timer',recur:'daily'},
-      {id:'wed-n3',text:'Check bags; process school notes & paperwork',recur:'daily'},
-      {id:'wed-n4',text:'Lay out kids\u2019 clothes',recur:'daily'},
-      {id:'wed-n5',text:'Quick kitchen reset',recur:'daily'},
-    ]},
-  ],
-  Thursday: [
-    {section:'morning',label:'Morning Block',time:'9:00\u201310:45 am',tasks:[
-      {id:'thu-m1',text:'Clothes wash \u2014 load 4',recur:'daily'},
-      {id:'thu-m2',text:'Vacuum throughout',recur:'weekly'},
-      {id:'thu-m3',text:'Wash kids\u2019 sheets & pillowcases \u2192 remake beds',recur:'daily',week:'a'},
-      {id:'thu-m4',text:'Wash our sheets & pillowcases \u2192 remake bed',recur:'daily',week:'b'},
-    ]},
-    {section:'afternoon',label:'Afternoon Block',time:'12:30\u20132:52 pm',tasks:[
-      {id:'thu-a1',text:'Ironing \u2014 main weekly session',recur:'weekly'},
-      {id:'thu-a2',text:'Fold & put away',recur:'daily'},
-      {id:'thu-a3',text:'Any overflow from earlier in the week',recur:'daily'},
-      {id:'thu-a4',text:'Put bins out for council pickup',recur:'weekly'},
-    ]},
-    {section:'afterschool',label:'After School',time:'3:15\u20135:00 pm',tasks:[
-      {id:'thu-as1',text:'Snack & reading with Laurel',recur:'daily'},
-      {id:'thu-as2',text:'Afternoon jobs (overflow tasks)',recur:'daily'},
-    ]},
-    {section:'evening',label:'Evening',time:'Protected family time',tasks:[]},
-    {section:'night',label:'Night Prep',time:'8:00\u20138:30 pm',tasks:[
-      {id:'thu-n1',text:'Pack Laurel\u2019s & Georgette\u2019s lunchboxes',recur:'daily'},
-      {id:'thu-n2',text:'Set washing machine delay timer (towels Friday)',recur:'daily'},
-      {id:'thu-n3',text:'Check bags; process school notes & paperwork',recur:'daily'},
-      {id:'thu-n4',text:'Lay out kids\u2019 clothes',recur:'daily'},
-      {id:'thu-n5',text:'Quick kitchen reset',recur:'daily'},
-    ]},
-  ],
-  Friday: [
-    {section:'morning',label:'Morning Block',time:'9:00\u201310:45 am',tasks:[
-      {id:'fri-m1',text:'Clothes wash \u2014 towels (every Friday)',recur:'weekly'},
-      {id:'fri-m2',text:'Kitchen tidy & wipe-down (prep for weekend)',recur:'weekly'},
-      {id:'fri-m3',text:'Bathroom freshen \u2014 wipe & toilet',recur:'weekly'},
-      {id:'fri-m4',text:'General house tidy \u2728 House ready for the weekend',recur:'weekly'},
-    ]},
-    {section:'afternoon',label:'Afternoon Block',time:'12:30\u20132:52 pm',tasks:[
-      {id:'fri-a1',text:'Fold & put away',recur:'daily'},
-      {id:'fri-a2',text:'Prep weekend meals',recur:'weekly'},
-      {id:'fri-a3',text:'Car tidy & fuel check',recur:'weekly'},
-      {id:'fri-a4',text:'Gardening \u2014 light (watering, deadheading)',recur:'weekly'},
-    ]},
-    {section:'afterschool',label:'After School',time:'3:15\u20135:00 pm',tasks:[
-      {id:'fri-as1',text:'Snack & reading with Laurel',recur:'daily'},
-      {id:'fri-as2',text:'Afternoon jobs (overflow tasks)',recur:'daily'},
-    ]},
-    {section:'church',label:'The Meeting',time:'5:45\u20136:45 pm',tasks:[
-      {id:'fri-c1',text:'Kids\u2019 dinner ready in advance before leaving',recur:'daily',note:true},
-    ]},
-    {section:'night',label:'Night Prep',time:'8:00\u20138:30 pm',tasks:[
-      {id:'fri-n1',text:'No lunchboxes (weekend)',recur:'daily',note:true},
-      {id:'fri-n2',text:'Set washing machine timer if catch-up load needed',recur:'daily'},
-      {id:'fri-n3',text:'Quick kitchen reset',recur:'daily'},
-      {id:'fri-n4',text:'Check weekend schedule',recur:'daily'},
-    ]},
-  ],
-  Saturday: [
-    {section:'morning',label:'Morning',time:'6:30\u201311:00 am',tasks:[
-      {id:'sat-m1',text:'Relaxed family morning',recur:'daily',note:true},
-      {id:'sat-m2',text:'Clothes wash \u2014 catch-up load if needed',recur:'daily'},
-      {id:'sat-m3',text:'Light tidying only \u2014 house is already clean',recur:'daily'},
-    ]},
-    {section:'church',label:'The Meeting',time:'11:10 am\u201312:30 pm',tasks:[]},
-    {section:'afternoon',label:'Afternoon',time:'',tasks:[
-      {id:'sat-a1',text:'Gardening \u2014 main or supplementary session',recur:'weekly'},
-      {id:'sat-a2',text:'Any ironing overflow',recur:'daily'},
-      {id:'sat-a3',text:'Prep for Sunday \u2014 lunches, all clothes, bags, nappy bag',recur:'weekly'},
-    ]},
-    {section:'night',label:'Saturday Night Prep',time:'Sunday ready',tasks:[
-      {id:'sat-n1',text:'Lay out Sunday clothes for everyone including Vaughan',recur:'weekly'},
-      {id:'sat-n2',text:'Pack church bag & nappy bag fully stocked',recur:'weekly'},
-      {id:'sat-n3',text:'Fill water bottles & place by the door',recur:'weekly'},
-      {id:'sat-n4',text:'Small snack/milk for Vaughan in car bag',recur:'weekly'},
-      {id:'sat-n5',text:'Set alarm for 5:00 am',recur:'weekly'},
-    ]},
-  ],
-  Sunday: [
-    {section:'church',label:'Services',time:'Three services today',tasks:[
-      {id:'sun-c1',text:'5:45\u20136:45 am \u2014 Supper (breakfast after this service)',note:true},
-      {id:'sun-c2',text:'11:10 am\u201312:45 pm \u2014 Reading',note:true},
-      {id:'sun-c3',text:'5:15\u20136:15 pm \u2014 Preaching',note:true},
-    ]},
-    {section:'note',label:'Rest Day',time:'No household tasks',tasks:[
-      {id:'sun-n1',text:'No cleaning, no laundry, no ironing today',note:true},
-      {id:'sun-n2',text:'Simple lunch (prepped Saturday)',note:true},
-      {id:'sun-n3',text:'Vaughan\u2019s first nap between services \u2014 rest if possible',note:true},
-    ]},
-  ],
-};
+// (DAY_TASKS hardcoded constant removed \u2014 routine data now lives in
+//  bravochore_blocks + bravochore_routines on Supabase, loaded into
+//  routineBlocks/routineItems by loadHouseholdRoutines(). Generic per
+//  household. Original constant content preserved in git history if ever
+//  needed for reference.)
 const LAUNDRY_DATA = [
   {id:'lau-mon',day:'Monday',text:'Clothes load 1',dayNum:1},
   {id:'lau-tue',day:'Tuesday',text:'Clothes load 2 + sheets (Week A: ours / Week B: kids\u2019)',dayNum:2},
@@ -225,6 +60,11 @@ let schedState={}; // local state: task-{id} → bool
 let longtermItems=[]; // from Supabase
 let fortnightView='a';
 let schedSlots=[]; // BravoChore tasks slotted into today
+// Household-specific routines now come from Supabase (bravochore_blocks + bravochore_routines)
+// rather than the old hardcoded DAY_TASKS constant. This makes the app generic
+// (any household can have its own routine) and unlocks drag-reorder via sort_order.
+let routineBlocks=[];  // [{id, household_code, owner, name, color, icon, sort_order, days, start_time, end_time}]
+let routineItems=[];   // [{id, household_code, block_id, title, owners, days, time_label, notes, sort_order, active}]
 
 function getSchedState(key,def){return schedState[key]!==undefined?schedState[key]:def;}
 function setSchedState(key,val){schedState[key]=val;saveSchedState();}
@@ -250,6 +90,14 @@ async function loadScheduleData(){
       await api('bravochore_week_state','POST',[{user_code:CU,current_week:'a',last_open_date:tdStr()}]);
     }
   }catch(e){}
+  // Load this household's routine blocks + items from the DB
+  try{
+    routineBlocks=await api('bravochore_blocks','GET',null,'?order=sort_order.asc')||[];
+    routineItems=await api('bravochore_routines','GET',null,'?active=eq.true&order=sort_order.asc')||[];
+  }catch(e){
+    console.warn('Routine load failed:',e);
+    routineBlocks=[];routineItems=[];
+  }
   // Load long-term tasks
   try{longtermItems=await api('bravochore_longterm_tasks','GET',null,`?user_code=eq.BJ&order=sort_order.asc`);}
   catch(e){longtermItems=[];}
@@ -284,7 +132,8 @@ function setSchedView(v){
     b.style.color=v===n?'#fff':'var(--tx2)';
     b.style.borderRadius='100px';
   });
-  // Always render — DAY_TASKS are household routines visible to all
+  // Always re-render the today view; the owner filter inside renderSchedToday
+  // decides which routines actually appear for the chosen view (me / partner / both).
   if(document.getElementById('ssp-today')?.classList.contains('active')){
     renderSchedToday();
   }
@@ -315,80 +164,99 @@ function renderSchedDayStrip(){
 
 function schedSetDay(d){schedSelectedDay=d;renderSchedDayStrip();renderSchedToday();}
 
+// True if the given CSV days string ("0,1,2,3,4,5,6") includes today's day-of-week (0=Sun..6=Sat)
+function _routineActiveOn(daysCsv,dayNum){
+  if(!daysCsv)return false;
+  return daysCsv.split(',').map(s=>parseInt(s.trim(),10)).includes(dayNum);
+}
+
+// Helper: list of routine items that should appear today inside a given block.
+function _routinesForBlockOnDay(blockId,dayNum){
+  return routineItems
+    .filter(r=>r.block_id===blockId&&r.active!==false&&_routineActiveOn(r.days,dayNum))
+    .sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+}
+
 function renderSchedToday(){
   renderSchedDayStrip();
   updateWeekPill();
   const dayName=SCHED_DAYS[schedSelectedDay];
-  const sections=DAY_TASKS[dayName]||[];
+  const dayNum=schedSelectedDay;
   const container=document.getElementById('sched-sections');if(!container)return;
 
-  // DAY_TASKS belong to BJ. Show them based on who is viewing what.
-  const bjIsMe=CU==='BJ';
-  const showRoutines=(schedView==='both')||
-    (schedView==='me'&&bjIsMe)||
-    (schedView==='partner'&&!bjIsMe);
+  // The blocks/routines in the DB are owned by a household_code (e.g. "WALLIS").
+  // Each block has an `owner` field — for now we treat the routines as the
+  // household's primary routine set. The "me / partner / both" filter still
+  // gates whether you see your-vs-partner routines based on per-routine `owners`.
+  // This will become per-user-configurable when we add household onboarding.
+  const showBoth=schedView==='both';
+  const targetOwner=schedView==='partner'?(typeof getPartnerCode==='function'?getPartnerCode():CU):CU;
+  const ownerHas=(ownersCsv,code)=>{
+    if(!ownersCsv)return false;
+    return ownersCsv.split(/[,+\/&\s]+/).some(t=>t.trim()===code);
+  };
+  const ownerShow=ownersCsv=>showBoth?true:ownerHas(ownersCsv,targetOwner);
 
-  if(!showRoutines){
+  // Active blocks for this day-of-week
+  const activeBlocks=routineBlocks
+    .filter(b=>_routineActiveOn(b.days,dayNum))
+    .sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+
+  if(!routineBlocks.length){
     container.innerHTML=`<div style="padding:32px 16px;text-align:center;color:var(--tx2)">
       <div style="font-size:36px;margin-bottom:12px">📋</div>
-      <div style="font-size:15px;font-weight:500;color:var(--tx);margin-bottom:8px">No routines set up yet for ${CU}</div>
-      <div style="font-size:13px;line-height:1.6">Switch to <strong>Both</strong> to see the household routines, or tap your partner's code to see theirs.</div>
+      <div style="font-size:15px;font-weight:500;color:var(--tx);margin-bottom:8px">No routines yet</div>
+      <div style="font-size:13px;line-height:1.6">Routines for your household will appear here once they've been set up.</div>
     </div>`;
     updateSchedProgress(0,0,dayName);
     return;
   }
 
   let totalTasks=0,doneTasks=0;
-  const html=sections.map(sec=>{
-    const visibleTasks=sec.tasks.filter(t=>{
-      if(!t.week)return true;
-      return t.week===schedWeek;
-    });
-    const checkable=visibleTasks.filter(t=>!t.note);
-    const checked=checkable.filter(t=>getSchedState('task-'+t.id,false));
-    totalTasks+=checkable.length;doneTasks+=checked.length;
+  const html=activeBlocks.map(block=>{
+    const blockRoutines=_routinesForBlockOnDay(block.id,dayNum).filter(r=>ownerShow(r.owners));
+    const checked=blockRoutines.filter(r=>getSchedState('task-'+r.id,false));
+    totalTasks+=blockRoutines.length;doneTasks+=checked.length;
 
-    const itemsHtml=visibleTasks.map(t=>{
-      if(t.note)return `<div class="sched-item-note">${t.text}</div>`;
-      const isChecked=getSchedState('task-'+t.id,false);
-      const badge=t.week?`<span class="sched-badge wk-${t.week}">Wk ${t.week.toUpperCase()}</span>`:
-                  t.recur==='weekly'?'<span class="sched-badge weekly">Weekly</span>':'';
-      return `<div class="sched-item ${isChecked?'checked':''}" onclick="toggleSchedItem('${t.id}',this)">
+    // The "section type" used by the slot picker maps to a normalised name —
+    // we use the lower-cased block name. This keeps Brent's existing slot data
+    // valid (slot.section_type is a free-text string per slot, no FK).
+    const sectionType=(block.name||'').toLowerCase().replace(/\s+/g,'-');
+    const blockColor=block.color||'var(--tx2)';
+    const blockTime=(block.start_time&&block.end_time)?(block.start_time+'–'+block.end_time):'';
+    const itemsHtml=blockRoutines.map(r=>{
+      const isChecked=getSchedState('task-'+r.id,false);
+      return `<div class="sched-item ${isChecked?'checked':''}" data-routine-id="${r.id}" onclick="toggleSchedItem('${r.id}',this)">
         <div class="sched-item-check">${isChecked?'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>':''}</div>
-        <span class="sched-item-text">${t.text}</span>
-        ${badge}
+        <span class="sched-item-text">${r.title||''}</span>
+        ${r.time_label?`<span class="sched-section-time" style="font-size:10px">${r.time_label}</span>`:''}
       </div>`;
     }).join('');
 
-    // BravoChore tasks slotted into THIS section type — render with the
-    // canonical taskCard() so they look identical to every other place a task
-    // appears. Each section now shows only the tasks slotted into IT
-    // (previously the gating only allowed afternoon, hiding everything slotted
-    // into morning / night-prep / etc.). Wrapped in .sched-bc-task for the
-    // small inset look the schedule uses.
+    // BravoChore tasks slotted into THIS block by the user
     const slottedTasks=schedSlots
-      .filter(s=>s.section_type===sec.section)
+      .filter(s=>s.section_type===sectionType||s.section_type===block.name)
       .map(s=>tasks.find(t=>t.id==s.task_id))
       .filter(t=>t&&!t.done);
     const bcTasksHtml=schedView!=='partner'&&slottedTasks.length?
       slottedTasks.map(t=>`<div class="sched-bc-task">${taskCard(t)}</div>`).join(''):'';
 
-    const allDone=checkable.length>0&&checked.length===checkable.length;
-    return `<div class="sched-section ${sec.section}" id="ss-${sec.section}-${SCHED_DAYS[schedSelectedDay]}">
+    const allDone=blockRoutines.length>0&&checked.length===blockRoutines.length;
+    return `<div class="sched-section" data-block-id="${block.id}" id="ss-block-${block.id}">
       <div class="sched-section-hdr" onclick="this.parentElement.classList.toggle('collapsed')">
-        <div class="sched-section-dot"></div>
-        <span class="sched-section-label">${sec.label}</span>
-        ${sec.time?`<span class="sched-section-time">${sec.time}</span>`:''}
-        ${checkable.length?`<span class="sched-section-prog ${allDone?'done':''}">${checked.length}/${checkable.length}</span>`:''}
+        <div class="sched-section-dot" style="background:${blockColor}"></div>
+        <span class="sched-section-label" style="color:${blockColor}">${block.icon?block.icon+' ':''}${block.name||'Block'}</span>
+        ${blockTime?`<span class="sched-section-time">${blockTime}</span>`:''}
+        ${blockRoutines.length?`<span class="sched-section-prog ${allDone?'done':''}">${checked.length}/${blockRoutines.length}</span>`:''}
         <span class="sched-section-chevron">▾</span>
       </div>
       <div class="sched-section-body">
-        ${itemsHtml}
+        <div class="sched-routine-list" id="sched-routine-list-${block.id}" data-routine-list="1">${itemsHtml}</div>
         ${bcTasksHtml}
-        ${sec.section!=='note'?`<button class="sched-add-slot-btn" onclick="openSlotTaskSheet('${sec.section}','${sec.label}')">
+        <button class="sched-add-slot-btn" onclick="openSlotTaskSheet('${sectionType}','${block.name||'Block'}')">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Add BravoChore task here
-        </button>`:''}
+        </button>
       </div>
     </div>`;
   }).join('');
@@ -396,6 +264,12 @@ function renderSchedToday(){
   container.innerHTML=html||`<div class="empty-state">Nothing scheduled for ${dayName}.</div>`;
   updateSchedProgress(doneTasks,totalTasks,dayName);
   checkScheduleNudge();
+  // Wire drag-reorder on each block's routine list
+  setTimeout(()=>{
+    document.querySelectorAll('[data-routine-list="1"]').forEach(list=>{
+      if(typeof initRoutineDragList==='function')initRoutineDragList(list);
+    });
+  },80);
 }
 
 function toggleSchedItem(taskId,el){
@@ -406,11 +280,11 @@ function toggleSchedItem(taskId,el){
   if(chk)chk.innerHTML=!cur?'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>':'';
   // Recount progress without full re-render
   const dayName=SCHED_DAYS[schedSelectedDay];
-  const sections=DAY_TASKS[dayName]||[];
+  const dayNum=schedSelectedDay;
   let total=0,done=0;
-  sections.forEach(sec=>{
-    sec.tasks.filter(t=>!t.note&&(!t.week||t.week===schedWeek)).forEach(t=>{
-      total++;if(getSchedState('task-'+t.id,false))done++;
+  routineBlocks.filter(b=>_routineActiveOn(b.days,dayNum)).forEach(block=>{
+    _routinesForBlockOnDay(block.id,dayNum).forEach(r=>{
+      total++;if(getSchedState('task-'+r.id,false))done++;
     });
   });
   updateSchedProgress(done,total,dayName);
@@ -451,8 +325,8 @@ function updateSchedProgress(done,total,dayName){
 function renderSchedWeek(){
   const container=document.getElementById('sched-week-content');if(!container)return;
   container.innerHTML=SCHED_DAYS.map((dayName,i)=>{
-    const sections=DAY_TASKS[dayName]||[];
-    const total=sections.reduce((s,sec)=>s+sec.tasks.filter(t=>!t.note&&(!t.week||t.week===schedWeek)).length,0);
+    // Count active routines for day i across all blocks
+    const total=routineItems.filter(r=>r.active!==false&&_routineActiveOn(r.days,i)).length;
     const todayNum=new Date().getDay();
     return `<div class="week-ov-card" onclick="schedSetDay(${i});setSchedSub('today',document.getElementById('ssn-today'))">
       <div class="week-ov-hdr" style="${i===todayNum?'background:var(--gl)':''}">
@@ -697,6 +571,58 @@ async function initScheduleView(){
     setSchedView(schedView);
     if(schedSub==='today')renderSchedToday();
   }catch(e){console.warn('Schedule re-render warning:',e);}
+}
+
+// ================================================================
+// ROUTINE DRAG-REORDER
+// ================================================================
+// Wires HTML5 drag-and-drop on each block's routine list so routines can be
+// reordered within their block. Persists via PATCH on bravochore_routines.sort_order.
+// Click-to-tick still works (HTML5 drag only fires on actual drag motion).
+function initRoutineDragList(list){
+  if(!list||list.dataset.dragInit==='1')return;
+  list.dataset.dragInit='1';
+  let dragSrc=null;
+  list.querySelectorAll('.sched-item').forEach(item=>{
+    item.draggable=true;
+    item.addEventListener('dragstart',e=>{
+      dragSrc=item;
+      item.style.opacity='0.45';
+      try{e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',item.dataset.routineId||'');}catch(err){}
+    });
+    item.addEventListener('dragend',()=>{
+      item.style.opacity='';
+      if(dragSrc){persistRoutineOrder(list);}
+      dragSrc=null;
+    });
+    item.addEventListener('dragover',e=>{
+      e.preventDefault();
+      if(!dragSrc||dragSrc===item)return;
+      const rect=item.getBoundingClientRect();
+      const after=(e.clientY-rect.top)/(rect.bottom-rect.top)>0.5;
+      if(after)item.parentNode.insertBefore(dragSrc,item.nextSibling);
+      else item.parentNode.insertBefore(dragSrc,item);
+    });
+  });
+}
+
+async function persistRoutineOrder(list){
+  const ids=Array.from(list.querySelectorAll('.sched-item'))
+    .map(it=>parseInt(it.dataset.routineId,10))
+    .filter(n=>!isNaN(n));
+  if(!ids.length)return;
+  // Update local cache so subsequent renders reflect the new order without a re-fetch
+  ids.forEach((id,i)=>{
+    const r=routineItems.find(x=>x.id===id);
+    if(r)r.sort_order=i+1;
+  });
+  if(typeof badge==='function')badge('sy','↻');
+  try{
+    await Promise.all(ids.map((id,i)=>api('bravochore_routines','PATCH',{sort_order:i+1},`?id=eq.${id}`)));
+    if(typeof badge==='function')badge('ok','✓');
+  }catch(e){
+    if(typeof badge==='function')badge('er','⚠');
+  }
 }
 
 // Returns the partner code for the current user — first non-CU active person in the household
