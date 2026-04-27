@@ -26,6 +26,59 @@ function detectSprintIntent(msg){
   return /sprint|build.*tool|get.*done|execute|tackle|power.*through|crunch|focus.*session|what can i get done|help me get/i.test(msg);
 }
 
+// Tick a milestone from inside an active sprint. Reuses setMilestoneDone()
+// so the parent task's progress reflects the tick, and the prompt-to-complete
+// flow fires if this was the last open milestone.
+async function sprintTickMilestone(msId){
+  if(typeof setMilestoneDone==='function'){
+    const ms=milestones.find(m=>m.id===msId);
+    if(!ms)return;
+    await setMilestoneDone(msId,!ms.done);
+  }
+  // Re-render the sprint UI
+  if(typeof renderSprintTasks==='function')renderSprintTasks();
+  // If all milestones in the focus sprint are done, surface the celebration
+  if(sprintData&&sprintData.allItems){
+    const milestoneItems=sprintData.allItems.filter(i=>i.type==='milestone');
+    const allDone=milestoneItems.length&&milestoneItems.every(item=>{
+      const m=milestones.find(x=>x.id===item.id);
+      return m&&m.done;
+    });
+    if(allDone){
+      const ad=document.getElementById('sprint-all-done');
+      if(ad)setTimeout(()=>{ad.style.display='block';},300);
+    }
+  }
+}
+
+// "Focus sprint" — a single-item sprint targeted at one milestone of one task.
+// Entry point from detail.js milestone rows: tap the focus button → close
+// detail → open a sprint with this milestone as the only item.
+async function startMilestoneFocusSprint(msId){
+  const ms=milestones.find(m=>m.id===msId);
+  if(!ms){chirp('Milestone not found.');return;}
+  const parent=tasks.find(t=>t.id===ms.task_id);
+  if(!parent){chirp('Parent task not found.');return;}
+  // Close any open detail panel first so the sprint overlay can show
+  if(typeof closeDetail==='function')closeDetail();
+  // Build a synthetic "allItems" entry for the milestone — sprintData supports
+  // mixed types via the type discriminator. Tasks normally render via taskCard;
+  // milestones get a small parallel render in renderSprintTasks below.
+  const allItems=[{type:'milestone',id:ms.id,taskId:parent.id,title:ms.title,parentTitle:parent.title,hours:parseFloat(ms.time_hours)||0.5}];
+  // sprintData.taskIds is used by activateSprint to compute totals — for a
+  // milestone-only sprint we use the parent task's id as a stand-in so the
+  // existing infrastructure (task tick → quickTick → sprint progress) keeps
+  // working when the user actually completes the parent.
+  const html='';
+  activateSprint([],html,allItems);
+  // Override the title so the sprint header reads as a focus session
+  if(sprintData){
+    sprintData.title='Focus: '+ms.title;
+    document.getElementById('sprint-title').textContent=sprintData.title;
+    saveSprintState();
+  }
+}
+
 // ── STEP 1: Trigger from Blackbird chat ──
 async function startSprintFlow(userMsg){
   const now=new Date();
@@ -363,12 +416,37 @@ function renderSprintTasks(){
   const taskItems=sprintData.allItems?sprintData.allItems.filter(i=>i.type==='task'):
     sprintData.taskIds.map(id=>({type:'task',id}));
   const routineItems=sprintData.allItems?sprintData.allItems.filter(i=>i.type==='routine'):[];
+  const milestoneItems=sprintData.allItems?sprintData.allItems.filter(i=>i.type==='milestone'):[];
 
   let html='';
 
+  // ── MILESTONES — focus-sprint case (1+ specific milestones picked) ──
+  if(milestoneItems.length){
+    html+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx3);margin-bottom:8px">Focus on</div>`;
+    html+=milestoneItems.map(item=>{
+      const ms=milestones.find(m=>m.id===item.id);
+      if(!ms)return '';
+      const done=!!ms.done;
+      return `<div style="background:var(--surf);border:1.5px solid ${done?'var(--green)':'var(--gm)'};border-radius:var(--r);margin-bottom:10px;${done?'opacity:.7':''}">
+        <div style="padding:14px 16px;display:flex;gap:12px;align-items:flex-start">
+          <div onclick="sprintTickMilestone('${ms.id}')" style="width:24px;height:24px;border-radius:50%;border:2.5px solid ${done?'var(--green)':'var(--gm)'};background:${done?'var(--green)':'var(--surf)'};cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:1px">
+            ${done?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>':''}
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-family:'Playfair Display',serif;font-size:17px;font-weight:500;${done?'text-decoration:line-through;color:var(--tx3)':''}">${ms.title}</div>
+            <div style="font-size:11px;color:var(--tx3);margin-top:3px">Step of "${item.parentTitle||'task'}"</div>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button class="qa-btn" style="font-size:11px;padding:5px 10px" onclick="openDetail(${item.taskId})">Open parent task</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
   // ── TASKS — use taskCard() exactly as in the task list ────────
   if(taskItems.length){
-    html+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx3);margin-bottom:8px">Tasks</div>`;
+    html+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx3);margin:${milestoneItems.length?'14px':0} 0 8px">Tasks</div>`;
     const taskCards=taskItems.map(item=>{
       const t=tasks.find(x=>x.id===item.id);
       if(!t)return '';

@@ -120,6 +120,7 @@ function renderDpBody(task,ms){
             <div class="ms-info">
               ${m.time_hours?`<span class="ms-time-badge">${parseFloat(m.time_hours).toFixed(1)}h</span>`:''}
               ${m.due?`<span class="ms-date-badge">${fmtDate(m.due)}</span>`:''}
+              ${!m.done?`<button class="ms-tbtn" onclick="event.stopPropagation();startMilestoneFocusSprint('${m.id}')" title="Focus on just this step">▷ Focus</button>`:''}
             </div>
           </div>
           <button class="ms-del" onclick="deleteMs('${m.id}')">✕</button>
