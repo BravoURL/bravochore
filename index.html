@@ -388,6 +388,24 @@ document.querySelector('link[rel="manifest"]').href = url;
   <div id="bb-lottie-fab" style="width:34px;height:34px;background:transparent"></div>
 </div>
 
+<!-- SPRINT FAB (idle) — small pill in lower-left when no sprint is running.
+     When a sprint is active, this hides and #sprint-now-bar takes over (full-width
+     "now playing" bar above the bottom nav). Spotify pattern. -->
+<button id="sprint-fab" onclick="onSprintFabClick()" title="Start a sprint" aria-label="Start a sprint">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+  <span>Sprint</span>
+</button>
+
+<!-- SPRINT NOW-PLAYING BAR — appears when sprint is active, hides #sprint-fab. -->
+<div id="sprint-now-bar" onclick="onSprintFabClick()" role="button" aria-label="Open active sprint">
+  <div class="snb-pulse"></div>
+  <div class="snb-info">
+    <div class="snb-title" id="snb-title">Sprint</div>
+    <div class="snb-meta" id="snb-meta">0/0 tasks</div>
+  </div>
+  <div class="snb-time" id="snb-time">—</div>
+</div>
+
 <!-- FULLSCREEN BLACKBIRD -->
 <div id="bb-fullscreen">
   <div class="bbfs-header">
@@ -414,7 +432,7 @@ document.querySelector('link[rel="manifest"]').href = url;
     </button>
   </div>
 </div>
-<div id="bb-panel" style="display:none"></div>
+<!-- (#bb-panel removed — Blackbird is fullscreen-only via #bb-fullscreen.) -->
 
 <!-- JOB COMPLETE SHEET -->
 <div class="job-complete-backdrop" id="jc-backdrop">

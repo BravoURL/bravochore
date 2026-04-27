@@ -297,28 +297,9 @@ function renderEventPanel(ev){
       ${filterPill('partner',partnerName)}
     </div>`:''}
     ${pending.length===0&&done.length===0?`<div style="padding:14px;background:var(--surf);border:1px dashed var(--bdr);border-radius:var(--rs);font-size:12px;color:var(--tx3);text-align:center">${evOwnerFilter==='all'?'No tasks yet — add one above.':'Nothing for '+(evOwnerFilter==='me'?meName:partnerName)+' on this event.'}</div>`:''}
-    ${pending.map(t=>{
-      const o=getOwner(t.owner);
-      return `<div class="task-card" data-id="${t.id}" style="margin-bottom:6px">
-        <div class="task-row">
-          <div class="task-check ${t.done?'checked':''}" onclick="event.stopPropagation();quickTick(${t.id},event)"></div>
-          <div class="task-main" onclick="event.stopPropagation();openDetail(${t.id})">
-            <div class="task-title">${t.title}</div>
-            <div class="task-meta">
-              <span class="task-tag" style="background:${o.bg};color:${o.color}">${o.name}</span>
-              ${t.due?`<span class="task-date">${fmtDate(t.due)}</span>`:''}
-              ${t.task_code?`<span class="task-code">${t.task_code}</span>`:''}
-              ${t.time_hours?`<span class="task-time-b">${fmtHours(parseFloat(t.time_hours))}</span>`:''}
-            </div>
-          </div>
-          <button class="icon-btn" onclick="startTaskTimer(${t.id},event)" title="Timer" style="color:var(--tx3)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2h12M6 22h12M6 2c0 4 2 6 6 10C8 16 6 18 6 22M18 2c0 4-2 6-6 10c4 4 6 6 6 10"/></svg>
-          </button>
-        </div>
-      </div>`;
-    }).join('')}
+    ${pending.map(t=>taskCard(t)).join('')}
     ${done.length?`<div class="completed-toggle" onclick="toggleDone(this)"><span class="ct-arr">›</span><span>${done.length} completed</span></div>
-    <div class="completed-list">${done.map(t=>`<div class="task-card done" onclick="openDetail(${t.id})"><div class="task-row"><div class="task-check checked"></div><div class="task-main"><div class="task-title done-txt">${t.title}</div></div></div></div>`).join('')}</div>`:''}
+    <div class="completed-list">${done.map(t=>taskCard(t)).join('')}</div>`:''}
     ${ev.status!=='completed'?`<button class="ep-complete-btn" onclick="showEventScorecard(${ev.id})">Complete this event</button>`:''}
   `;
 }

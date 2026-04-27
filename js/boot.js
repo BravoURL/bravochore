@@ -26,6 +26,7 @@ async function boot(){
     document.getElementById('app').style.display='block';
     document.getElementById('bb-fab').style.display='flex';
     setupPill();renderExtraFilters();renderDashboard();initLottie();assignMissingCodes();loadPrefs();setTimeout(checkForActiveSprint,1500);document.getElementById('bn-dashboard')?.classList.add('active');
+    if(typeof updateSprintFAB==='function')updateSprintFAB();
     // Reminders module is parked (UI hidden in index.html) — skip the check so no
     // dormant banner appears. Re-enable when Alexa integration revives the feature.
     // setTimeout(()=>checkReminders(),700);
@@ -44,6 +45,7 @@ async function boot(){
       document.getElementById('app').style.display='block';
       document.getElementById('bb-fab').style.display='flex';
       setupPill();renderExtraFilters();renderDashboard();initLottie();assignMissingCodes();loadPrefs();setTimeout(checkForActiveSprint,1500);document.getElementById('bn-dashboard')?.classList.add('active');
+    if(typeof updateSprintFAB==='function')updateSprintFAB();
     }else{
       document.getElementById('user-picker').style.display='flex';
     }

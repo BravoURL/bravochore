@@ -45,8 +45,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 .brand{font-family:'Playfair Display',serif;font-size:17px;font-weight:600;color:var(--green);letter-spacing:-.3px;flex-shrink:0;white-space:nowrap;user-select:none;-webkit-user-select:none;cursor:pointer}
 .nav-right{display:flex;align-items:center;gap:8px;margin-left:auto;flex-shrink:0}
 /* Hide old nav tabs */
-.nav-tabs{display:none}
-.nav-tab{display:none}
+/* (Pre-bottom-nav .nav-tabs/.nav-tab classes removed — dead since the
+   bottom-nav rewrite. Re-introduce as new classes if you need a tab strip again.) */
 
 /* BOTTOM TAB BAR */
 #bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--surf);border-top:1px solid var(--bdr);display:flex;align-items:flex-end;z-index:150;height:60px;padding-bottom:env(safe-area-inset-bottom)}
@@ -371,12 +371,27 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 
 /* BLACKBIRD */
 #bb-fab{position:fixed;bottom:24px;right:16px;width:50px;height:50px;background:var(--gl);border:2px solid var(--gm);border-radius:50%;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:200;box-shadow:0 4px 16px rgba(92,138,74,.2)}
+
+/* Sprint FAB (idle pill) — lower-left, persistent.
+   Hides automatically while a sprint is active (#sprint-now-bar takes over). */
+#sprint-fab{position:fixed;bottom:70px;left:14px;display:none;align-items:center;gap:6px;padding:8px 14px 8px 11px;background:var(--tx);color:#fff;border:none;border-radius:100px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;z-index:200;box-shadow:0 4px 14px rgba(0,0,0,.18);transition:transform .12s}
+#sprint-fab.show{display:inline-flex}
+#sprint-fab:active{transform:scale(.96)}
+
+/* Sprint "now playing" bar — full-width above bottom nav while sprint runs. */
+#sprint-now-bar{position:fixed;left:8px;right:8px;bottom:60px;display:none;align-items:center;gap:10px;padding:8px 12px;background:var(--tx);color:#fff;border-radius:14px;cursor:pointer;z-index:200;box-shadow:0 6px 24px rgba(0,0,0,.25);max-width:560px;margin:0 auto}
+#sprint-now-bar.show{display:flex}
+.snb-pulse{width:10px;height:10px;border-radius:50%;background:var(--green);flex-shrink:0;box-shadow:0 0 0 0 rgba(92,138,74,.6);animation:snbPulse 1.6s ease-out infinite}
+@keyframes snbPulse{0%{box-shadow:0 0 0 0 rgba(92,138,74,.55)}70%{box-shadow:0 0 0 10px rgba(92,138,74,0)}100%{box-shadow:0 0 0 0 rgba(92,138,74,0)}}
+.snb-info{flex:1;min-width:0}
+.snb-title{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.snb-meta{font-size:11px;color:rgba(255,255,255,.65);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.snb-time{font-family:'DM Mono',monospace;font-size:14px;font-weight:700;color:var(--green);flex-shrink:0;min-width:48px;text-align:right}
 .bb-idle #bb-emoji{animation:bbBob 3s ease-in-out infinite;display:inline-block}
 .bb-thinking #bb-emoji{animation:bbFlap .35s ease-in-out infinite alternate;display:inline-block}
 @keyframes bbBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
 @keyframes bbFlap{0%{transform:translateY(0) rotate(-8deg)}100%{transform:translateY(-4px) rotate(8deg)}}
-#bb-panel{position:fixed;bottom:86px;right:12px;width:320px;background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);box-shadow:0 8px 32px rgba(0,0,0,.12);z-index:200;display:none;flex-direction:column;max-height:60vh}
-#bb-panel.open{display:flex}
+/* (#bb-panel removed — Blackbird is fullscreen-only now via #bb-fullscreen.) */
 .bb-hdr{padding:10px 12px 8px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between}
 .bb-ttl{font-family:'Playfair Display',serif;font-size:14px;font-weight:500;display:flex;align-items:center;gap:7px}
 .bb-dot{width:7px;height:7px;background:var(--green);border-radius:50%;animation:pulse 2s infinite}
@@ -446,7 +461,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
   #detail-panel{left:auto;right:-500px;top:0;bottom:auto;width:480px;height:100vh;border-radius:0;max-width:none;transition:right .3s ease}
   #detail-panel.open{right:0;bottom:auto}
   .dp-row2{grid-template-columns:1fr 1fr}
-  .bb-panel{width:340px}
   .user-cards{max-width:480px}
 }
 

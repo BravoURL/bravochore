@@ -360,26 +360,15 @@ function renderSchedToday(){
       </div>`;
     }).join('');
 
-    // BravoChore tasks slotted into this section type
+    // BravoChore tasks slotted into this section type — render with the
+    // canonical taskCard() so they look identical to every other place a task
+    // appears (Tasks list, Sprint, Event panel). Wrapped in .sched-bc-task for
+    // the small inset look the schedule uses.
     const slottedTasks=schedSlots
       .map(s=>tasks.find(t=>t.id==s.task_id))
       .filter(t=>t&&!t.done);
     const bcTasksHtml=schedView!=='partner'&&slottedTasks.length&&sec.section==='afternoon'?
-      slottedTasks.map(t=>{
-        const o=getOwner(t.owner);
-        return `<div class="sched-bc-task">
-          <div style="display:flex;align-items:center;gap:8px">
-            <div class="task-check ${t.done?'checked':''}" onclick="quickTick(${t.id},event)" style="flex-shrink:0"></div>
-            <div style="flex:1;min-width:0">
-              <div style="font-size:13px;font-weight:500">${t.title}</div>
-              <div style="display:flex;gap:5px;margin-top:2px;flex-wrap:wrap">
-                <span class="task-tag" style="background:${o.bg};color:${o.color}">${o.name}</span>
-                ${t.task_code?`<span class="task-code">${t.task_code}</span>`:''}
-              </div>
-            </div>
-          </div>
-        </div>`;
-      }).join(''):'';
+      slottedTasks.map(t=>`<div class="sched-bc-task">${taskCard(t)}</div>`).join(''):'';
 
     const allDone=checkable.length>0&&checked.length===checkable.length;
     return `<div class="sched-section ${sec.section}" id="ss-${sec.section}-${SCHED_DAYS[schedSelectedDay]}">

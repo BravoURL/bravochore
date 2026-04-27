@@ -256,6 +256,9 @@ function activateSprint(sprintTasks, html, allItems){
     if(el)el.textContent=timeStr;
     const tmr=document.getElementById('sprint-tmr');
     if(tmr)tmr.textContent=timeStr;
+    // Reflect elapsed in the now-playing bar
+    const snbTime=document.getElementById('snb-time');
+    if(snbTime)snbTime.textContent=timeStr;
     // Update task timer buttons that are active
     document.querySelectorAll('.timer-on').forEach(btn=>{
       const taskId=btn.id?.replace('stimer-','');
@@ -265,6 +268,61 @@ function activateSprint(sprintTasks, html, allItems){
     if(sprintElapsed%60===0)updateSprintProgress();
     if(sprintElapsed%30===0)saveSprintState();
   },1000);
+
+  updateSprintFAB();
+}
+
+// ================================================================
+// SPRINT FAB / NOW-PLAYING BAR
+// ================================================================
+// One persistent affordance:
+//   - When NO sprint is active: small lower-left pill labelled "Sprint" ⚡
+//   - When a sprint IS active:  full-width "now playing" bar above the bottom nav
+// Tap either to open the relevant UI (builder / overlay).
+function onSprintFabClick(){
+  if(typeof sprintActive!=='undefined'&&sprintActive){
+    // Reopen the active sprint overlay
+    const o=document.getElementById('sprint-overlay');
+    if(o)o.classList.add('active');
+  }else{
+    // Otherwise open the builder
+    if(typeof openSprintBuilder==='function')openSprintBuilder();
+  }
+}
+
+function updateSprintFAB(){
+  const fab=document.getElementById('sprint-fab');
+  const bar=document.getElementById('sprint-now-bar');
+  if(!fab||!bar)return;
+  const active=(typeof sprintActive!=='undefined')&&sprintActive;
+  const userReady=(typeof CU!=='undefined')&&!!CU;
+  if(!userReady){
+    fab.classList.remove('show');
+    bar.classList.remove('show');
+    return;
+  }
+  if(active){
+    fab.classList.remove('show');
+    bar.classList.add('show');
+    if(typeof sprintData==='object'&&sprintData){
+      const titleEl=document.getElementById('snb-title');
+      const metaEl=document.getElementById('snb-meta');
+      if(titleEl)titleEl.textContent=sprintData.title||'Sprint';
+      if(metaEl){
+        const total=(sprintData.taskIds&&sprintData.taskIds.length)||0;
+        const done=(sprintData.doneTasks&&sprintData.doneTasks.size)||0;
+        const routTotal=sprintData.routineCount||0;
+        const routDone=(sprintData.doneRoutines&&sprintData.doneRoutines.size)||0;
+        const parts=[];
+        if(total)parts.push(done+'/'+total+' task'+(total===1?'':'s'));
+        if(routTotal)parts.push(routDone+'/'+routTotal+' routine'+(routTotal===1?'':'s'));
+        metaEl.textContent=parts.join(' · ')||'In progress';
+      }
+    }
+  }else{
+    bar.classList.remove('show');
+    fab.classList.add('show');
+  }
 }
 
 function renderSprintTasks(){
@@ -330,56 +388,10 @@ function sprintToggleRoutine(idx){
   updateSprintProgress();
   saveSprintState();
 }
-function renderSprintTaskRow(taskId, isDone){
-  const row=document.getElementById('sti-'+taskId);
-  const chk=document.getElementById('stc-'+taskId);
-  const titleEl=row?.querySelector('[style*="font-size:14px;font-weight:500"]');
-  const tick='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>';
-  if(chk){
-    chk.style.background=isDone?'var(--green)':'var(--surf)';
-    chk.style.borderColor=isDone?'var(--green)':'var(--bdrm)';
-    chk.innerHTML=isDone?tick:'';
-  }
-  if(row)row.style.opacity=isDone?'0.55':'';
-  if(titleEl){
-    titleEl.style.textDecoration=isDone?'line-through':'';
-    titleEl.style.color=isDone?'var(--tx3)':'';
-  }
-  // Check if all done
-  if(isDone&&sprintData&&sprintData.doneTasks.size>=sprintData.taskIds.length){
-    setTimeout(()=>{const ad=document.getElementById('sprint-all-done');if(ad)ad.style.display='block';},600);
-  }
-}
-function updateSprintToolUI(taskId, isDone){
-  const chkEl=document.getElementById('stc-'+taskId);
-  const txtEl=document.getElementById('stt-'+taskId);
-  const rowEl=document.getElementById('sti-'+taskId);
-  const tick='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>';
-  if(isDone){
-    if(chkEl){chkEl.classList.add('checked');chkEl.innerHTML=tick;}
-    if(txtEl)txtEl.classList.add('done-txt');
-    if(rowEl)rowEl.classList.add('done');
-  }else{
-    if(chkEl){chkEl.classList.remove('checked');chkEl.innerHTML='';}
-    if(txtEl)txtEl.classList.remove('done-txt');
-    if(rowEl)rowEl.classList.remove('done');
-  }
-  if(!sprintData)return;
-  const total=sprintData.taskIds.length;
-  const done=sprintData.doneTasks.size;
-  const bar=document.getElementById('sprint-inner-bar');
-  const ringTxt=document.getElementById('sprint-ring-txt');
-  if(bar)bar.style.width=(total?done/total*100:0)+'%';
-  if(ringTxt)ringTxt.textContent=done+'/'+total;
-  const rem=document.getElementById('sprint-rem');
-  if(rem){
-    const doneH=sprintData.taskIds.filter(id=>sprintData.doneTasks.has(id)).reduce((s,id)=>{const t=tasks.find(x=>x.id===id);return s+(t?getEffectiveTime(t):0);},0);
-    const totalH2=sprintData.taskIds.reduce((s,id)=>{const t=tasks.find(x=>x.id===id);return s+(t?getEffectiveTime(t):0);},0);
-    const left=Math.max(0,totalH2-doneH);
-    rem.textContent=left>0?fmtHours(left):'Done!';
-  }
-  if(done>=total&&total>0)setTimeout(()=>{const ad=document.getElementById('sprint-all-done');if(ad)ad.style.display='block';},600);
-}
+// (renderSprintTaskRow and updateSprintToolUI removed — they manipulated id
+//  prefixes sti-/stc-/stt- that the current renderSprintTasks() (which uses
+//  taskCard()) does not emit. quickTick() in ui.js now handles cross-bucket
+//  sync directly.)
 
 function updateSprintProgress(){
   if(!sprintData)return;
@@ -508,6 +520,7 @@ async function confirmEndSprint(){
   // Close overlay
   document.getElementById('sprint-overlay').classList.remove('active');
   sprintActive=false;
+  updateSprintFAB();
   // Update DB
   if(sprintData?.dbId){
     api('bravochore_sprints','PATCH',{status:'completed',ended_at:new Date().toISOString(),tasks_done:done},`?id=eq.${sprintData.dbId}`).catch(()=>{});
@@ -665,34 +678,8 @@ async function buildSprintFromBuilder(){
 }
 
 
-function showSprintToast(title, subtitle, taskId, isDone){
-  // Remove existing toast
-  document.getElementById('sprint-toast')?.remove();
-  const toast=document.createElement('div');
-  toast.id='sprint-toast';
-  toast.style.cssText=`
-    position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
-    background:var(--tx);color:#fff;
-    border-radius:var(--r);padding:12px 16px;
-    min-width:220px;max-width:320px;
-    display:flex;flex-direction:column;gap:4px;
-    z-index:1000;box-shadow:0 4px 20px rgba(0,0,0,.25);
-    animation:toastIn .2s ease;
-  `;
-  toast.innerHTML=`
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
-      <div>
-        <div style="font-size:13px;font-weight:700">${title}</div>
-        ${subtitle?`<div style="font-size:11px;opacity:.7;margin-top:2px">${subtitle}</div>`:''}
-      </div>
-      <div style="display:flex;gap:6px;flex-shrink:0">
-        ${isDone?`<button onclick="window.sprintTickTask(${taskId});document.getElementById('sprint-toast')?.remove()" style="padding:5px 10px;border-radius:100px;border:1.5px solid rgba(255,255,255,.3);background:none;color:#fff;font-size:11px;font-weight:600;cursor:pointer">Undo</button>`:''}
-        ${taskId?`<button onclick="window.sprintEditTask(${taskId});document.getElementById('sprint-toast')?.remove()" style="padding:5px 10px;border-radius:100px;border:1.5px solid rgba(255,255,255,.3);background:none;color:#fff;font-size:11px;font-weight:600;cursor:pointer">Edit</button>`:''}
-      </div>
-    </div>`;
-  document.body.appendChild(toast);
-  setTimeout(()=>toast.remove(),4500);
-}
+// (showSprintToast removed — was a parallel toast styling that no caller
+//  actually used. Per BRAND.md: a single chirp() pattern is the universal toast.)
 
 // ================================================================
 // SPRINT PERSISTENCE

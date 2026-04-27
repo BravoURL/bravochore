@@ -365,39 +365,16 @@ function renderHeadToHead(){
 }
 
 
-function renderPace(doneH,remH,daysLeft){
-  const totalDays=Math.ceil((TARGET-new Date('2026-04-01'))/86400000);
-  const daysPassed=totalDays-daysLeft;
-  const actualRate=daysPassed>0?doneH/daysPassed:0;
-  const neededRate=daysLeft>0?remH/daysLeft:0;
-  let html='';
-  if(paceView==='pace'){
-    const eff=actualRate>0&&neededRate>0?Math.round((actualRate/neededRate)*100):0;
-    html=`<div class="pace-item"><div class="pace-val">${fmtHours(actualRate)}</div><div class="pace-lbl">Actual/day</div></div>
-    <div class="pace-item"><div class="pace-val">${fmtHours(neededRate)}</div><div class="pace-lbl">Needed/day</div></div>
-    <div class="pace-item"><div class="pace-val" style="color:${eff>=100?'var(--green)':'var(--red)'}">${eff}%</div><div class="pace-lbl">Efficiency</div></div>`;
-  }else{
-    const projDays=actualRate>0?Math.ceil(remH/actualRate):999;
-    const projDate=new Date();projDate.setDate(projDate.getDate()+projDays);
-    const onTime=projDate<=TARGET;
-    const diff=Math.abs(Math.ceil((projDate-TARGET)/86400000));
-    html=`<div class="pace-item"><div class="pace-val">${projDate.toLocaleDateString('en-AU',{day:'numeric',month:'short'})}</div><div class="pace-lbl">Proj. finish</div></div>
-    <div class="pace-item"><div class="pace-val" style="color:${onTime?'var(--green)':'var(--red)'}">${onTime?diff+'d early':diff+'d late'}</div><div class="pace-lbl">vs 2 May</div></div>
-    <div class="pace-item"><div class="pace-val">${fmtHours(remH)}</div><div class="pace-lbl">Remaining</div></div>`;
-  }
-  document.getElementById('pace-grid').innerHTML=html;
-}
-
-function setPaceView(v,btn){
-  paceView=v;
-  document.querySelectorAll('.tog-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  renderDashboard();
-}
+// (renderPace and setPaceView removed — superseded by H2H head-to-head dashboard.
+//  Re-add only if a per-person pace/efficiency tile returns.)
 
 // ================================================================
 // TASK CARD
 // ================================================================
+// Canonical task-card renderer — used by Tasks, Events panel, Sprint, Schedule
+// slotted, and any other view that shows a task. Per BRAND.md: "Cards — A 'task
+// card' is the same shape across every bucket… do not build a new task-card
+// variant inside another file."
 function taskCard(task){
   const today=tdStr();
   const ov=!task.done&&task.due&&task.due<today;
@@ -406,7 +383,6 @@ function taskCard(task){
   const msDone=ms.filter(m=>m.done).length;
   const msPct=ms.length?msDone/ms.length:0;
   const timeH=getEffectiveTime(task);
-  const isTimerOn=activeTimer&&activeTimer.taskId===task.id&&!activeTimer.msId;
   const dots=ms.length?`<div class="ms-dots">${ms.map(m=>`<div class="ms-dot ${m.done?'d':'p'}" title="${m.title}"></div>`).join('')}</div>`:'';
   const o=getOwner(task.owner);
   return `<div class="task-card ${ov?'overdue':ds?'due-soon':''} ${task.done?'done':''}" id="tc-${task.id}" data-id="${task.id}" draggable="true">
@@ -425,12 +401,6 @@ function taskCard(task){
           ${(task.photo_urls||[]).length?`<span class="task-time-b">📷${task.photo_urls.length}</span>`:''}
           ${task.task_code?`<span class="task-code">${task.task_code}</span>`:''}
         </div>
-      </div>
-      <div class="task-acts">
-        <button class="icon-btn ${isTimerOn?'timer-on':''}" onclick="startTaskTimer(${task.id},event)" title="Start timer" style="color:${isTimerOn?'var(--red)':'var(--tx3)'}">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${isTimerOn?'<line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><path d="M7 4.5C4.5 6.5 3 9.1 3 12s1.5 5.5 4 7.5"/><path d="M17 4.5C19.5 6.5 21 9.1 21 12s-1.5 5.5-4 7.5"/>':'<path d="M6 2h12M6 22h12M6 2c0 4 2 6 6 10C8 16 6 18 6 22M18 2c0 4-2 6-6 10c4 4 6 6 6 10"/>'}</svg>
-        </button>
-
       </div>
     </div>
   </div>`;

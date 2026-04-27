@@ -22,7 +22,7 @@ let timerSessions=[]; // [{start,end,secs}] for current task
 let filterWho='all',filterBucket='all',filterMode=null;
 let bbOpen=false,bbCtx=null;
 let dpTaskId=null;
-let paceView='pace';
+// paceView removed — was used by renderPace which has been superseded by H2H.
 let cmResolve=null,cmReject=null;
 let dragSrc=null,dragOver=null,dragGhost=null,dragPlaceholder=null,dragOffsetX=0,dragOffsetY=0;
 
