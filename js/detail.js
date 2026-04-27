@@ -349,6 +349,33 @@ async function dpTickMs(msId){
   }
 }
 
+// Set a milestone's done state to a specific value (not toggle). Used by the
+// Shopping ↔ Milestones link so that ticking a "buy X" item in the shopping
+// list ticks its corresponding milestone on the parent task. Same prompt-to-
+// complete-task chain as dpTickMs. Mirrors the milestones-first principle.
+async function setMilestoneDone(msId,targetDone){
+  const ms=milestones.find(m=>m.id===msId);
+  if(!ms||!!ms.done===!!targetDone)return;
+  ms.done=!!targetDone;
+  if(ms.done)playChime('ms');
+  // Reflect on the open detail panel if the parent task is currently open
+  const el=document.getElementById('msi-'+msId);
+  if(el){
+    el.querySelector('.ms-chk')?.classList.toggle('checked',ms.done);
+    el.querySelector('.ms-name')?.classList.toggle('done-txt',ms.done);
+  }
+  rerender();
+  try{await api('bravochore_milestones','PATCH',{done:ms.done},`?id=eq.${msId}`);}catch(e){}
+  // If this was the last open milestone, surface the prompt-to-complete-task flow
+  if(ms.done){
+    const taskMs=getMs(ms.task_id);
+    if(taskMs.length&&taskMs.every(m=>m.done)){
+      const t=tasks.find(x=>x.id===ms.task_id);
+      if(t&&!t.done)setTimeout(()=>promptCompleteTask(t),350);
+    }
+  }
+}
+
 // Shared prompt — used both when ticking the last milestone and when opening
 // a task whose milestones are already all done.
 async function promptCompleteTask(t){

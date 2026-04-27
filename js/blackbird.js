@@ -296,11 +296,23 @@ async function bbConfirmTask(btn){
   }
   badge('ok','✓ Task added');
 
-  // Step 4: Add shopping items (read from live parsed which may have been edited)
+  // Step 4: Add shopping items (read from live parsed which may have been edited).
+  // Per BRAND.md milestones-first principle: each shopping item gets a paired
+  // "Buy X" milestone on the parent task, and the shopping item is linked back to
+  // that milestone via shopping.milestone_id. Ticking either reflects on the other.
   if(parsed.shopping?.length){
     const store=parsed.shopping_store||'Bunnings';
     for(const name of parsed.shopping){
-      const si={id:'si_'+Date.now()+'_'+Math.random().toString(36).slice(2),name,store,note:parsed.title,done:false,sort_order:shopping.length+1};
+      // Create the "Buy X" milestone first so we can link the shopping item to it
+      const msId='ms_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+      const ms={id:msId,task_id:nid,title:'Buy '+name,done:false,owner:nt.owner,
+        due:nt.due,sort_order:milestones.filter(m=>m.task_id===nid).length+1,time_hours:0};
+      milestones.push(ms);
+      try{await api('bravochore_milestones','POST',[ms]);}catch(e){}
+      // Now create the shopping item, linked back to that milestone (and the task)
+      const si={id:'si_'+Date.now()+'_'+Math.random().toString(36).slice(2),
+        name,store,note:parsed.title,done:false,sort_order:shopping.length+1,
+        task_id:nid,milestone_id:msId};
       shopping.push(si);
       try{await api('bravochore_shopping','POST',[si]);}catch(e){}
     }

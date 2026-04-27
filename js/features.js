@@ -113,10 +113,17 @@ function tickSheetItem(id){
 }
 
 async function finishShopping(){
-  // Mark ticked items as done in shopping list
+  // Mark ticked items as done in shopping list, then propagate each to its
+  // linked milestone (if any) so the parent task's "Buy X" step ticks too.
   for(const id of sheetTicked){
     const item=shopping.find(i=>i.id===id);
-    if(item){item.done=true;try{await api('bravochore_shopping','PATCH',{done:true},`?id=eq.${id}`);}catch(e){}}
+    if(item){
+      item.done=true;
+      try{await api('bravochore_shopping','PATCH',{done:true},`?id=eq.${id}`);}catch(e){}
+      if(item.milestone_id&&typeof setMilestoneDone==='function'){
+        await setMilestoneDone(item.milestone_id,true);
+      }
+    }
   }
   sheetTicked.clear();
   closeShopList();
@@ -126,7 +133,18 @@ async function finishShopping(){
 function closeShopList(){document.getElementById('shop-modal').classList.remove('open');}
 document.addEventListener('DOMContentLoaded',()=>document.getElementById('shop-modal')?.addEventListener('click',e=>{if(e.target===document.getElementById('shop-modal'))closeShopList();}));
 
-async function toggleShop(id){const i=shopping.find(x=>x.id===id);if(!i)return;i.done=!i.done;renderShopping();try{await api('bravochore_shopping','PATCH',{done:i.done},`?id=eq.${id}`);}catch(e){}}
+async function toggleShop(id){
+  const i=shopping.find(x=>x.id===id);if(!i)return;
+  i.done=!i.done;
+  renderShopping();
+  try{await api('bravochore_shopping','PATCH',{done:i.done},`?id=eq.${id}`);}catch(e){}
+  // Mirror to the linked milestone so the parent task's progress reflects this purchase.
+  // Per BRAND.md milestones-first principle: ticking the buy step is partial progress
+  // on the parent task, not full completion.
+  if(i.milestone_id&&typeof setMilestoneDone==='function'){
+    await setMilestoneDone(i.milestone_id,i.done);
+  }
+}
 async function removeShop(id){shopping=shopping.filter(x=>x.id!==id);renderShopping();try{await api('bravochore_shopping','DELETE',null,`?id=eq.${id}`);}catch(e){}}
 function addShopItem(){
   const picker=document.createElement('div');
