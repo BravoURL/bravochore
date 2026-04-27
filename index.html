@@ -186,8 +186,8 @@ document.querySelector('link[rel="manifest"]').href = url;
       <div id="select-action-bar" style="display:none;background:var(--gl);border:1px solid var(--gm);border-radius:var(--rs);padding:10px 12px;margin-bottom:10px;display:none;align-items:center;justify-content:space-between">
         <span id="select-count" style="font-size:13px;font-weight:600;color:var(--gd)">0 selected</span>
         <div style="display:flex;gap:8px">
-          <button onclick="shelveSelected()" style="padding:6px 14px;background:var(--green);color:#fff;border:none;border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer">Shelve selected</button>
-          <button onclick="toggleSelectMode()" style="padding:6px 10px;background:none;border:1px solid var(--bdrm);border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;color:var(--tx2)">Cancel</button>
+          <button onclick="shelveSelected()" style="padding:6px 14px;background:var(--green);color:#fff;border:none;border-radius:var(--rs);font-size:12px;font-weight:700;cursor:pointer">Shelve selected</button>
+          <button onclick="toggleSelectMode()" style="padding:6px 10px;background:none;border:1px solid var(--bdrm);border-radius:var(--rs);font-size:12px;cursor:pointer;color:var(--tx2)">Cancel</button>
         </div>
       </div>
       <div class="filter-bar" id="task-filter-bar">
@@ -262,14 +262,14 @@ document.querySelector('link[rel="manifest"]').href = url;
         <!-- Owner toggle -->
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
           <div style="display:flex;gap:4px;background:var(--surf2);border-radius:100px;padding:3px">
-            <button id="sv-me" onclick="setSchedView('me')" style="padding:4px 12px;border-radius:100px;border:none;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;background:var(--green);color:#fff">Me</button>
-            <button id="sv-partner" onclick="setSchedView('partner')" style="padding:4px 12px;border-radius:100px;border:none;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;background:none;color:var(--tx2)">Partner</button>
-            <button id="sv-both" onclick="setSchedView('both')" style="padding:4px 12px;border-radius:100px;border:none;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;background:none;color:var(--tx2)">Both</button>
+            <button id="sv-me" onclick="setSchedView('me')" style="padding:4px 12px;border-radius:100px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:var(--green);color:#fff">Me</button>
+            <button id="sv-partner" onclick="setSchedView('partner')" style="padding:4px 12px;border-radius:100px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:none;color:var(--tx2)">Partner</button>
+            <button id="sv-both" onclick="setSchedView('both')" style="padding:4px 12px;border-radius:100px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:none;color:var(--tx2)">Both</button>
           </div>
           <!-- Week A/B toggle -->
           <div style="display:flex;align-items:center;gap:6px">
             <span id="week-pill" style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:100px;background:var(--al);color:var(--amber)">Week A</span>
-            <button onclick="toggleSchedWeek()" style="font-size:10px;padding:3px 9px;border-radius:100px;border:1px solid var(--bdrm);background:none;cursor:pointer;color:var(--tx2);font-family:'DM Sans',sans-serif">Switch</button>
+            <button onclick="toggleSchedWeek()" style="font-size:10px;padding:3px 9px;border-radius:100px;border:1px solid var(--bdrm);background:none;cursor:pointer;color:var(--tx2);">Switch</button>
           </div>
         </div>
         <!-- Day selector -->
@@ -298,8 +298,8 @@ document.querySelector('link[rel="manifest"]').href = url;
             </div>
           </div>
           <div style="display:flex;gap:7px;margin-top:8px">
-          <button onclick="dismissNudge()" style="flex:1;padding:7px;background:none;border:1px solid var(--gm);border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:12px;color:var(--gd);cursor:pointer;font-weight:600">Got it</button>
-          <button onclick="dismissNudge();bnNav('tasks')" style="flex:1;padding:7px;background:var(--green);border:none;border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:12px;color:#fff;cursor:pointer;font-weight:600">Reschedule →</button>
+          <button onclick="dismissNudge()" style="flex:1;padding:7px;background:none;border:1px solid var(--gm);border-radius:var(--rs);font-size:12px;color:var(--gd);cursor:pointer;font-weight:600">Got it</button>
+          <button onclick="dismissNudge();bnNav('tasks')" style="flex:1;padding:7px;background:var(--green);border:none;border-radius:var(--rs);font-size:12px;color:#fff;cursor:pointer;font-weight:600">Reschedule →</button>
         </div>
         </div>
         <!-- Sections -->
@@ -323,8 +323,8 @@ document.querySelector('link[rel="manifest"]').href = url;
         <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:500;margin-bottom:4px">Fortnightly</div>
         <div style="font-size:12px;color:var(--tx2);margin-bottom:10px">Alternating Week A / Week B tasks</div>
         <div style="display:flex;gap:5px;margin-bottom:12px">
-          <button id="fn-a-btn" onclick="setFortnightView('a')" style="padding:6px 16px;border-radius:100px;border:1.5px solid var(--green);background:var(--green);color:#fff;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer">Week A</button>
-          <button id="fn-b-btn" onclick="setFortnightView('b')" style="padding:6px 16px;border-radius:100px;border:1.5px solid var(--bdrm);background:none;color:var(--tx2);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer">Week B</button>
+          <button id="fn-a-btn" onclick="setFortnightView('a')" style="padding:6px 16px;border-radius:100px;border:1.5px solid var(--green);background:var(--green);color:#fff;font-size:12px;font-weight:700;cursor:pointer">Week A</button>
+          <button id="fn-b-btn" onclick="setFortnightView('b')" style="padding:6px 16px;border-radius:100px;border:1.5px solid var(--bdrm);background:none;color:var(--tx2);font-size:12px;font-weight:600;cursor:pointer">Week B</button>
         </div>
         <div id="sched-fortnight-content"></div>
       </div>
@@ -340,7 +340,7 @@ document.querySelector('link[rel="manifest"]').href = url;
       <div id="ssp-monthly" class="sched-subpage">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
           <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:500">Monthly</div>
-          <button onclick="resetMonthlyTasks()" style="font-size:11px;padding:5px 10px;border-radius:100px;border:1px solid var(--bdrm);background:none;cursor:pointer;color:var(--tx2);font-family:'DM Sans',sans-serif">Reset</button>
+          <button onclick="resetMonthlyTasks()" style="font-size:11px;padding:5px 10px;border-radius:100px;border:1px solid var(--bdrm);background:none;cursor:pointer;color:var(--tx2);">Reset</button>
         </div>
         <div style="font-size:12px;color:var(--tx2);margin-bottom:12px">First Wednesday of each month</div>
         <div id="sched-monthly-content"></div>
@@ -601,7 +601,7 @@ document.querySelector('link[rel="manifest"]').href = url;
     </div>
     <div id="reminders-list" style="flex:1;overflow-y:auto"></div>
     <div style="margin-top:10px;flex-shrink:0">
-      <button onclick="closeModal('reminders-modal')" style="width:100%;padding:11px;background:none;border:1px solid var(--bdrm);border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;color:var(--tx2)">Close</button>
+      <button onclick="closeModal('reminders-modal')" style="width:100%;padding:11px;background:none;border:1px solid var(--bdrm);border-radius:var(--rs);font-size:13px;cursor:pointer;color:var(--tx2)">Close</button>
     </div>
   </div>
 </div>
@@ -626,13 +626,13 @@ document.querySelector('link[rel="manifest"]').href = url;
     <div id="nr-day-row" class="dp-field">
       <label class="dp-label">Days of week <span style="font-weight:400;color:var(--tx3)">(tap multiple)</span></label>
       <div style="display:flex;gap:5px;flex-wrap:wrap">
-        <button type="button" id="nrd-0" onclick="toggleRoutineDay(0)" style="padding:6px 9px;border-radius:100px;border:1.5px solid var(--bdrm);background:var(--surf);color:var(--tx2);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">Sun</button>
-        <button type="button" id="nrd-1" onclick="toggleRoutineDay(1)" style="padding:6px 9px;border-radius:100px;border:1.5px solid var(--bdrm);background:var(--surf);color:var(--tx2);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">Mon</button>
-        <button type="button" id="nrd-2" onclick="toggleRoutineDay(2)" style="padding:6px 9px;border-radius:100px;border:1.5px solid var(--bdrm);background:var(--surf);color:var(--tx2);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">Tue</button>
-        <button type="button" id="nrd-3" onclick="toggleRoutineDay(3)" style="padding:6px 9px;border-radius:100px;border:1.5px solid var(--bdrm);background:var(--surf);color:var(--tx2);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">Wed</button>
-        <button type="button" id="nrd-4" onclick="toggleRoutineDay(4)" style="padding:6px 9px;border-radius:100px;border:1.5px solid var(--bdrm);background:var(--surf);color:var(--tx2);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">Thu</button>
-        <button type="button" id="nrd-5" onclick="toggleRoutineDay(5)" style="padding:6px 9px;border-radius:100px;border:1.5px solid var(--bdrm);background:var(--surf);color:var(--tx2);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">Fri</button>
-        <button type="button" id="nrd-6" onclick="toggleRoutineDay(6)" style="padding:6px 9px;border-radius:100px;border:1.5px solid var(--bdrm);background:var(--surf);color:var(--tx2);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">Sat</button>
+        <button type="button" id="nrd-0" onclick="toggleRoutineDay(0)" style="padding:6px 9px;border-radius:100px;border:1.5px solid var(--bdrm);background:var(--surf);color:var(--tx2);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">Sun</button>
+        <button type="button" id="nrd-1" onclick="toggleRoutineDay(1)" style="padding:6px 9px;border-radius:100px;border:1.5px solid var(--bdrm);background:var(--surf);color:var(--tx2);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">Mon</button>
+        <button type="button" id="nrd-2" onclick="toggleRoutineDay(2)" style="padding:6px 9px;border-radius:100px;border:1.5px solid var(--bdrm);background:var(--surf);color:var(--tx2);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">Tue</button>
+        <button type="button" id="nrd-3" onclick="toggleRoutineDay(3)" style="padding:6px 9px;border-radius:100px;border:1.5px solid var(--bdrm);background:var(--surf);color:var(--tx2);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">Wed</button>
+        <button type="button" id="nrd-4" onclick="toggleRoutineDay(4)" style="padding:6px 9px;border-radius:100px;border:1.5px solid var(--bdrm);background:var(--surf);color:var(--tx2);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">Thu</button>
+        <button type="button" id="nrd-5" onclick="toggleRoutineDay(5)" style="padding:6px 9px;border-radius:100px;border:1.5px solid var(--bdrm);background:var(--surf);color:var(--tx2);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">Fri</button>
+        <button type="button" id="nrd-6" onclick="toggleRoutineDay(6)" style="padding:6px 9px;border-radius:100px;border:1.5px solid var(--bdrm);background:var(--surf);color:var(--tx2);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">Sat</button>
       </div>
       <input type="hidden" id="nr-days" value="4">
     </div>
@@ -925,8 +925,8 @@ document.querySelector('link[rel="manifest"]').href = url;
     <!-- Footer -->
     <div style="padding:12px 18px;border-top:1px solid var(--bdr);background:var(--surf);flex-shrink:0;display:flex;gap:8px">
       <div style="flex:1;align-self:center;font-size:12px;color:var(--tx2)" id="sb-count-label">0 selected</div>
-      <button onclick="closeSprintBuilder()" style="padding:11px 16px;border:1px solid var(--bdrm);border-radius:var(--rs);background:none;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;color:var(--tx2)">Cancel</button>
-      <button onclick="buildSprintFromBuilder()" style="padding:11px 22px;background:var(--tx);color:#fff;border:none;border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-weight:700;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>⚡ Start Sprint</button>
+      <button onclick="closeSprintBuilder()" style="padding:11px 16px;border:1px solid var(--bdrm);border-radius:var(--rs);background:none;font-size:13px;cursor:pointer;color:var(--tx2)">Cancel</button>
+      <button onclick="buildSprintFromBuilder()" style="padding:11px 22px;background:var(--tx);color:#fff;border:none;border-radius:var(--rs);font-weight:700;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>⚡ Start Sprint</button>
     </div>
   </div>
 </div>

@@ -87,7 +87,7 @@ function renderSheetItems(store,items){
     </div>`).join('')}`).join('');
   // Add done-shopping button at bottom
   html+=`<div style="padding:16px 0 4px">
-    <button onclick="finishShopping()" style="width:100%;padding:13px;background:var(--green);color:#fff;border:none;border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-weight:700;font-size:14px;cursor:pointer">
+    <button onclick="finishShopping()" style="width:100%;padding:13px;background:var(--green);color:#fff;border:none;border-radius:var(--rs);font-weight:700;font-size:14px;cursor:pointer">
       ✓ Done shopping${tickedCount?` — mark ${tickedCount} item${tickedCount>1?'s':''} as got`:''}
     </button>
   </div>`;
@@ -159,8 +159,8 @@ function addShopItem(){
     </div>
     <div class="dp-field"><label class="dp-label">Note (optional)</label><input class="dp-input" id="asi-note" placeholder="e.g. For courtyard fountain area" style="margin-bottom:16px"></div>
     <div style="display:flex;gap:8px">
-      <button onclick="doAddShopItem()" style="flex:1;padding:13px;background:var(--green);color:#fff;border:none;border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-weight:700;font-size:14px;cursor:pointer">Add to list</button>
-      <button onclick="this.closest('[style*=position]').remove()" style="padding:13px 16px;background:none;border:1px solid var(--bdrm);border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;color:var(--tx2)">Cancel</button>
+      <button onclick="doAddShopItem()" style="flex:1;padding:13px;background:var(--green);color:#fff;border:none;border-radius:var(--rs);font-weight:700;font-size:14px;cursor:pointer">Add to list</button>
+      <button onclick="this.closest('[style*=position]').remove()" style="padding:13px 16px;background:none;border:1px solid var(--bdrm);border-radius:var(--rs);font-size:13px;cursor:pointer;color:var(--tx2)">Cancel</button>
     </div>
   </div>`;
   picker.addEventListener('click',e=>{if(e.target===picker)picker.remove();});

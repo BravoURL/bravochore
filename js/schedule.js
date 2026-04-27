@@ -370,7 +370,7 @@ function renderSchedLaundry(){
       <span class="laundry-day-lbl ${isToday?'today-day':''}">${dayName}</span>
       <span class="laundry-txt">${row.title}</span>
     </div>`;
-  }).join('')+`<button onclick="resetLaundry()" style="margin-top:10px;padding:8px 16px;border-radius:100px;border:1px solid var(--bdrm);background:none;font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;color:var(--tx2)">Reset weekly laundry</button>`;
+  }).join('')+`<button onclick="resetLaundry()" style="margin-top:10px;padding:8px 16px;border-radius:100px;border:1px solid var(--bdrm);background:none;font-size:12px;cursor:pointer;color:var(--tx2)">Reset weekly laundry</button>`;
 }
 
 function toggleLaundryItem(key){setSchedState(key,!getSchedState(key,false));renderSchedLaundry();}
@@ -400,7 +400,7 @@ function renderSchedFortnight(){
         <div style="font-size:11px;color:var(--tx3);margin-top:2px">${item.day_label||''}</div>
       </div>
     </div>`;
-  }).join('')+`<button onclick="resetFortnight()" style="margin-top:6px;padding:7px 14px;border-radius:100px;border:1px solid var(--bdrm);background:none;font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;color:var(--tx2)">Reset Week ${fortnightView.toUpperCase()}</button>`;
+  }).join('')+`<button onclick="resetFortnight()" style="margin-top:6px;padding:7px 14px;border-radius:100px;border:1px solid var(--bdrm);background:none;font-size:12px;cursor:pointer;color:var(--tx2)">Reset Week ${fortnightView.toUpperCase()}</button>`;
 }
 
 function toggleFortnight(key){setSchedState(key,!getSchedState(key,false));renderSchedFortnight();}
@@ -494,7 +494,7 @@ function openSlotTaskSheet(sectionType,sectionLabel){
       }).join(''):'<p style="padding:20px;text-align:center;color:var(--tx2);font-size:13px">All tasks are already scheduled for today or none are pending.</p>'}
     </div>
     <div style="padding:10px 14px;border-top:1px solid var(--bdr);flex-shrink:0">
-      <button onclick="this.closest('[data-picker]').remove()" style="width:100%;padding:11px;background:none;border:1px solid var(--bdrm);border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;color:var(--tx2)">Cancel</button>
+      <button onclick="this.closest('[data-picker]').remove()" style="width:100%;padding:11px;background:none;border:1px solid var(--bdrm);border-radius:var(--rs);font-size:13px;cursor:pointer;color:var(--tx2)">Cancel</button>
     </div>
   </div>`;
   picker.addEventListener('click',e=>{if(e.target===picker)picker.remove();});

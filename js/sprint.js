@@ -92,7 +92,7 @@ function showSprintPicker(pending, hoursLeft){
       }).join('')}
     </div>
     <div style="padding:10px 14px;border-top:1px solid var(--bdr)">
-      <button onclick="launchSprint()" style="width:100%;padding:12px;background:var(--green);color:#fff;border:none;border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-weight:700;font-size:14px;cursor:pointer">⚡ Build sprint tool</button>
+      <button onclick="launchSprint()" style="width:100%;padding:12px;background:var(--green);color:#fff;border:none;border-radius:var(--rs);font-weight:700;font-size:14px;cursor:pointer">⚡ Build sprint tool</button>
     </div>`;
   msgs.appendChild(card);
   msgs.scrollTop=msgs.scrollHeight;

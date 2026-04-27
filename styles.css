@@ -11,6 +11,10 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;font-size:14px;line-height:1.5;-webkit-tap-highlight-color:transparent}
+/* Form elements don't inherit font-family by default — set it once here so
+   we don't have to repeat font-family:'DM Sans' inline on every button. Per
+   BRAND.md type discipline. Playfair / DM Mono overrides stay where needed. */
+button, input, select, textarea { font-family: 'DM Sans', sans-serif; }
 
 /* LOADING */
 #loading-screen{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:9000}

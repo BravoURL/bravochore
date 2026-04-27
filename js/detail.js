@@ -60,9 +60,9 @@ function renderDpBody(task,ms){
             const cur=task?parseFloat(task.time_hours||0):0;
             const active=Math.abs(cur-v)<0.01;
             const lbl=v<1?(v*60)+'m':v===1?'1h':v+'h';
-            return `<button type="button" onclick="dpSetTime(${v},this)" style="padding:6px 10px;border-radius:100px;border:1.5px solid ${active?'var(--green)':'var(--bdrm)'};background:${active?'var(--green)':'var(--surf)'};color:${active?'#fff':'var(--tx2)'};font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0;transition:all .15s">${lbl}</button>`;
+            return `<button type="button" onclick="dpSetTime(${v},this)" style="padding:6px 10px;border-radius:100px;border:1.5px solid ${active?'var(--green)':'var(--bdrm)'};background:${active?'var(--green)':'var(--surf)'};color:${active?'#fff':'var(--tx2)'};font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0;transition:all .15s">${lbl}</button>`;
           }).join('')}
-          <button type="button" onclick="dpShowCustomTime(this)" id="dp-time-custom-btn" style="padding:6px 10px;border-radius:100px;border:1.5px solid var(--bdrm);background:var(--surf);color:var(--tx2);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0">Custom</button>
+          <button type="button" onclick="dpShowCustomTime(this)" id="dp-time-custom-btn" style="padding:6px 10px;border-radius:100px;border:1.5px solid var(--bdrm);background:var(--surf);color:var(--tx2);font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0">Custom</button>
         </div>
         <div id="dp-custom-time-row" style="display:none;align-items:center;gap:10px;background:var(--surf2);border-radius:var(--rs);padding:10px 12px">
           <div style="display:flex;flex-direction:column;align-items:center;flex:1">
@@ -82,7 +82,7 @@ function renderDpBody(task,ms){
               <button onclick="dpCustomAdjust('m',15)" style="width:30px;height:30px;border-radius:50%;border:1px solid var(--bdrm);background:var(--surf);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--tx2)">+</button>
             </div>
           </div>
-          <button onclick="dpConfirmCustomTime()" style="padding:8px 14px;background:var(--green);border:none;border-radius:var(--rs);color:#fff;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;margin-top:12px">Set</button>
+          <button onclick="dpConfirmCustomTime()" style="padding:8px 14px;background:var(--green);border:none;border-radius:var(--rs);color:#fff;font-size:12px;font-weight:700;cursor:pointer;margin-top:12px">Set</button>
         </div>
         <input type="hidden" id="dp-time" value="${task?parseFloat(task.time_hours||0)||0:0}">
       </div>

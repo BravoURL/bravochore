@@ -89,8 +89,8 @@ async function reminderSnooze(id){
   picker.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;display:flex;align-items:flex-end;justify-content:center';
   picker.innerHTML=`<div style="background:var(--surf);border-radius:20px 20px 0 0;width:100%;max-width:500px;padding:20px;padding-bottom:max(20px,env(safe-area-inset-bottom))">
     <div style="font-family:'Playfair Display',serif;font-size:17px;font-weight:500;margin-bottom:14px">Snooze until...</div>
-    ${options.map(o=>`<button onclick="doSnooze(${id},'${getSnoozeDate(o)}');this.closest('[style*=position]').remove()" style="display:block;width:100%;text-align:left;padding:12px 14px;margin-bottom:6px;background:var(--surf2);border:1px solid var(--bdr);border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:14px;cursor:pointer;color:var(--tx)">${o}</button>`).join('')}
-    <button onclick="this.closest('[style*=position]').remove()" style="display:block;width:100%;padding:11px;margin-top:4px;background:none;border:1px solid var(--bdrm);border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;color:var(--tx2)">Cancel</button>
+    ${options.map(o=>`<button onclick="doSnooze(${id},'${getSnoozeDate(o)}');this.closest('[style*=position]').remove()" style="display:block;width:100%;text-align:left;padding:12px 14px;margin-bottom:6px;background:var(--surf2);border:1px solid var(--bdr);border-radius:var(--rs);font-size:14px;cursor:pointer;color:var(--tx)">${o}</button>`).join('')}
+    <button onclick="this.closest('[style*=position]').remove()" style="display:block;width:100%;padding:11px;margin-top:4px;background:none;border:1px solid var(--bdrm);border-radius:var(--rs);font-size:13px;cursor:pointer;color:var(--tx2)">Cancel</button>
   </div>`;
   picker.addEventListener('click',e=>{if(e.target===picker)picker.remove();});
   document.body.appendChild(picker);

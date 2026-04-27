@@ -162,11 +162,11 @@ function focusReschedule(taskId, evt){
   picker.style.cssText='margin-top:10px;padding:10px;background:var(--surf2);border-radius:var(--rs);border:1px solid var(--bdrm)';
   picker.innerHTML=`<div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">Reschedule to when?</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
-      ${options.map(o=>`<button onclick="doReschedule(${taskId},'${o.date()}')" style="padding:6px 12px;border-radius:100px;border:1.5px solid var(--bdrm);background:var(--surf);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;color:var(--tx2)">${o.label}</button>`).join('')}
+      ${options.map(o=>`<button onclick="doReschedule(${taskId},'${o.date()}')" style="padding:6px 12px;border-radius:100px;border:1.5px solid var(--bdrm);background:var(--surf);font-size:12px;font-weight:600;cursor:pointer;color:var(--tx2)">${o.label}</button>`).join('')}
     </div>
     <div style="display:flex;gap:6px;align-items:center">
-      <input type="date" id="fc-custom-date-${taskId}" min="${today}" style="flex:1;padding:7px 10px;border:1.5px solid var(--bdrm);border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:12px;background:var(--surf)">
-      <button onclick="doReschedule(${taskId},document.getElementById('fc-custom-date-${taskId}').value)" style="padding:7px 14px;background:var(--green);color:#fff;border:none;border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer">Set</button>
+      <input type="date" id="fc-custom-date-${taskId}" min="${today}" style="flex:1;padding:7px 10px;border:1.5px solid var(--bdrm);border-radius:var(--rs);font-size:12px;background:var(--surf)">
+      <button onclick="doReschedule(${taskId},document.getElementById('fc-custom-date-${taskId}').value)" style="padding:7px 14px;background:var(--green);color:#fff;border:none;border-radius:var(--rs);font-size:12px;font-weight:700;cursor:pointer">Set</button>
     </div>`;
   card.appendChild(picker);
 }

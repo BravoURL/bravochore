@@ -28,7 +28,7 @@ function openShelveFromTasksSheet(){
     </div>
     <div style="padding:10px 14px;border-top:1px solid var(--bdr);display:flex;gap:8px;flex-shrink:0">
       <span id="sfts-count" style="align-self:center;font-size:12px;font-weight:600;color:var(--tx2);flex:1">0 selected</span>
-      <button onclick="doShelveFromTasks()" style="padding:11px 20px;background:var(--green);color:#fff;border:none;border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer">Shelve selected</button>
+      <button onclick="doShelveFromTasks()" style="padding:11px 20px;background:var(--green);color:#fff;border:none;border-radius:var(--rs);font-size:13px;font-weight:700;cursor:pointer">Shelve selected</button>
     </div>
   </div>`;
   picker._selected=selected;
@@ -292,7 +292,7 @@ function renderEventPanel(ev){
   const partnerName=partnerCode?getOwner(partnerCode).name:'';
   const filterPill=(value,label)=>{
     const active=evOwnerFilter===value;
-    return `<button onclick="setEvOwnerFilter('${value}')" style="padding:5px 11px;border-radius:100px;border:1.5px solid ${active?'var(--green)':'var(--bdrm)'};background:${active?'var(--green)':'var(--surf)'};color:${active?'#fff':'var(--tx2)'};font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0">${label}</button>`;
+    return `<button onclick="setEvOwnerFilter('${value}')" style="padding:5px 11px;border-radius:100px;border:1.5px solid ${active?'var(--green)':'var(--bdrm)'};background:${active?'var(--green)':'var(--surf)'};color:${active?'#fff':'var(--tx2)'};font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0">${label}</button>`;
   };
 
   body.innerHTML=`
@@ -318,8 +318,8 @@ function renderEventPanel(ev){
     <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
       ${partnerCode?`${filterPill('all','All')}${filterPill('me',meName)}${filterPill('partner',partnerName)}`:''}
       ${partnerCode?`<span style="width:1px;height:18px;background:var(--bdr);margin:0 4px"></span>`:''}
-      <button onclick="setEvSortBy('default')" style="padding:5px 11px;border-radius:100px;border:1.5px solid ${evSortBy==='default'?'var(--green)':'var(--bdrm)'};background:${evSortBy==='default'?'var(--green)':'var(--surf)'};color:${evSortBy==='default'?'#fff':'var(--tx2)'};font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0" title="Manual order">Default</button>
-      <button onclick="setEvSortBy('due')" style="padding:5px 11px;border-radius:100px;border:1.5px solid ${evSortBy==='due'?'var(--green)':'var(--bdrm)'};background:${evSortBy==='due'?'var(--green)':'var(--surf)'};color:${evSortBy==='due'?'#fff':'var(--tx2)'};font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0" title="Sort by due date, earliest first">By date</button>
+      <button onclick="setEvSortBy('default')" style="padding:5px 11px;border-radius:100px;border:1.5px solid ${evSortBy==='default'?'var(--green)':'var(--bdrm)'};background:${evSortBy==='default'?'var(--green)':'var(--surf)'};color:${evSortBy==='default'?'#fff':'var(--tx2)'};font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0" title="Manual order">Default</button>
+      <button onclick="setEvSortBy('due')" style="padding:5px 11px;border-radius:100px;border:1.5px solid ${evSortBy==='due'?'var(--green)':'var(--bdrm)'};background:${evSortBy==='due'?'var(--green)':'var(--surf)'};color:${evSortBy==='due'?'#fff':'var(--tx2)'};font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0" title="Sort by due date, earliest first">By date</button>
     </div>
     ${pending.length===0&&done.length===0?`<div style="padding:14px;background:var(--surf);border:1px dashed var(--bdr);border-radius:var(--rs);font-size:12px;color:var(--tx3);text-align:center">${evOwnerFilter==='all'?'No tasks yet — add one above.':'Nothing for '+(evOwnerFilter==='me'?meName:partnerName)+' on this event.'}</div>`:''}
     <div id="ep-pending-list">${pending.map(t=>taskCard(t)).join('')}</div>
@@ -368,7 +368,7 @@ function openAssignTasksSheet(eventId){
       }).join('')}
     </div>
     <div style="padding:12px 14px;border-top:1px solid var(--bdr)">
-      <button onclick="this.closest('[style*=position]').remove();renderEventPanel(events.find(e=>e.id===${eventId}))" style="width:100%;padding:13px;background:var(--green);color:#fff;border:none;border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-weight:700;font-size:14px;cursor:pointer">Done</button>
+      <button onclick="this.closest('[style*=position]').remove();renderEventPanel(events.find(e=>e.id===${eventId}))" style="width:100%;padding:13px;background:var(--green);color:#fff;border:none;border-radius:var(--rs);font-weight:700;font-size:14px;cursor:pointer">Done</button>
     </div>
   </div>`;
   picker.addEventListener('click',e=>{if(e.target===picker){picker.remove();renderEventPanel(events.find(e=>e.id===eventId));}});
