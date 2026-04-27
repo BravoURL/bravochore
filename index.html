@@ -388,15 +388,10 @@ document.querySelector('link[rel="manifest"]').href = url;
   <div id="bb-lottie-fab" style="width:34px;height:34px;background:transparent"></div>
 </div>
 
-<!-- SPRINT FAB (idle) — small pill in lower-left when no sprint is running.
-     When a sprint is active, this hides and #sprint-now-bar takes over (full-width
-     "now playing" bar above the bottom nav). Spotify pattern. -->
-<button id="sprint-fab" onclick="onSprintFabClick()" title="Start a sprint" aria-label="Start a sprint">
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-  <span>Sprint</span>
-</button>
-
-<!-- SPRINT NOW-PLAYING BAR — appears when sprint is active, hides #sprint-fab. -->
+<!-- SPRINT NOW-PLAYING BAR — appears when sprint is active OR when a saved
+     sprint state survives a page refresh (resume affordance). The dashboard's
+     Sprint pill remains the entry point for starting a fresh sprint, so we
+     don't need a persistent FAB cluttering the screen. -->
 <div id="sprint-now-bar" onclick="onSprintFabClick()" role="button" aria-label="Open active sprint">
   <div class="snb-pulse"></div>
   <div class="snb-info">
@@ -410,6 +405,7 @@ document.querySelector('link[rel="manifest"]').href = url;
 <div id="bb-fullscreen">
   <div class="bbfs-header">
     <div class="bbfs-title"><div id="bb-lottie-header" style="width:28px;height:28px;flex-shrink:0"></div><span>Blackbird</span></div>
+    <button class="bbfs-close" onclick="bbNewConversation()" title="Start a fresh chat" style="margin-right:6px">↻ New</button>
     <button class="bbfs-close" onclick="closeBBFullscreen()">✕ Close</button>
   </div>
   <div class="bbfs-msgs" id="bb-msgs"></div>
@@ -463,32 +459,10 @@ document.querySelector('link[rel="manifest"]').href = url;
 </div>
 
 
-<!-- EVENT DETAIL SCREEN -->
-<div id="event-detail">
-  <div class="ed-header">
-    <button class="ed-back" onclick="closeEventDetail()">←</button>
-    <div class="ed-title-block">
-      <div class="ed-title" id="ed-title">Event</div>
-      <div class="ed-due" id="ed-due"></div>
-    </div>
-    <button class="ed-complete-btn" onclick="startCompleteEvent()">Complete Event</button>
-  </div>
-  <div class="ed-body">
-    <div class="ed-dash" id="ed-dash"></div>
-    <div class="progress-section" style="margin-bottom:16px">
-      <div class="progress-header"><span class="progress-title" id="ed-prog-title">Progress</span></div>
-      <div class="pbar"><div id="ed-pfill" class="pfill" style="width:0%"></div></div>
-      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--tx3);margin-top:3px">
-        <span id="ed-prog-done"></span><span id="ed-prog-rem"></span>
-      </div>
-    </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-      <span style="font-size:13px;font-weight:600">Event Tasks</span>
-      <button class="qa-btn" style="font-size:11px;padding:5px 10px" onclick="openAssignToEvent()">+ Assign task</button>
-    </div>
-    <div id="ed-tasks-list"></div>
-  </div>
-</div>
+<!-- (Phantom #event-detail screen removed — three of its buttons referenced
+     functions that didn't exist (closeEventDetail, startCompleteEvent,
+     openAssignToEvent). The active event flow is the slide-up #event-panel
+     opened by openEventPanel(eventId) in events.js.) -->
 
 <!-- EVENT SCORECARD -->
 <div class="event-scorecard-backdrop" id="event-scorecard-backdrop">
@@ -829,10 +803,11 @@ document.querySelector('link[rel="manifest"]').href = url;
 <div id="sprint-overlay">
   <!-- Header -->
   <div class="sprint-hdr" style="flex-direction:column;gap:0;padding:0">
-    <!-- Top row: title + end -->
-    <div style="display:flex;align-items:center;gap:10px;padding:10px 14px 8px">
-      <div class="sprint-hdr-title" id="sprint-title" style="font-size:15px">Sprint</div>
-      <button class="sprint-add-btn" onclick="toggleSprintDrawer()" style="margin-left:auto">☰</button>
+    <!-- Top row: minimise / title / drawer / end -->
+    <div style="display:flex;align-items:center;gap:8px;padding:10px 14px 8px">
+      <button onclick="minimiseSprint()" title="Minimise — sprint keeps running" aria-label="Minimise sprint" style="background:none;border:none;color:rgba(255,255,255,.65);font-size:18px;line-height:1;padding:4px 8px;cursor:pointer">‹</button>
+      <div class="sprint-hdr-title" id="sprint-title" style="font-size:15px;flex:1">Sprint</div>
+      <button class="sprint-add-btn" onclick="toggleSprintDrawer()">☰</button>
       <button class="sprint-end-btn" onclick="confirmEndSprint()">End</button>
     </div>
     <!-- Stats row — the numbers dashboard -->

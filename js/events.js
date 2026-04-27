@@ -137,6 +137,7 @@ let events=[],shelved=[];
 let activeEventId=null;
 let nextEventId=null; // for task assignment on creation
 let evOwnerFilter='all'; // 'all' | 'me' | 'partner' — filter event task list by owner
+let evSortBy='default';  // 'default' (manual sort_order) | 'due' (earliest due first) — combinable with owner filter
 
 // Splits tasks/shelved client-side by status. DB has both in bravochore_tasks
 // (one source of truth, transfer in place); client splits for clean rendering.
@@ -206,14 +207,28 @@ function eventCard(ev,done=false){
 function openEventPanel(eventId){
   activeEventId=eventId;
   evOwnerFilter='all'; // reset to All every time you open an event
+  evSortBy='default';
   const ev=events.find(e=>e.id===eventId);if(!ev)return;
   document.getElementById('ep-title').textContent=ev.title;
   renderEventPanel(ev);
   document.getElementById('event-panel').classList.add('open');
+  // Wire drag-reorder on the pending task list
+  setTimeout(()=>{
+    const lst=document.getElementById('ep-pending-list');
+    if(lst&&typeof initDragList==='function')initDragList(lst);
+  },80);
 }
 
 function setEvOwnerFilter(v){
   evOwnerFilter=v;
+  if(activeEventId){
+    const ev=events.find(e=>e.id===activeEventId);
+    if(ev)renderEventPanel(ev);
+  }
+}
+
+function setEvSortBy(v){
+  evSortBy=v;
   if(activeEventId){
     const ev=events.find(e=>e.id===activeEventId);
     if(ev)renderEventPanel(ev);
@@ -255,7 +270,16 @@ function renderEventPanel(ev){
     const target=evOwnerFilter==='partner'?(typeof getPartnerCode==='function'?getPartnerCode():CU):CU;
     return t.owner&&t.owner.includes(target);
   };
-  const evTasks=allEvTasks.filter(ownerFilterFn);
+  let evTasks=allEvTasks.filter(ownerFilterFn);
+  // Optional date sort — combines freely with the owner filter above
+  if(evSortBy==='due'){
+    evTasks=[...evTasks].sort((a,b)=>{
+      const ad=a.due||'9999-12-31';
+      const bd=b.due||'9999-12-31';
+      if(ad===bd)return (a.sort_order||0)-(b.sort_order||0);
+      return ad.localeCompare(bd);
+    });
+  }
   const done=evTasks.filter(t=>t.done);
   const pending=evTasks.filter(t=>!t.done);
   // Dashboard metrics use the unfiltered totals so the event-level numbers don't shift when toggling
@@ -291,17 +315,23 @@ function renderEventPanel(ev){
         <button class="qa-btn" style="font-size:11px;padding:5px 10px" onclick="openAssignTasksSheet(${ev.id})">+ Assign existing</button>
       </div>
     </div>
-    ${partnerCode?`<div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
-      ${filterPill('all','All')}
-      ${filterPill('me',meName)}
-      ${filterPill('partner',partnerName)}
-    </div>`:''}
+    <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
+      ${partnerCode?`${filterPill('all','All')}${filterPill('me',meName)}${filterPill('partner',partnerName)}`:''}
+      ${partnerCode?`<span style="width:1px;height:18px;background:var(--bdr);margin:0 4px"></span>`:''}
+      <button onclick="setEvSortBy('default')" style="padding:5px 11px;border-radius:100px;border:1.5px solid ${evSortBy==='default'?'var(--green)':'var(--bdrm)'};background:${evSortBy==='default'?'var(--green)':'var(--surf)'};color:${evSortBy==='default'?'#fff':'var(--tx2)'};font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0" title="Manual order">Default</button>
+      <button onclick="setEvSortBy('due')" style="padding:5px 11px;border-radius:100px;border:1.5px solid ${evSortBy==='due'?'var(--green)':'var(--bdrm)'};background:${evSortBy==='due'?'var(--green)':'var(--surf)'};color:${evSortBy==='due'?'#fff':'var(--tx2)'};font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0" title="Sort by due date, earliest first">By date</button>
+    </div>
     ${pending.length===0&&done.length===0?`<div style="padding:14px;background:var(--surf);border:1px dashed var(--bdr);border-radius:var(--rs);font-size:12px;color:var(--tx3);text-align:center">${evOwnerFilter==='all'?'No tasks yet — add one above.':'Nothing for '+(evOwnerFilter==='me'?meName:partnerName)+' on this event.'}</div>`:''}
-    ${pending.map(t=>taskCard(t)).join('')}
+    <div id="ep-pending-list">${pending.map(t=>taskCard(t)).join('')}</div>
     ${done.length?`<div class="completed-toggle" onclick="toggleDone(this)"><span class="ct-arr">›</span><span>${done.length} completed</span></div>
     <div class="completed-list">${done.map(t=>taskCard(t)).join('')}</div>`:''}
     ${ev.status!=='completed'?`<button class="ep-complete-btn" onclick="showEventScorecard(${ev.id})">Complete this event</button>`:''}
   `;
+  // Re-wire drag-reorder on the freshly-rebuilt pending list
+  setTimeout(()=>{
+    const l=document.getElementById('ep-pending-list');
+    if(l&&typeof initDragList==='function')initDragList(l);
+  },60);
 }
 
 function openAssignTasksSheet(eventId){
@@ -1100,12 +1130,25 @@ async function saveShelvedItem(){
   renderShelved();
 }
 
+// Look up a shelved row across BOTH arrays. refreshShelvedView() moves
+// shelved-status rows out of `tasks` and into `shelved`, so callers must
+// search both — historically these functions only checked `tasks` and
+// failed silently for every shelved row, breaking Activate / Delete /
+// Save / open-detail. Centralised so the bug can't recur.
+function findShelvedRow(id){
+  // Coerce in case the id arrives as a string from an HTML onclick attribute
+  const numericId=typeof id==='string'?parseInt(id,10):id;
+  return shelved.find(x=>x.id===numericId)
+    ||tasks.find(x=>x.id===numericId&&x.status==='shelved')
+    ||null;
+}
+
 async function promoteShelved(id){
-  const t=tasks.find(x=>x.id===id&&x.status==='shelved');if(!t)return;
+  const t=findShelvedRow(id);if(!t)return;
   // In-place activate: same task ID, all chats/photos/milestones come with it automatically
   t.status='active';
   if(!t.event_id)t.event_id=getActiveEvent()||null;
-  try{await api('bravochore_tasks','PATCH',{status:'active',event_id:t.event_id},`?id=eq.${id}`);}
+  try{await api('bravochore_tasks','PATCH',{status:'active',event_id:t.event_id},`?id=eq.${t.id}`);}
   catch(e){t.status='shelved';chirp('Could not activate — please try again.');return;}
   refreshShelvedView();
   renderShelved();rerender();
@@ -1113,16 +1156,19 @@ async function promoteShelved(id){
 }
 
 async function deleteShelved(id){
-  tasks=tasks.filter(x=>x.id!==id);
+  const t=findShelvedRow(id);if(!t)return;
+  // Remove from whichever array currently owns the row
+  shelved=shelved.filter(x=>x.id!==t.id);
+  tasks=tasks.filter(x=>x.id!==t.id);
   refreshShelvedView();
   renderShelved();
-  try{await api('bravochore_tasks','DELETE',null,`?id=eq.${id}`);}catch(e){}
-  try{await api('bravochore_milestones','DELETE',null,`?task_id=eq.${id}`);}catch(e){}
-  try{await api('bravochore_task_chats','DELETE',null,`?task_id=eq.${id}`);}catch(e){}
+  try{await api('bravochore_tasks','DELETE',null,`?id=eq.${t.id}`);}catch(e){}
+  try{await api('bravochore_milestones','DELETE',null,`?task_id=eq.${t.id}`);}catch(e){}
+  try{await api('bravochore_task_chats','DELETE',null,`?task_id=eq.${t.id}`);}catch(e){}
 }
 
 function openShelvedDetail(id){
-  const s=tasks.find(x=>x.id===id&&x.status==='shelved');if(!s)return;
+  const s=findShelvedRow(id);if(!s)return;
   // Build a task-like object and open the detail panel
   dpTaskId=null; // signal shelved mode
   dpShelvedId=id;
@@ -1203,7 +1249,7 @@ function sdpSetTime(val,btn){
 }
 
 async function saveShelvedFromDetail(){
-  const t=tasks.find(x=>x.id===dpShelvedId);if(!t)return;
+  const t=findShelvedRow(dpShelvedId);if(!t)return;
   t.title=document.getElementById('dp-title').textContent.trim()||t.title;
   t.owner=document.getElementById('sdp-owner')?.value||t.owner;
   t.due=document.getElementById('sdp-due')?.value||null;
@@ -1216,9 +1262,11 @@ async function saveShelvedFromDetail(){
 }
 
 async function deleteShelvedFromDetail(){
-  const id=dpShelvedId;
+  const t=findShelvedRow(dpShelvedId);if(!t)return;
   const confirmed=await confirm2('Delete this shelved task?','This permanently removes the task and any chat or photos attached to it. Cannot be undone.','btn-ok');
   if(!confirmed)return;
+  const id=t.id;
+  shelved=shelved.filter(x=>x.id!==id);
   tasks=tasks.filter(x=>x.id!==id);
   refreshShelvedView();
   try{await api('bravochore_tasks','DELETE',null,`?id=eq.${id}`);}catch(e){}
@@ -1228,8 +1276,8 @@ async function deleteShelvedFromDetail(){
 }
 
 async function promoteShelvedFromDetail(){
-  const id=dpShelvedId;
-  const t=tasks.find(x=>x.id===id);if(!t)return;
+  const t=findShelvedRow(dpShelvedId);if(!t)return;
+  const id=t.id;
   // Capture any field edits made in the detail panel before activating
   const title=document.getElementById('dp-title').textContent.trim()||t.title;
   const owner=document.getElementById('sdp-owner')?.value||t.owner||CU;

@@ -360,14 +360,17 @@ function renderSchedToday(){
       </div>`;
     }).join('');
 
-    // BravoChore tasks slotted into this section type — render with the
+    // BravoChore tasks slotted into THIS section type — render with the
     // canonical taskCard() so they look identical to every other place a task
-    // appears (Tasks list, Sprint, Event panel). Wrapped in .sched-bc-task for
-    // the small inset look the schedule uses.
+    // appears. Each section now shows only the tasks slotted into IT
+    // (previously the gating only allowed afternoon, hiding everything slotted
+    // into morning / night-prep / etc.). Wrapped in .sched-bc-task for the
+    // small inset look the schedule uses.
     const slottedTasks=schedSlots
+      .filter(s=>s.section_type===sec.section)
       .map(s=>tasks.find(t=>t.id==s.task_id))
       .filter(t=>t&&!t.done);
-    const bcTasksHtml=schedView!=='partner'&&slottedTasks.length&&sec.section==='afternoon'?
+    const bcTasksHtml=schedView!=='partner'&&slottedTasks.length?
       slottedTasks.map(t=>`<div class="sched-bc-task">${taskCard(t)}</div>`).join(''):'';
 
     const allDone=checkable.length>0&&checked.length===checkable.length;
@@ -584,7 +587,7 @@ function openSlotTaskSheet(sectionType,sectionLabel){
     <div style="flex:1;overflow-y:auto;padding:6px 14px">
       ${available.length?available.map(t=>{
         const o=getOwner(t.owner);
-        return `<div style="display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--bdr);cursor:pointer" onclick="slotTaskToday(${t.id},'${sectionType}');this.closest('[data-picker]').remove();renderSchedToday()">
+        return `<div style="display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--bdr);cursor:pointer" onclick="confirmSlotTask(${t.id},'${sectionType}',this)">
           <div style="flex:1">
             <div style="font-size:13px;font-weight:500">${t.title}</div>
             <div style="display:flex;gap:5px;margin-top:3px;align-items:center">
@@ -603,6 +606,26 @@ function openSlotTaskSheet(sectionType,sectionLabel){
   </div>`;
   picker.addEventListener('click',e=>{if(e.target===picker)picker.remove();});
   document.body.appendChild(picker);
+}
+
+// Wrapper called from the picker onclick — properly awaits slotTaskToday
+// before closing the picker and re-rendering. Previously the inline handler
+// fired the async slot insert AND renderSchedToday() in the same tick, so
+// the re-render ran before schedSlots.push and the user saw "nothing happened".
+async function confirmSlotTask(taskId,sectionType,rowEl){
+  // Visual feedback immediately so the tap feels responsive
+  if(rowEl){rowEl.style.opacity='.5';rowEl.style.pointerEvents='none';}
+  try{
+    await slotTaskToday(taskId,sectionType);
+  }catch(e){
+    chirp('Could not slot task — try again.');
+    if(rowEl){rowEl.style.opacity='';rowEl.style.pointerEvents='';}
+    return;
+  }
+  // Close the picker (any was open via [data-picker]) and re-render the schedule
+  document.querySelectorAll('[data-picker]').forEach(p=>p.remove());
+  if(typeof renderSchedToday==='function')renderSchedToday();
+  if(typeof chirp==='function')chirp('Slotted into '+sectionType+'.');
 }
 
 async function slotTaskToday(taskId,sectionType){

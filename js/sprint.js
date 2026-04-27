@@ -273,56 +273,87 @@ function activateSprint(sprintTasks, html, allItems){
 }
 
 // ================================================================
-// SPRINT FAB / NOW-PLAYING BAR
+// SPRINT NOW-PLAYING BAR
 // ================================================================
-// One persistent affordance:
-//   - When NO sprint is active: small lower-left pill labelled "Sprint" ⚡
-//   - When a sprint IS active:  full-width "now playing" bar above the bottom nav
-// Tap either to open the relevant UI (builder / overlay).
+// One persistent affordance, three states:
+//   1. ACTIVE   — sprint running, overlay visible. Bar hidden (overlay covers).
+//   2. MINIMISED — sprint running, overlay hidden. Bar shows live progress; tap to reopen.
+//   3. RESUMABLE — no sprint active, but a saved sprint state survives in localStorage
+//                  (typically because the page was refreshed mid-sprint). Bar shows
+//                  "Resume sprint? X tasks" with tap to resume.
+//   4. IDLE     — no sprint, no saved state. Bar hidden.
+// Sprint entry for new sprints lives on the dashboard "Sprint" pill — no FAB.
 function onSprintFabClick(){
+  // If a sprint is currently active, reopen its overlay.
   if(typeof sprintActive!=='undefined'&&sprintActive){
-    // Reopen the active sprint overlay
     const o=document.getElementById('sprint-overlay');
     if(o)o.classList.add('active');
-  }else{
-    // Otherwise open the builder
-    if(typeof openSprintBuilder==='function')openSprintBuilder();
+    return;
   }
+  // Otherwise check for a saved (refresh-recoverable) sprint and resume it.
+  const saved=typeof loadSprintState==='function'?loadSprintState():null;
+  if(saved&&saved.taskIds&&saved.taskIds.length){
+    if(typeof resumeSprint==='function')resumeSprint();
+    return;
+  }
+  // Nothing to resume — open the builder so user can start fresh.
+  if(typeof openSprintBuilder==='function')openSprintBuilder();
+}
+
+// Hide the sprint overlay without ending the sprint. Sprint state stays
+// active in memory + localStorage; the now-bar appears so the user can
+// reopen later. Required so the now-bar is ever visible mid-sprint.
+function minimiseSprint(){
+  document.getElementById('sprint-overlay')?.classList.remove('active');
+  updateSprintFAB();
 }
 
 function updateSprintFAB(){
-  const fab=document.getElementById('sprint-fab');
   const bar=document.getElementById('sprint-now-bar');
-  if(!fab||!bar)return;
-  const active=(typeof sprintActive!=='undefined')&&sprintActive;
+  if(!bar)return;
+  const titleEl=document.getElementById('snb-title');
+  const metaEl=document.getElementById('snb-meta');
+  const timeEl=document.getElementById('snb-time');
   const userReady=(typeof CU!=='undefined')&&!!CU;
-  if(!userReady){
-    fab.classList.remove('show');
-    bar.classList.remove('show');
+  const active=(typeof sprintActive!=='undefined')&&sprintActive;
+  const overlayOpen=document.getElementById('sprint-overlay')?.classList.contains('active');
+  if(!userReady){bar.classList.remove('show');return;}
+  // ACTIVE + overlay open → bar hidden (overlay covers everything anyway)
+  if(active&&overlayOpen){bar.classList.remove('show');return;}
+  // ACTIVE + overlay minimised → live progress mode
+  if(active&&typeof sprintData==='object'&&sprintData){
+    bar.classList.add('show');
+    bar.classList.remove('resumable');
+    if(titleEl)titleEl.textContent=sprintData.title||'Sprint';
+    if(metaEl){
+      const total=(sprintData.taskIds&&sprintData.taskIds.length)||0;
+      const done=(sprintData.doneTasks&&sprintData.doneTasks.size)||0;
+      const routTotal=sprintData.routineCount||0;
+      const routDone=(sprintData.doneRoutines&&sprintData.doneRoutines.size)||0;
+      const parts=[];
+      if(total)parts.push(done+'/'+total+' task'+(total===1?'':'s'));
+      if(routTotal)parts.push(routDone+'/'+routTotal+' routine'+(routTotal===1?'':'s'));
+      metaEl.textContent=parts.join(' · ')||'In progress';
+    }
     return;
   }
-  if(active){
-    fab.classList.remove('show');
+  // RESUMABLE — saved state in localStorage, no active sprint. Resume affordance.
+  const saved=typeof loadSprintState==='function'?loadSprintState():null;
+  if(saved&&saved.taskIds&&saved.taskIds.length){
     bar.classList.add('show');
-    if(typeof sprintData==='object'&&sprintData){
-      const titleEl=document.getElementById('snb-title');
-      const metaEl=document.getElementById('snb-meta');
-      if(titleEl)titleEl.textContent=sprintData.title||'Sprint';
-      if(metaEl){
-        const total=(sprintData.taskIds&&sprintData.taskIds.length)||0;
-        const done=(sprintData.doneTasks&&sprintData.doneTasks.size)||0;
-        const routTotal=sprintData.routineCount||0;
-        const routDone=(sprintData.doneRoutines&&sprintData.doneRoutines.size)||0;
-        const parts=[];
-        if(total)parts.push(done+'/'+total+' task'+(total===1?'':'s'));
-        if(routTotal)parts.push(routDone+'/'+routTotal+' routine'+(routTotal===1?'':'s'));
-        metaEl.textContent=parts.join(' · ')||'In progress';
-      }
+    bar.classList.add('resumable');
+    if(titleEl)titleEl.textContent='Resume sprint?';
+    if(metaEl){
+      const total=saved.taskIds.length;
+      const done=(saved.doneTasks&&saved.doneTasks.length)||0;
+      metaEl.textContent=(saved.title||'Sprint')+' · '+done+'/'+total+' done — tap to resume';
     }
-  }else{
-    bar.classList.remove('show');
-    fab.classList.add('show');
+    if(timeEl)timeEl.textContent='▷';
+    return;
   }
+  // IDLE
+  bar.classList.remove('show');
+  bar.classList.remove('resumable');
 }
 
 function renderSprintTasks(){
@@ -717,20 +748,13 @@ function clearSprintState(){
   try{localStorage.removeItem('bc-sprint');}catch(e){}
 }
 
+// Detect a saved (refresh-recoverable) sprint and surface it in the now-bar
+// in "Resume" mode. The now-bar serves both live and resumable states so we
+// don't have a separate banner competing for the same screen real estate.
 async function checkForActiveSprint(){
   const saved=loadSprintState();
   if(!saved||!saved.taskIds||!saved.taskIds.length)return;
-  // Show resume prompt
-  document.getElementById('sprint-resume-banner')?.remove();
-  const banner=document.createElement('div');
-  banner.id='sprint-resume-banner';
-  banner.style.cssText='position:fixed;bottom:70px;left:12px;right:12px;background:var(--tx);color:#fff;border-radius:var(--r);padding:14px 16px;z-index:700;display:flex;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.25)';
-  banner.innerHTML=`<div><div style="font-size:13px;font-weight:700">⚡ Sprint in progress</div><div style="font-size:11px;opacity:.7">${saved.title} · ${saved.doneTasks.length}/${saved.taskIds.length} done</div></div>
-  <div style="display:flex;gap:8px">
-    <button onclick="resumeSprint();document.getElementById('sprint-resume-banner')?.remove()" style="padding:7px 14px;background:var(--green);border:none;border-radius:var(--rs);color:#fff;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer">Resume</button>
-    <button onclick="clearSprintState();document.getElementById('sprint-resume-banner')?.remove()" style="padding:7px 10px;border:1.5px solid rgba(255,255,255,.3);border-radius:var(--rs);background:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer">Dismiss</button>
-  </div>`;
-  document.body.appendChild(banner);
+  if(typeof updateSprintFAB==='function')updateSprintFAB();
 }
 
 async function resumeSprint(){

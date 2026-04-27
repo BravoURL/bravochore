@@ -187,7 +187,19 @@ async function dpToggleTask(){
   document.getElementById('dp-title').classList.toggle('done-txt',task.done);
   if(task.done){playChime('task');spawnConfettiCenter();}
   rerender();
+  refreshEventPanelIfOpen();
   try{await api('bravochore_tasks','PATCH',{done:task.done},`?id=eq.${dpTaskId}`);}catch(e){}
+}
+
+// Helper used by every code path that mutates a task's done state — keeps the
+// event panel underneath in sync. Without this, ticking a task from inside the
+// detail panel (or via the milestone-complete prompt, or via the shopping link)
+// leaves the event panel showing stale "0 done" until the user closes & reopens.
+function refreshEventPanelIfOpen(){
+  if(typeof activeEventId==='undefined'||!activeEventId)return;
+  if(!document.getElementById('event-panel')?.classList.contains('open'))return;
+  const ev=events.find(e=>e.id===activeEventId);
+  if(ev&&typeof renderEventPanel==='function')renderEventPanel(ev);
 }
 
 function dpSetTime(val,btn){
@@ -261,6 +273,7 @@ async function dpShelveTask(){
   }catch(e){console.error('Shelve PATCH failed:',e);chirp('Could not shelve — please try again.');task.status='active';return;}
   refreshShelvedView();
   rerender();
+  refreshEventPanelIfOpen();
   chirp('"'+taskTitle+'" shelved.');
 }
 async function dpSave(){
@@ -303,6 +316,7 @@ function dpDelete(){
     milestones=milestones.filter(m=>m.task_id!==idToDelete);
     closeDetail();
     rerender();
+    refreshEventPanelIfOpen();
     badge('sy','↻ Deleting...');
     api('bravochore_milestones','DELETE',null,`?task_id=eq.${idToDelete}`)
       .then(()=>api('bravochore_tasks','DELETE',null,`?id=eq.${idToDelete}`))
@@ -336,6 +350,7 @@ async function dpTickMs(msId){
   const el=document.getElementById(`msi-${msId}`);
   if(el){el.querySelector('.ms-chk').classList.toggle('checked',ms.done);el.querySelector('.ms-name').classList.toggle('done-txt',ms.done);}
   rerender();
+  refreshEventPanelIfOpen();
   try{await api('bravochore_milestones','PATCH',{done:ms.done},`?id=eq.${msId}`);}catch(e){}
   // After persisting the milestone tick, if every milestone is now done and the
   // task is still open, prompt the user to mark it complete (rather than auto-closing).
@@ -365,6 +380,7 @@ async function setMilestoneDone(msId,targetDone){
     el.querySelector('.ms-name')?.classList.toggle('done-txt',ms.done);
   }
   rerender();
+  refreshEventPanelIfOpen();
   try{await api('bravochore_milestones','PATCH',{done:ms.done},`?id=eq.${msId}`);}catch(e){}
   // If this was the last open milestone, surface the prompt-to-complete-task flow
   if(ms.done){
@@ -398,6 +414,7 @@ async function promptCompleteTask(t){
       document.getElementById('dp-title')?.classList.add('done-txt');
     }
     rerender();
+    refreshEventPanelIfOpen();
     try{await api('bravochore_tasks','PATCH',{done:true},`?id=eq.${t.id}`);}catch(e){}
   }finally{
     promptCompleteTask._pending=null;

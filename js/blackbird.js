@@ -3,11 +3,12 @@
 // BLACKBIRD
 // ================================================================
 function bbNewConversation(){
-  // Archive current conversation to DB (already saved per-message)
-  // Just clear the local UI and start fresh
-  bbConvHistory=[];
+  // Clear the in-memory chat history (the actual variable is bbHistory; the
+  // earlier bbConvHistory reference was a phantom that did nothing). Local
+  // UI clears; saved per-message rows in Supabase are left alone as audit trail.
+  bbHistory=[];
   const msgs=document.getElementById('bb-msgs');
-  if(msgs){msgs.innerHTML='';}
+  if(msgs)msgs.innerHTML='';
   setTimeout(()=>bbMsg("Fresh start. What’s on your mind?",'from-bb'),100);
 }
 function openBBFullscreen(){

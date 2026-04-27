@@ -372,15 +372,19 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 /* BLACKBIRD */
 #bb-fab{position:fixed;bottom:24px;right:16px;width:50px;height:50px;background:var(--gl);border:2px solid var(--gm);border-radius:50%;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:200;box-shadow:0 4px 16px rgba(92,138,74,.2)}
 
-/* Sprint FAB (idle pill) — lower-left, persistent.
-   Hides automatically while a sprint is active (#sprint-now-bar takes over). */
-#sprint-fab{position:fixed;bottom:70px;left:14px;display:none;align-items:center;gap:6px;padding:8px 14px 8px 11px;background:var(--tx);color:#fff;border:none;border-radius:100px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;z-index:200;box-shadow:0 4px 14px rgba(0,0,0,.18);transition:transform .12s}
-#sprint-fab.show{display:inline-flex}
-#sprint-fab:active{transform:scale(.96)}
+/* (Sprint persistent FAB removed — Brent flagged it as visual overkill. Sprint
+   entry lives on the dashboard "Sprint" pill; the now-bar below appears only
+   when a sprint is active or when a saved sprint survives a page refresh.) */
 
-/* Sprint "now playing" bar — full-width above bottom nav while sprint runs. */
-#sprint-now-bar{position:fixed;left:8px;right:8px;bottom:60px;display:none;align-items:center;gap:10px;padding:8px 12px;background:var(--tx);color:#fff;border-radius:14px;cursor:pointer;z-index:200;box-shadow:0 6px 24px rgba(0,0,0,.25);max-width:560px;margin:0 auto}
+/* Sprint "now playing" bar — full-width above bottom nav while sprint runs,
+   or in resume mode after a page refresh recovers a saved sprint state. */
+#sprint-now-bar{position:fixed;left:8px;right:8px;bottom:60px;display:none;align-items:center;gap:10px;padding:8px 12px;background:var(--tx);color:#fff;border-radius:14px;cursor:pointer;z-index:710;box-shadow:0 6px 24px rgba(0,0,0,.25);max-width:560px;margin:0 auto}
 #sprint-now-bar.show{display:flex}
+/* Resumable state — dimmer pulse, amber accent. The user is being asked
+   "do you want to resume?", not informed "you're sprinting". */
+#sprint-now-bar.resumable{background:#1e1e1e;outline:1.5px solid var(--amber)}
+#sprint-now-bar.resumable .snb-pulse{background:var(--amber);animation:snbPulse 2.4s ease-out infinite}
+#sprint-now-bar.resumable .snb-time{color:var(--amber)}
 .snb-pulse{width:10px;height:10px;border-radius:50%;background:var(--green);flex-shrink:0;box-shadow:0 0 0 0 rgba(92,138,74,.6);animation:snbPulse 1.6s ease-out infinite}
 @keyframes snbPulse{0%{box-shadow:0 0 0 0 rgba(92,138,74,.55)}70%{box-shadow:0 0 0 10px rgba(92,138,74,0)}100%{box-shadow:0 0 0 0 rgba(92,138,74,0)}}
 .snb-info{flex:1;min-width:0}
