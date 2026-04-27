@@ -634,9 +634,17 @@ async function checkScheduleNudge(){
   }catch(e){}
   // Filter by who the user is currently viewing, not by who is logged in.
   // schedView 'partner' on a BW login means show BJ's misses, etc.
+  // Use exact token matching on the owner string so that 'BW' does NOT
+  // match owner='BJ', and a task owned only by the partner doesn't leak
+  // into the user's own routines view (composite owners like 'BW+BJ' still
+  // match both codes, which is correct — the task IS partly each person's).
   const showBoth=schedView==='both';
   const displayedOwner=schedView==='partner'?getPartnerCode():CU;
-  const ownerMatch=t=>showBoth?true:(t.owner&&t.owner.includes(displayedOwner));
+  const ownerHas=(taskOwner,code)=>{
+    if(!taskOwner)return false;
+    return taskOwner.split(/[,+\/&\s]+/).some(t=>t.trim()===code);
+  };
+  const ownerMatch=t=>showBoth?true:ownerHas(t.owner,displayedOwner);
   const slotMatch=s=>showBoth?true:s.user_code===displayedOwner;
   const yesterSlots=schedSlots.filter(s=>s.slot_date===yStr&&!s.completed_at&&slotMatch(s));
   const missedTasks=yesterSlots.map(s=>tasks.find(t=>t.id==s.task_id)).filter(Boolean);

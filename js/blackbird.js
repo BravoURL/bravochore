@@ -20,6 +20,13 @@ function openBBFullscreen(){
       if(!ta.dataset.wired){
         ta.dataset.wired='1';
         ta.addEventListener('input',()=>{ta.style.height='auto';ta.style.height=Math.min(ta.scrollHeight,140)+'px';});
+        // Enter sends on desktop; Shift+Enter (or Enter on touch) inserts newline
+        ta.addEventListener('keydown',(e)=>{
+          if(e.key==='Enter'&&!e.shiftKey&&typeof isTouchDevice==='function'&&!isTouchDevice()){
+            e.preventDefault();
+            sendToBB();
+          }
+        });
       }
     }
   },100);

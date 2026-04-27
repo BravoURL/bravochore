@@ -31,13 +31,17 @@ function openDetail(taskId){
   document.getElementById('dp-panel-details')?.classList.add('active');
   document.getElementById('detail-backdrop').classList.add('open');
   document.getElementById('detail-panel').classList.add('open');
+  // Retroactive: if this task has milestones and they're ALL done but the task
+  // itself is still open, surface the same prompt the user would have got when
+  // ticking the last milestone.
+  if(task&&!task.done&&ms&&ms.length&&ms.every(m=>m.done)){
+    setTimeout(()=>promptCompleteTask(task),550);
+  }
 }
 
 function renderDpBody(task,ms){
   const body=document.getElementById('dp-body');
-  const timeH=task?getEffectiveTime(task):0;
-  const isOn=task&&activeTimer&&activeTimer.taskId===task.id&&!activeTimer.msId;
-  const actH=task?parseFloat(task.actual_time_hours||0):0;
+  // Timer was removed from the task detail — it now lives only in Sprint mode.
   const ownerOptions=people.map(p=>`<option value="${p.code}" ${task?.owner===p.code?'selected':''}>${p.name}</option>`).join('');
   body.innerHTML=`
   <div class="dp-sec">
@@ -99,25 +103,10 @@ function renderDpBody(task,ms){
       <textarea class="dp-textarea" id="dp-notes" placeholder="Instructions, context, tips...">${task?.notes||''}</textarea>
     </div>
   </div>
-  ${task?`<div class="dp-sec">
-    <div class="dp-sec-title">Timer</div>
-    <div class="timer-box">
-      <div>
-        <div id="dp-timer-disp" class="timer-disp ${isOn&&activeTimer.status==='running'&&elapsedSecs()>activeTimer.estimateSecs?'over':''}">${isOn?fmtSecs(elapsedSecs()):'00:00'}</div>
-        <div class="timer-est">Est: ${timeH?fmtHours(timeH):'not set'}${actH?' · Last: '+fmtHours(actH):''}</div>
-      </div>
-      <div class="timer-ctrls">
-        ${isOn&&activeTimer.status==='running'?`<button class="tcbtn" onclick="timerPause()">⏸</button><button class="tcbtn stop" onclick="timerStop(true)">✓ Done</button>`
-        :isOn&&activeTimer.status==='paused'?`<button class="tcbtn start" onclick="timerResume()">▷ Resume</button><button class="tcbtn stop" onclick="timerStop(true)">✓ Done</button>`
-        :`<button class="tcbtn start" onclick="startTaskTimer(${task.id},null,true)">▷ Start</button>`}
-      </div>
-    </div>
-  </div>`:''}
   <div class="dp-sec">
     <div class="dp-sec-title" style="font-size:12px;font-weight:800;color:var(--tx);letter-spacing:.3px;border-bottom:2px solid var(--green);padding-bottom:6px;margin-bottom:10px">Milestones <span style="font-weight:500;color:var(--tx2)">${ms.length?ms.filter(m=>m.done).length+'/'+ms.length+' · '+fmtHours(calcTaskTime(task?.id||0)):''}</span></div>
     <div class="ms-list" id="dp-ms-list">
       ${ms.map(m=>{
-        const mOn=activeTimer&&activeTimer.msId===m.id;
         return `<div class="ms-item" id="msi-${m.id}">
           <div class="ms-chk ${m.done?'checked':''}" onclick="dpTickMs('${m.id}')"></div>
           <div class="ms-content">
@@ -125,7 +114,6 @@ function renderDpBody(task,ms){
             <div class="ms-info">
               ${m.time_hours?`<span class="ms-time-badge">${parseFloat(m.time_hours).toFixed(1)}h</span>`:''}
               ${m.due?`<span class="ms-date-badge">${fmtDate(m.due)}</span>`:''}
-              <button class="ms-tbtn ${mOn?'running':''}" onclick="startMsTimer('${m.id}',${task?.id})">${mOn?'⏱ On':'▷'}</button>
             </div>
           </div>
           <button class="ms-del" onclick="deleteMs('${m.id}')">✕</button>
@@ -347,10 +335,46 @@ async function dpTickMs(msId){
   if(ms.done)playChime('ms');
   const el=document.getElementById(`msi-${msId}`);
   if(el){el.querySelector('.ms-chk').classList.toggle('checked',ms.done);el.querySelector('.ms-name').classList.toggle('done-txt',ms.done);}
-  const taskMs=getMs(ms.task_id);
-  if(taskMs.every(m=>m.done)){const t=tasks.find(x=>x.id===ms.task_id);if(t&&!t.done){t.done=true;playChime('task');spawnConfettiCenter();}}
   rerender();
   try{await api('bravochore_milestones','PATCH',{done:ms.done},`?id=eq.${msId}`);}catch(e){}
+  // After persisting the milestone tick, if every milestone is now done and the
+  // task is still open, prompt the user to mark it complete (rather than auto-closing).
+  const taskMs=getMs(ms.task_id);
+  if(ms.done&&taskMs.length&&taskMs.every(m=>m.done)){
+    const t=tasks.find(x=>x.id===ms.task_id);
+    if(t&&!t.done){
+      // Small delay so the chime + checkmark register first
+      setTimeout(()=>promptCompleteTask(t),350);
+    }
+  }
+}
+
+// Shared prompt — used both when ticking the last milestone and when opening
+// a task whose milestones are already all done.
+async function promptCompleteTask(t){
+  if(!t||t.done)return;
+  // Avoid stacking duplicate prompts
+  if(promptCompleteTask._pending===t.id)return;
+  promptCompleteTask._pending=t.id;
+  try{
+    const yes=await confirm2(
+      'All milestones done for "'+t.title+'".',
+      'Mark the whole task complete? You can always undo from the detail panel.',
+      'btn-ok'
+    );
+    if(!yes)return;
+    t.done=true;
+    playChime('task');spawnConfettiCenter();
+    // Reflect on the open detail panel if it's this task
+    if(typeof dpTaskId!=='undefined'&&dpTaskId===t.id){
+      document.getElementById('dp-check')?.classList.add('checked');
+      document.getElementById('dp-title')?.classList.add('done-txt');
+    }
+    rerender();
+    try{await api('bravochore_tasks','PATCH',{done:true},`?id=eq.${t.id}`);}catch(e){}
+  }finally{
+    promptCompleteTask._pending=null;
+  }
 }
 
 async function dpAddMs(){
@@ -398,14 +422,28 @@ function switchDpTab(tab){
       const ta=document.getElementById('tc-input');
       if(ta){
         ta.focus();
-        // Autoresize on input
         if(!ta.dataset.wired){
           ta.dataset.wired='1';
+          // Autoresize on input
           ta.addEventListener('input',()=>{ta.style.height='auto';ta.style.height=Math.min(ta.scrollHeight,120)+'px';});
+          // Enter sends on desktop; Shift+Enter (or Enter on touch) inserts newline
+          ta.addEventListener('keydown',(e)=>{
+            if(e.key==='Enter'&&!e.shiftKey&&!isTouchDevice()){
+              e.preventDefault();
+              sendTaskChat();
+            }
+          });
         }
       }
     },150);
   }
+}
+
+// Heuristic: phones/tablets get newline on Enter (Submit button sends).
+// Desktops with hardware keyboards get Enter-to-send, Shift+Enter newline.
+function isTouchDevice(){
+  return (window.matchMedia&&window.matchMedia('(pointer: coarse)').matches)
+    ||/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent||'');
 }
 
 // ================================================================
