@@ -16,6 +16,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
    BRAND.md type discipline. Playfair / DM Mono overrides stay where needed. */
 button, input, select, textarea { font-family: 'DM Sans', sans-serif; }
 
+/* Universal "thinking" spinner used by thinkingButton() so every async action
+   shows immediate feedback. Per BRAND.md interaction principle: the user must
+   never wonder "did my tap register?". */
+.tb-spinner{display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:tbSpin .7s linear infinite;flex-shrink:0;opacity:.85}
+@keyframes tbSpin{to{transform:rotate(360deg)}}
+button[data-thinking="1"]{cursor:wait}
+
 /* LOADING */
 #loading-screen{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:9000}
 #loading-screen h2{font-family:'Playfair Display',serif;font-size:24px;font-weight:500;color:var(--tx)}

@@ -670,6 +670,67 @@ function chirp(msg){
 }
 
 // ================================================================
+// THINKING BUTTON — universal loading/feedback pattern
+// ================================================================
+// Wrap an async operation with visible button state changes so the user
+// always knows the app received their tap and is doing something.
+//
+// Usage:
+//   await thinkingButton(btnEl, 'Saving…', async () => {
+//     await api(...);
+//     // optional: return 'Saved' to flash a custom success message
+//   }, { errorText: 'Could not save' });
+//
+// If `btnEl` is null/undefined the work still runs — useful for chaining
+// from non-button triggers (touchstart on a card, etc.).
+async function thinkingButton(btn, loadingText, fn, opts){
+  opts=opts||{};
+  const orig=btn?btn.innerHTML:null;
+  const origDisabled=btn?btn.disabled:false;
+  if(btn){
+    btn.disabled=true;
+    btn.dataset.thinking='1';
+    btn.innerHTML=`<span style="display:inline-flex;align-items:center;gap:6px"><span class="tb-spinner" aria-hidden="true"></span>${loadingText||'Working…'}</span>`;
+    btn.style.opacity='0.85';
+  }
+  try{
+    const result=await fn();
+    if(btn){
+      const successText=typeof result==='string'?result:(opts.successText||'✓ Done');
+      btn.innerHTML=successText;
+      btn.style.background=btn.style.background||'';
+      // Restore after a beat so the user gets visual confirmation
+      setTimeout(()=>{
+        if(btn&&btn.dataset.thinking==='1'){
+          btn.innerHTML=orig;
+          btn.disabled=origDisabled;
+          btn.style.opacity='';
+          delete btn.dataset.thinking;
+        }
+      },900);
+    }
+    return result;
+  }catch(e){
+    console.error('thinkingButton failed:',e);
+    const errMsg=opts.errorText||(e&&e.message?'⚠ '+e.message.slice(0,60):'⚠ Failed');
+    if(btn){
+      btn.innerHTML=errMsg;
+      btn.style.opacity='';
+      // Restore after a longer beat so error is readable
+      setTimeout(()=>{
+        if(btn){
+          btn.innerHTML=orig;
+          btn.disabled=origDisabled;
+          delete btn.dataset.thinking;
+        }
+      },2400);
+    }
+    if(typeof chirp==='function')chirp(opts.errorText||"Something didn't save — check connection.");
+    throw e;
+  }
+}
+
+// ================================================================
 // MODAL
 // ================================================================
 function confirm2(title,body,btnCls='btn-ok'){

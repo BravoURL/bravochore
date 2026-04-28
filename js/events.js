@@ -1099,7 +1099,7 @@ function renderShelved(){
           </div>
           ${hasNotes?`<div style="font-size:11px;color:var(--tx2);margin-top:4px;font-style:italic">${s.notes.slice(0,80)}${s.notes.length>80?'…':''}</div>`:''}
         </div>
-        <button class="shelved-promote-btn" onclick="event.stopPropagation();promoteShelved(${s.id})" style="flex-shrink:0">↑ Activate</button>
+        <button class="shelved-promote-btn" onclick="event.stopPropagation();promoteShelved(${s.id},this)" style="flex-shrink:0">↑ Activate</button>
       </div>
     </div>`;
   }).join('');
@@ -1143,16 +1143,30 @@ function findShelvedRow(id){
     ||null;
 }
 
-async function promoteShelved(id){
+async function promoteShelved(id,btn){
   const t=findShelvedRow(id);if(!t)return;
-  // In-place activate: same task ID, all chats/photos/milestones come with it automatically
-  t.status='active';
-  if(!t.event_id)t.event_id=getActiveEvent()||null;
-  try{await api('bravochore_tasks','PATCH',{status:'active',event_id:t.event_id},`?id=eq.${t.id}`);}
-  catch(e){t.status='shelved';chirp('Could not activate — please try again.');return;}
-  refreshShelvedView();
-  renderShelved();rerender();
-  chirp(`"${t.title}" moved to active tasks.`);
+  const fn=async()=>{
+    // In-place activate: same task ID, all chats/photos/milestones come with it automatically
+    t.status='active';
+    if(!t.event_id)t.event_id=getActiveEvent()||null;
+    // Optimistic: pull off shelved list immediately
+    refreshShelvedView();
+    renderShelved();rerender();
+    try{
+      await api('bravochore_tasks','PATCH',{status:'active',event_id:t.event_id},`?id=eq.${t.id}`);
+    }catch(e){
+      // Revert
+      t.status='shelved';
+      refreshShelvedView();renderShelved();rerender();
+      throw e;
+    }
+    return '✓ Activated';
+  };
+  if(btn&&typeof thinkingButton==='function'){
+    try{await thinkingButton(btn,'Activating…',fn,{errorText:"Couldn't activate"});chirp(`"${t.title}" moved to active tasks.`);}catch(e){}
+  }else{
+    try{await fn();chirp(`"${t.title}" moved to active tasks.`);}catch(e){chirp("Couldn't activate — try again.");}
+  }
 }
 
 async function deleteShelved(id){
@@ -1186,9 +1200,9 @@ function openShelvedDetail(id){
   const footer=document.querySelector('.dp-footer');
   if(footer){
     footer.innerHTML=`
-      <button class="dp-del" onclick="deleteShelvedFromDetail()">Delete</button>
-      <button class="dp-del" onclick="saveShelvedFromDetail()" style="background:none;border-color:var(--bdrm);color:var(--tx2)">Save</button>
-      <button class="dp-save" onclick="promoteShelvedFromDetail()">↑ Activate</button>`;
+      <button class="dp-del" onclick="deleteShelvedFromDetail(this)">Delete</button>
+      <button class="dp-del" onclick="saveShelvedFromDetail(this)" style="background:none;border-color:var(--bdrm);color:var(--tx2)">Save</button>
+      <button class="dp-save" onclick="promoteShelvedFromDetail(this)">↑ Activate</button>`;
   }
 }
 
@@ -1248,7 +1262,7 @@ function sdpSetTime(val,btn){
   });
 }
 
-async function saveShelvedFromDetail(){
+async function saveShelvedFromDetail(btn){
   const t=findShelvedRow(dpShelvedId);if(!t)return;
   t.title=document.getElementById('dp-title').textContent.trim()||t.title;
   t.owner=document.getElementById('sdp-owner')?.value||t.owner;
@@ -1256,26 +1270,43 @@ async function saveShelvedFromDetail(){
   t.time_hours=parseFloat(document.getElementById('sdp-time')?.value)||0;
   t.bucket=document.getElementById('sdp-bucket')?.value||t.bucket;
   t.notes=document.getElementById('sdp-notes')?.value||'';
-  try{await api('bravochore_tasks','PATCH',{title:t.title,owner:t.owner,due:t.due,time_hours:t.time_hours,bucket:t.bucket,notes:t.notes},`?id=eq.${t.id}`);}catch(e){}
-  refreshShelvedView();
-  closeDetail();renderShelved();chirp('Saved.');
+  const fn=async()=>{
+    await api('bravochore_tasks','PATCH',{title:t.title,owner:t.owner,due:t.due,time_hours:t.time_hours,bucket:t.bucket,notes:t.notes},`?id=eq.${t.id}`);
+    refreshShelvedView();
+    return '✓ Saved';
+  };
+  if(btn&&typeof thinkingButton==='function'){
+    try{await thinkingButton(btn,'Saving…',fn,{errorText:"Couldn't save"});closeDetail();renderShelved();chirp('Saved.');}catch(e){}
+  }else{try{await fn();closeDetail();renderShelved();chirp('Saved.');}catch(e){chirp('Save failed.');}}
 }
 
-async function deleteShelvedFromDetail(){
+async function deleteShelvedFromDetail(btn){
   const t=findShelvedRow(dpShelvedId);if(!t)return;
   const confirmed=await confirm2('Delete this shelved task?','This permanently removes the task and any chat or photos attached to it. Cannot be undone.','btn-ok');
   if(!confirmed)return;
   const id=t.id;
-  shelved=shelved.filter(x=>x.id!==id);
-  tasks=tasks.filter(x=>x.id!==id);
-  refreshShelvedView();
-  try{await api('bravochore_tasks','DELETE',null,`?id=eq.${id}`);}catch(e){}
-  try{await api('bravochore_milestones','DELETE',null,`?task_id=eq.${id}`);}catch(e){}
-  try{await api('bravochore_task_chats','DELETE',null,`?task_id=eq.${id}`);}catch(e){}
-  closeDetail();renderShelved();chirp('Deleted.');
+  const fn=async()=>{
+    // Optimistic remove
+    shelved=shelved.filter(x=>x.id!==id);
+    tasks=tasks.filter(x=>x.id!==id);
+    refreshShelvedView();renderShelved();
+    try{await api('bravochore_tasks','DELETE',null,`?id=eq.${id}`);}
+    catch(e){
+      // Revert by refetching the row
+      shelved.push(t);refreshShelvedView();renderShelved();
+      throw e;
+    }
+    // Best-effort related-row cleanup; ignore failures here
+    try{await api('bravochore_milestones','DELETE',null,`?task_id=eq.${id}`);}catch(e){}
+    try{await api('bravochore_task_chats','DELETE',null,`?task_id=eq.${id}`);}catch(e){}
+    return '✓ Deleted';
+  };
+  if(btn&&typeof thinkingButton==='function'){
+    try{await thinkingButton(btn,'Deleting…',fn,{errorText:"Couldn't delete"});closeDetail();chirp('Deleted.');}catch(e){}
+  }else{try{await fn();closeDetail();chirp('Deleted.');}catch(e){chirp('Delete failed.');}}
 }
 
-async function promoteShelvedFromDetail(){
+async function promoteShelvedFromDetail(btn){
   const t=findShelvedRow(dpShelvedId);if(!t)return;
   const id=t.id;
   // Capture any field edits made in the detail panel before activating
@@ -1287,10 +1318,19 @@ async function promoteShelvedFromDetail(){
   const notes=document.getElementById('sdp-notes')?.value||t.notes||'';
   // In-place activate: same task ID, all related data (chats, photos, milestones) follows
   Object.assign(t,{title,owner,due,time_hours,bucket,notes,status:'active'});
-  try{await api('bravochore_tasks','PATCH',{title,owner,due,time_hours,bucket,notes,status:'active'},`?id=eq.${id}`);}
-  catch(e){t.status='shelved';chirp('Could not activate.');return;}
-  refreshShelvedView();
-  closeDetail();bnNav('tasks');chirp('"'+title+'" is now active.');
+  const fn=async()=>{
+    try{
+      await api('bravochore_tasks','PATCH',{title,owner,due,time_hours,bucket,notes,status:'active'},`?id=eq.${id}`);
+    }catch(e){
+      t.status='shelved';
+      throw e;
+    }
+    refreshShelvedView();
+    return '✓ Activated';
+  };
+  if(btn&&typeof thinkingButton==='function'){
+    try{await thinkingButton(btn,'Activating…',fn,{errorText:"Couldn't activate"});closeDetail();bnNav('tasks');chirp('"'+title+'" is now active.');}catch(e){}
+  }else{try{await fn();closeDetail();bnNav('tasks');chirp('"'+title+'" is now active.');}catch(e){chirp('Could not activate.');}}
 }
 
 

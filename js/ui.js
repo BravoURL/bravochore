@@ -3,11 +3,59 @@
 // ================================================================
 function buildUserPicker(){
   const c=document.getElementById('user-cards-container');
-  c.innerHTML=people.filter(p=>p.code!=='Pete').map(p=>`
+  const visible=people.filter(p=>p.code!=='Pete');
+  const cards=visible.map(p=>`
     <div class="user-card" onclick="selectUser('${p.code}','${p.name}')">
       <div class="ua" style="background:${p.bg};color:${p.color}">${p.code}</div>
       <h3>${p.name}</h3><p>Your tasks, your dashboard</p>
     </div>`).join('');
+  // Always offer to add another household member from the picker. This is
+  // critical for solo users coming out of onboarding — Brent reported losing
+  // Bernadette / Pete after a cache-clear and not knowing how to get them
+  // back. Settings has the manager too, but the picker is where you notice
+  // the absence first.
+  const addCard=`
+    <div class="user-card" onclick="addPersonFromPicker()" style="border:1.5px dashed var(--bdrm);background:var(--surf2);box-shadow:none">
+      <div class="ua" style="background:var(--gl);color:var(--gd)">+</div>
+      <h3>Add household member</h3>
+      <p>${visible.length===1?'Add Bernadette, Pete, anyone — share tasks across the household':'Add another person'}</p>
+    </div>`;
+  c.innerHTML=cards+addCard;
+}
+
+// Quick "add household member" flow surfaced from the picker (also reachable
+// from Settings → People). Adds the new person, refreshes the picker so they
+// can be selected straight away.
+async function addPersonFromPicker(){
+  if(typeof promptSheet!=='function'){chirp('Module loading — try again in a moment.');return;}
+  const result=await promptSheet({
+    title:'Add household member',
+    subtitle:"They'll appear on the user picker and can be assigned tasks.",
+    confirmLabel:'Add',
+    fields:[
+      {name:'name',label:'Name',required:true,placeholder:'e.g. Bernadette'},
+      {name:'code',label:'Short code',required:true,placeholder:'e.g. B or BJ (uppercase)'}
+    ]
+  });
+  if(!result)return;
+  const name=result.name.trim();
+  const code=(result.code||'').toUpperCase().trim();
+  if(!name||!code)return;
+  if(people.find(p=>p.code===code)){chirp('That code is already in use.');return;}
+  const palette=[
+    {bg:'#FAEEDA',color:'#854F0B'},
+    {bg:'#EAF3DE',color:'#3B6D11'},
+    {bg:'#FCE4EC',color:'#C2185B'},
+    {bg:'#EDE7FF',color:'#5E35B1'},
+    {bg:'#FFF3E0',color:'#E65100'},
+    {bg:'#E6F1FB',color:'#185FA5'}
+  ];
+  const colour=palette[people.length%palette.length];
+  people.push({code,name,bg:colour.bg,color:colour.color});
+  if(typeof savePeople==='function')savePeople();
+  buildUserPicker();
+  if(typeof renderExtraFilters==='function')renderExtraFilters();
+  chirp(name+' added.');
 }
 function selectUser(code,name){
   CU=code;CUN=name;

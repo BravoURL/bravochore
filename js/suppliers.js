@@ -140,7 +140,7 @@ function openSupplierDetail(id){
         ${s.last_used?`<div style="margin-top:12px;font-size:11px;color:var(--tx3)">Last engaged: ${fmtDate(s.last_used)}</div>`:''}
       </div>
       <div style="padding:12px 18px;border-top:1px solid var(--bdr);display:flex;gap:8px;background:var(--surf2)">
-        <button class="dp-del" style="flex-shrink:0" onclick="deleteSupplier(${s.id});this.closest('.modal-bd').remove()">Delete</button>
+        <button class="dp-del" style="flex-shrink:0" onclick="deleteSupplierFromDetail(${s.id},this)">Delete</button>
         <button class="qa-btn" style="flex:1" onclick="this.closest('.modal-bd').remove();editSupplier(${s.id})">Edit</button>
       </div>
     </div>`;
@@ -186,14 +186,52 @@ async function editSupplier(id){
   }catch(e){badge('er','⚠');}
 }
 
+// Delete-from-detail wrapper that shows the loading state ON the actual
+// delete button (so the user sees feedback) before closing the modal.
+async function deleteSupplierFromDetail(id,btn){
+  const s=suppliers.find(x=>x.id===id);if(!s)return;
+  const ok=await confirm2('Delete '+(s.business_name||s.name||'this supplier')+'?','Removes them from your supplier directory. Tasks they were linked to are unaffected.','btn-ok');
+  if(!ok)return;
+  try{
+    await thinkingButton(btn,'Deleting…',async()=>{
+      const idx=suppliers.findIndex(x=>x.id===id);
+      const removed=idx>=0?suppliers.splice(idx,1)[0]:null;
+      renderSuppliersList();
+      try{
+        await api('bravochore_suppliers','DELETE',null,`?id=eq.${id}`);
+      }catch(e){
+        if(idx>=0&&removed)suppliers.splice(idx,0,removed);
+        renderSuppliersList();
+        throw e;
+      }
+      return '✓ Deleted';
+    },{errorText:"Couldn't delete"});
+    btn.closest('.modal-bd')?.remove();
+    chirp('Supplier deleted.');
+  }catch(e){/* error already surfaced */}
+}
+
 async function deleteSupplier(id){
   const s=suppliers.find(x=>x.id===id);if(!s)return;
   const ok=await confirm2('Delete '+(s.business_name||s.name||'this supplier')+'?','Removes them from your supplier directory. Tasks they were linked to are unaffected.','btn-ok');
   if(!ok)return;
-  suppliers=suppliers.filter(x=>x.id!==id);
+  // Optimistic remove — user sees the row vanish IMMEDIATELY
+  const idx=suppliers.findIndex(x=>x.id===id);
+  const removed=suppliers.splice(idx,1)[0];
   renderSuppliersList();
-  try{await api('bravochore_suppliers','DELETE',null,`?id=eq.${id}`);chirp('Deleted.');}
-  catch(e){chirp('Delete failed.');}
+  badge('sy','↻');
+  try{
+    await api('bravochore_suppliers','DELETE',null,`?id=eq.${id}`);
+    badge('ok','✓');
+    chirp('Deleted.');
+  }catch(e){
+    console.error('Delete supplier failed:',e);
+    badge('er','⚠');
+    // Revert — put the supplier back so the UI matches reality
+    if(idx>=0&&removed)suppliers.splice(idx,0,removed);
+    renderSuppliersList();
+    chirp("Couldn't delete — "+(e?.message?e.message.slice(0,80):'check connection'));
+  }
 }
 
 // ── "Who can do this?" — task panel integration ─────────────────
