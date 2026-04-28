@@ -509,78 +509,88 @@ function toggleDone(el){
 // QUICK TICK
 // ================================================================
 async function quickTick(id,e){
-  if(e)e.stopPropagation();
-  const task=tasks.find(t=>t.id===id);if(!task)return;
-  task.done=!task.done;
-  if(task.done){
-    playChime('task');
-    if(e&&e.target)spawnConfetti(e.target);
-    // If sprint is active and this task is in the sprint, track it
-    if(sprintActive&&sprintData&&sprintData.taskIds.includes(id)){
-      sprintData.doneTasks.add(id);
-      updateSprintProgress();
-      saveSprintState();
-    }
-  }else{
-    // Unticking — remove from sprint done set
-    if(sprintActive&&sprintData){
-      sprintData.doneTasks.delete(id);
-      updateSprintProgress();
-      saveSprintState();
-    }
-  }
-  // OPTIMISTIC UI — immediately collapse the card visually so the tap feels
-  // instant. Without this, on slower devices the user sees the card linger
-  // until rerender() finishes its full re-paint. We hide every instance of
-  // this task's card across the page (the same task can appear in the Tasks
-  // list, the dashboard's "Your tasks", and the event panel simultaneously).
-  if(task.done){
-    document.querySelectorAll(`.task-card[data-id="${id}"]`).forEach(card=>{
-      card.style.transition='opacity .18s ease, max-height .25s ease, margin .25s ease, padding .25s ease';
-      card.style.maxHeight=card.offsetHeight+'px';
-      // next frame, collapse
-      requestAnimationFrame(()=>{
-        card.style.opacity='0';
-        card.style.maxHeight='0';
-        card.style.marginTop='0';
-        card.style.marginBottom='0';
-        card.style.paddingTop='0';
-        card.style.paddingBottom='0';
-        card.style.overflow='hidden';
-      });
-    });
-  }
-  // Full re-render after a beat so the card collapse animation has time to
-  // play. The re-render is what truly removes the DOM element from each list.
-  setTimeout(()=>{
-    rerender();
-    if(sprintActive&&sprintData&&sprintData.taskIds.includes(id)){renderSprintTasks();}
-    if(typeof activeEventId!=='undefined'&&activeEventId&&document.getElementById('event-panel')?.classList.contains('open')){
-      const ev=events.find(e=>e.id===activeEventId);
-      if(ev&&typeof renderEventPanel==='function')renderEventPanel(ev);
-    }
-  },task.done?280:0);
-  // Persist to DB and surface any failure loudly so it can't go unnoticed
-  // (silent PATCH failures = local UI updates, but the tick is lost on next
-  // refresh because the server never got it. That made events look like they
-  // were resetting on app reopen).
+  // Outer try/catch so ANY error becomes a visible chirp instead of silently
+  // halting the function. Brent's tick was failing silently — chime + confetti
+  // played, then nothing else happened. This guarantees we always either
+  // succeed visibly or fail visibly.
   try{
-    badge('sy','↻');
-    await api('bravochore_tasks','PATCH',{done:task.done},`?id=eq.${id}`);
-    badge('ok','✓');
-  }catch(err){
-    console.error('Tick PATCH failed for task',id,err);
-    badge('er','⚠');
-    chirp("Couldn't save tick — check connection. Tap to retry.");
-    // Revert local state so the UI matches the server. Otherwise the user
-    // thinks it ticked, refreshes, and sees it un-ticked, which is the worst
-    // of both worlds.
+    if(e)e.stopPropagation();
+    // Coerce id to number — onclick attributes can pass strings on some
+    // mobile browsers, and tasks.find with === would silently fail to match.
+    const idNum=typeof id==='string'?parseInt(id,10):id;
+    const task=tasks.find(t=>t.id===idNum||String(t.id)===String(idNum));
+    if(!task){chirp('Task not found — refresh and try again.');return;}
     task.done=!task.done;
-    rerender();
-    if(typeof activeEventId!=='undefined'&&activeEventId&&document.getElementById('event-panel')?.classList.contains('open')){
-      const ev=events.find(e=>e.id===activeEventId);
-      if(ev&&typeof renderEventPanel==='function')renderEventPanel(ev);
+    if(task.done){
+      try{playChime('task');}catch(_e){}
+      try{if(e&&e.target&&e.target.getBoundingClientRect)spawnConfetti(e.target);}catch(_e){}
+      if(typeof sprintActive!=='undefined'&&sprintActive&&typeof sprintData==='object'&&sprintData&&sprintData.taskIds&&sprintData.taskIds.includes(idNum)){
+        sprintData.doneTasks.add(idNum);
+        try{updateSprintProgress();saveSprintState();}catch(_e){}
+      }
+    }else{
+      if(typeof sprintActive!=='undefined'&&sprintActive&&typeof sprintData==='object'&&sprintData&&sprintData.doneTasks){
+        sprintData.doneTasks.delete(idNum);
+        try{updateSprintProgress();saveSprintState();}catch(_e){}
+      }
     }
+    // OPTIMISTIC UI — collapse every visible instance of the card immediately.
+    // Wrapped in its own try so even if a transition style is rejected on some
+    // browser, we don't bail before the network call.
+    if(task.done){
+      try{
+        document.querySelectorAll(`.task-card[data-id="${idNum}"]`).forEach(card=>{
+          card.style.transition='opacity .18s ease, max-height .25s ease, margin .25s ease, padding .25s ease';
+          const h=card.offsetHeight;
+          card.style.maxHeight=h+'px';
+          requestAnimationFrame(()=>{
+            card.style.opacity='0';
+            card.style.maxHeight='0';
+            card.style.marginTop='0';card.style.marginBottom='0';
+            card.style.paddingTop='0';card.style.paddingBottom='0';
+            card.style.overflow='hidden';
+          });
+        });
+      }catch(_e){console.warn('Optimistic collapse failed:',_e);}
+    }
+    // Defer the full re-render past the collapse animation. Wrap in try inside
+    // the setTimeout so any per-bucket render error doesn't kill the others.
+    setTimeout(()=>{
+      try{rerender();}catch(_e){console.warn('rerender failed:',_e);}
+      try{
+        if(typeof sprintActive!=='undefined'&&sprintActive&&sprintData&&sprintData.taskIds&&sprintData.taskIds.includes(idNum)){
+          renderSprintTasks();
+        }
+      }catch(_e){console.warn('renderSprintTasks failed:',_e);}
+      try{
+        if(typeof activeEventId!=='undefined'&&activeEventId&&document.getElementById('event-panel')?.classList.contains('open')){
+          const ev=events.find(e=>e.id===activeEventId);
+          if(ev&&typeof renderEventPanel==='function')renderEventPanel(ev);
+        }
+      }catch(_e){console.warn('renderEventPanel failed:',_e);}
+    },task.done?280:0);
+    // Network persist — surfaces failure loudly via chirp + revert
+    try{
+      if(typeof badge==='function')badge('sy','↻');
+      await api('bravochore_tasks','PATCH',{done:task.done},`?id=eq.${idNum}`);
+      if(typeof badge==='function')badge('ok','✓');
+    }catch(err){
+      console.error('Tick PATCH failed for task',idNum,err);
+      if(typeof badge==='function')badge('er','⚠');
+      chirp("Couldn't save tick: "+(err?.message?err.message.slice(0,80):'connection error'));
+      // Revert so UI matches server
+      task.done=!task.done;
+      try{rerender();}catch(_e){}
+      try{
+        if(typeof activeEventId!=='undefined'&&activeEventId&&document.getElementById('event-panel')?.classList.contains('open')){
+          const ev=events.find(e=>e.id===activeEventId);
+          if(ev&&typeof renderEventPanel==='function')renderEventPanel(ev);
+        }
+      }catch(_e){}
+    }
+  }catch(outerErr){
+    console.error('quickTick outer error:',outerErr);
+    chirp('Tick failed: '+(outerErr?.message?outerErr.message.slice(0,80):'unknown error'));
   }
 }
 
