@@ -1069,3 +1069,7 @@ button[data-thinking="1"]{cursor:wait}
 .mem-comment{padding:8px 0;border-bottom:1px solid var(--bdr)}
 .mem-comment .mem-sub{margin-left:6px}
 .mem-comment-body{font-size:14px;color:var(--tx);margin-top:4px;line-height:1.45;white-space:pre-wrap}
+img.mem-thumb{object-fit:cover;display:block}
+.mem-hero{width:100%;aspect-ratio:3/2;object-fit:cover;border-radius:var(--r);margin:10px 0 2px;background:var(--surf2);display:block}
+.mem-credit{font-size:10px;color:var(--tx3);margin-bottom:10px}
+.mem-credit a{color:var(--tx3)}

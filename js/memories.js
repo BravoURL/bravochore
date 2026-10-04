@@ -25,6 +25,20 @@ async function loadMemories(){
 }
 const memVisits=id=>memDone.filter(d=>d.memory_id===id);
 const memIsDone=id=>memDone.some(d=>d.memory_id===id);
+// Stock card photos are public Creative Commons images served from the repo
+// (img/mem/Mxxx.jpg, thumbs in img/mem/t/). Family photos are separate and
+// private (Phase 3, after login).
+const memThumbSrc=m=>m.stock_photo_path?m.stock_photo_path.replace('img/mem/','img/mem/t/'):null;
+function memThumb(m){
+  const src=memThumbSrc(m);
+  return src?`<img class="mem-thumb" src="${src}" alt="" loading="lazy" decoding="async">`
+            :'<div class="mem-thumb" aria-hidden="true"></div>';
+}
+function memCredit(c){
+  if(!c||!c.license)return '';
+  const by=c.artist?memEsc(c.artist.replace(/<[^>]*>/g,'').trim())+', ':'';
+  return `<div class="mem-credit">Photo: ${by}${c.url?`<a href="${memEsc(c.url)}" target="_blank" rel="noopener">${memEsc(c.license)}</a>`:memEsc(c.license)}</div>`;
+}
 
 // ---------------------------------------------------------------- list
 async function renderMemories(){
@@ -70,7 +84,7 @@ function memRow(m){
   }
   return taskCard(null,{lite:true,id:'mem-'+m.id,dataId:m.id,cls:'mem-card',checked:isDone,
     onTick:`memTick(${m.id},event)`,onOpen:`openMemory(${m.id})`,
-    title:memEsc(m.name),meta,thumb:'<div class="mem-thumb" aria-hidden="true"></div>'});
+    title:memEsc(m.name),meta,thumb:memThumb(m)});
 }
 function memCollapse(id){
   const card=document.getElementById('mem-'+id);if(!card)return;
@@ -243,6 +257,7 @@ async function openMemory(id){
         ${m.where_text?`<div class="mem-sheet-sub">${memEsc(m.where_text)}</div>`:''}</div>
       <button class="mem-x" onclick="document.getElementById('mem-detail').remove()" aria-label="Close">✕</button>
     </div>
+    ${m.stock_photo_path?`<img class="mem-hero" src="${m.stock_photo_path}" alt="${memEsc(m.name)}" decoding="async">${memCredit(m.stock_photo_credit)}`:''}
     ${facts.length?`<div class="mem-facts">${facts.join(' · ')}<span class="task-code">${m.code}</span></div>`:`<div class="mem-facts"><span class="task-code">${m.code}</span></div>`}
     ${warns.length?`<div class="mem-warn">${warns.join('<br>')}</div>`:''}
     ${(m.kid_facts||[]).length?`<div class="dp-label" style="margin-top:14px">For the kids</div><ul class="mem-kidfacts">${m.kid_facts.map(f=>`<li>${memEsc(f)}</li>`).join('')}</ul>`:''}
