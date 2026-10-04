@@ -958,7 +958,7 @@ async function transcribeAudio(){
     form.append('file',blob,'audio.'+ext);
     const res=await fetch(WHISPER_PROXY,{
       method:'POST',
-      headers:{'apikey':SK},
+      headers:{'apikey':SK,'Authorization':await bcBearer()},
       body:form
     });
     const data=await res.json();

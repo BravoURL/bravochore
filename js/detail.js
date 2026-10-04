@@ -703,10 +703,10 @@ ${context}`;
     return{role:m.role,content:m.content||''};
   });
   try{
-    const resp=await fetch('https://xgmnyhpzuwngdngtttux.supabase.co/functions/v1/blackbird-proxy',{
+    const resp=await fetch(BB_PROXY,{
       method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhnbW55aHB6dXduZ2RuZ3R0dHV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0MDYxOTgsImV4cCI6MjA4OTk4MjE5OH0.aQvdjbOSRqQJmBKF-9z7KOXhC2M_gKPZ1m4rQhPZ9eo'},
-      body:JSON.stringify({system:sysPrompt,messages:apiMsgs})
+      headers:{'Content-Type':'application/json','apikey':SK,'Authorization':await bcBearer()},
+      body:JSON.stringify({model:BB_MODEL,system:sysPrompt,messages:apiMsgs})
     });
     const data=await resp.json();
     const reply=data?.content?.[0]?.text;

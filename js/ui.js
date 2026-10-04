@@ -67,7 +67,9 @@ function selectUser(code,name){
   setTimeout(()=>chirp("Let's get this done."),800);
   bbMsg("Hey — I'm Blackbird. Tap the bird icon on any task for advice, or just ask me anything.",'from-bb');
 }
-function switchUser(){document.getElementById('user-picker').style.display='flex';document.getElementById('app').style.display='none';buildUserPicker();}
+async function switchUser(){
+  if(AUTH_ENABLED){if(await confirm2('Sign out?','You\'ll sign in with Google again next time.','btn-ok'))bcSignOut();return;}
+  document.getElementById('user-picker').style.display='flex';document.getElementById('app').style.display='none';buildUserPicker();}
 function setupPill(){
   const o=getOwner(CU);
   const pa=document.getElementById('pill-av');
