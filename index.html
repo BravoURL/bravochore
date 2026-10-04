@@ -90,6 +90,7 @@ document.querySelector('link[rel="manifest"]').href = url;
     <div class="brand" onclick="bnNav('dashboard')">Bravo<span style="color:var(--tx);font-weight:400">Chore</span></div>
     <div class="nav-right">
       <button onclick="bnNav('shopping')" title="Shopping" id="shop-btn" style="background:none;border:none;cursor:pointer;padding:4px 6px;color:var(--tx2);display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></button>
+      <button onclick="bnNav('shelved')" title="Shelved" id="shelved-btn" style="background:none;border:none;cursor:pointer;padding:4px 6px;color:var(--tx2);display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v4H4z"/><path d="M4 12h16v4H4z"/><path d="M4 20h16v2H4z"/><circle cx="8" cy="6" r="1" fill="currentColor"/><circle cx="8" cy="14" r="1" fill="currentColor"/></svg></button>
       <!-- Reminders bell hidden per BRAND.md "discoverability" review — feature parked
            until Alexa integration revives it. Code remains in js/reminders.js so the
            module can be revived without rebuild. -->
@@ -116,9 +117,9 @@ document.querySelector('link[rel="manifest"]').href = url;
       <div class="bn-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="12" cy="16" r="2" fill="currentColor"/></svg></div>
       <span>Events</span>
     </button>
-    <button class="bn-tab" id="bn-shelved" onclick="bnNav('shelved')">
-      <div class="bn-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v4H4z"/><path d="M4 12h16v4H4z"/><path d="M4 20h16v2H4z"/><circle cx="8" cy="6" r="1" fill="currentColor"/><circle cx="8" cy="14" r="1" fill="currentColor"/></svg></div>
-      <span>Shelved</span>
+    <button class="bn-tab" id="bn-memories" onclick="bnNav('memories')">
+      <div class="bn-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
+      <span id="bn-memories-label">Memories</span>
     </button>
     <button class="bn-tab" id="bn-schedule" onclick="bnNav('schedule')">
       <div class="bn-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
@@ -374,6 +375,20 @@ document.querySelector('link[rel="manifest"]').href = url;
         <p style="font-size:15px;font-weight:500;margin-bottom:6px">No events yet</p>
         <p style="font-size:13px;color:var(--tx2)">Create one to focus your tasks around a deadline.</p>
       </div>
+    </div>
+
+    <!-- MEMORIES -->
+    <div id="view-memories" class="view">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <h2 id="mem-title" style="font-family:'Playfair Display',serif;font-size:20px;font-weight:500">Memories</h2>
+        <button class="qa-btn accent" style="font-size:11px;padding:7px 12px" onclick="openMemAdd()">+ Add</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px">
+        <div class="filter-chip active" data-memv="todo" onclick="setMemView('todo')">To do</div>
+        <div class="filter-chip" data-memv="done" onclick="setMemView('done')">Done</div>
+        <span id="mem-count" class="mem-num" style="margin-left:auto"></span>
+      </div>
+      <div id="memories-list"></div>
     </div>
 
     <!-- SHELVED -->
@@ -822,6 +837,7 @@ document.querySelector('link[rel="manifest"]').href = url;
 <script src="js/suppliers.js"></script>
 <script src="js/routine-manager.js"></script>
 <script src="js/onboarding.js"></script>
+<script src="js/memories.js"></script>
 <script src="js/boot.js"></script>
 
 <!-- ════════════════════════════════════════════════════

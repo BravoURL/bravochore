@@ -96,6 +96,7 @@ function bnNav(name){
   else if(name==='schedule'){initScheduleView();}
   else if(name==='events'){loadEvents().then(renderEvents);}
   else if(name==='shelved'){loadEvents().then(renderShelved);}
+  else if(name==='memories'){if(typeof renderMemories==='function')renderMemories();}
   else renderDashboard();
 }
 function showView(name,tab){bnNav(name);}
@@ -423,7 +424,21 @@ function renderHeadToHead(){
 // slotted, and any other view that shows a task. Per BRAND.md: "Cards — A 'task
 // card' is the same shape across every bucket… do not build a new task-card
 // variant inside another file."
-function taskCard(task){
+function taskCard(task,opts){
+  // Lite variant: same card shape and classes, caller supplies content and
+  // handlers. Used by Memories (BRAND.md: parameterise, don't fork the card).
+  if(opts&&opts.lite){
+    return `<div class="task-card ${opts.cls||''}" id="${opts.id}" data-id="${opts.dataId}">
+    <div class="task-row">
+      <div class="task-check ${opts.checked?'checked':''}" onclick="${opts.onTick}"></div>
+      <div class="task-main" onclick="${opts.onOpen}">
+        <div class="task-title">${opts.title}</div>
+        ${opts.meta?`<div class="task-meta">${opts.meta}</div>`:''}
+      </div>
+      ${opts.thumb||''}
+    </div>
+  </div>`;
+  }
   const today=tdStr();
   const ov=!task.done&&task.due&&task.due<today;
   const ds=!task.done&&task.due&&task.due===today;

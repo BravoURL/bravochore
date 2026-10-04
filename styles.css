@@ -1023,3 +1023,49 @@ button[data-thinking="1"]{cursor:wait}
 }
 
 @keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+/* ================================================================
+   MEMORIES (v2 brief, Phase 1). Tokens only, no new colours.
+   ================================================================ */
+.mem-num{font-family:'DM Mono',monospace;font-size:12px;color:var(--tx3)}
+.mem-thumb{width:44px;height:44px;border-radius:var(--rs);background:var(--surf2);border:1px solid var(--bdr);flex-shrink:0}
+.mem-card .task-row{padding:8px 10px}
+.mem-badge{font-size:10px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:var(--tx3);border:1px solid var(--bdr);border-radius:100px;padding:1px 6px}
+.mem-badge.warn{color:var(--amber);border-color:var(--al);background:var(--al)}
+.mem-sub{font-size:12px;color:var(--tx3)}
+.mem-muted{font-size:13px;color:var(--tx3)}
+.mem-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;display:flex;align-items:flex-end;justify-content:center}
+.mem-sheet{background:var(--surf);border-radius:20px 20px 0 0;width:100%;max-width:560px;padding:18px;padding-bottom:max(18px,env(safe-area-inset-bottom));max-height:90dvh;overflow-y:auto;box-shadow:0 -8px 40px rgba(0,0,0,.15)}
+.mem-sheet.tall{min-height:60dvh}
+.mem-sheet-hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.mem-sheet-title{font-family:'Playfair Display',serif;font-size:17px;font-weight:500;line-height:1.3}
+.mem-sheet-sub{font-size:13px;color:var(--tx2);margin:4px 0 12px;line-height:1.5}
+.mem-x{background:none;border:none;font-size:18px;color:var(--tx3);cursor:pointer;min-width:44px;min-height:44px}
+.mem-facts{font-size:13px;color:var(--tx2);display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.mem-facts .task-code{margin-left:auto}
+.mem-warn{margin-top:10px;padding:10px 12px;border-radius:var(--rs);background:var(--al);color:var(--tx);font-size:13px;line-height:1.5}
+.mem-kidfacts{margin:6px 0 0 18px;font-size:14px;line-height:1.5;color:var(--tx)}
+.mem-kidfacts li{margin-bottom:4px}
+.mem-visit{border:1px solid var(--bdr);border-radius:var(--rs);padding:10px 12px;margin-top:6px;cursor:pointer;background:var(--bg)}
+.mem-visit-top{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600;color:var(--tx)}
+.mem-avg{font-size:15px;color:var(--gd)}
+.mem-pers{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:6px}
+.mem-per{font-size:12px;color:var(--tx2)}
+.mem-per b{font-weight:400;color:var(--tx)}
+.mem-visit-note{font-size:13px;color:var(--tx2);margin-top:6px}
+.mem-check-line{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--tx2);min-height:32px}
+.mem-people{display:flex;flex-direction:column;gap:6px}
+.mem-person{display:flex;align-items:center;gap:8px}
+.mem-who{background:none;border:none;padding:0;min-height:44px;min-width:96px;text-align:left;cursor:pointer;opacity:.45}
+.mem-person.on .mem-who{opacity:1}
+.mem-score{max-width:84px;padding:8px 10px;font-family:'DM Mono',monospace}
+.mem-absent{font-size:12px;color:var(--tx3);display:none}
+.mem-person:not(.on) .mem-score{display:none}
+.mem-person:not(.on) .mem-absent{display:inline}
+.mem-link{display:block;margin:14px auto 0;background:none;border:none;font-size:12px;cursor:pointer;min-height:44px;color:var(--tx2)}
+.mem-link.danger{color:var(--red)}
+.mem-comment-add{display:flex;gap:8px;align-items:flex-start;margin-bottom:8px}
+.mem-comment-add .qa-btn{min-height:44px}
+.mem-comment{padding:8px 0;border-bottom:1px solid var(--bdr)}
+.mem-comment .mem-sub{margin-left:6px}
+.mem-comment-body{font-size:14px;color:var(--tx);margin-top:4px;line-height:1.45;white-space:pre-wrap}
