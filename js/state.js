@@ -10,7 +10,11 @@ const BB_PROXY=`${SB}/functions/v1/blackbird-proxy`;
 const BB_MODEL='claude-sonnet-5-5';
 // Google sign-in (js/auth.js). Off until Supabase Google login is configured
 // and tested. One device can preview with localStorage.bc_auth_preview='1'.
-const AUTH_ENABLED=false||(()=>{try{return localStorage.getItem('bc_auth_preview')==='1';}catch(e){return false;}})();
+const AUTH_ENABLED=false||(()=>{try{
+  const q=new URLSearchParams(location.search);
+  if(q.has('login'))localStorage.setItem('bc_auth_preview','1');
+  if(q.has('nologin'))localStorage.removeItem('bc_auth_preview');
+  return localStorage.getItem('bc_auth_preview')==='1';}catch(e){return false;}})();
 const TARGET=new Date('2026-05-02');
 
 // --- Memories module (v2 brief) -------------------------------------------
