@@ -7,6 +7,42 @@ const STORAGE_URL=`${SB}/storage/v1/object/public/bravochore-photos`;
 const BB_PROXY=`${SB}/functions/v1/blackbird-proxy`;
 const TARGET=new Date('2026-05-02');
 
+// --- Memories module (v2 brief) -------------------------------------------
+// Tab label only. Internal names stay memory_* / js/memories.js, so renaming
+// the label here is cosmetic and touches nothing else.
+const MEM_LABEL='Memories';
+// Home, for drive-time maths (Swan View).
+const MEM_HOME={lat:-31.885,lon:116.045};
+// Children: codes and ages only. No names, no dates of birth, until login and
+// strict RLS are live (v2 requirement 43). Edit ages when birthdays pass.
+const MEM_CHILD_AGES_AS_OF='2026-10-04';
+// Memories-only roster. Deliberately NOT merged into `people`: that array feeds
+// every task/event/routine owner dropdown and the dashboard chips, so adding the
+// children there would change existing behaviour (v2 Don'ts). Ratings, "who was
+// there" and Goals owners read MEM_PEOPLE instead.
+const MEM_PEOPLE=[
+  {code:'BW',  bg:'#E6F1FB', color:'#185FA5', child:false},
+  {code:'BJ',  bg:'#FAEEDA', color:'#854F0B', child:false},
+  {code:'Pete',bg:'#EAF3DE', color:'#3B6D11', child:false},
+  {code:'LW',  bg:'#F3E8F5', color:'#6B2D7A', child:true, age_years:7},
+  {code:'GW',  bg:'#FDE8E8', color:'#9B2C2C', child:true, age_years:4},
+  {code:'VW',  bg:'#E3F2EF', color:'#1B5E52', child:true, age_years:1},
+];
+// Current age = stored age + whole years since MEM_CHILD_AGES_AS_OF.
+function memAge(code){
+  const p=MEM_PEOPLE.find(x=>x.code===code);
+  if(!p||p.age_years==null)return null;
+  const since=(Date.now()-new Date(MEM_CHILD_AGES_AS_OF).getTime())/31557600000;
+  return p.age_years+Math.floor(since);
+}
+// Display label for a Memories person. Adults borrow their name from `people`
+// (already local, already shown elsewhere); children stay as codes until login.
+function memName(code){
+  const p=MEM_PEOPLE.find(x=>x.code===code);
+  if(p&&p.child)return code;
+  return (people.find(x=>x.code===code)||{}).name||code;
+}
+
 // ================================================================
 // STATE
 // ================================================================
