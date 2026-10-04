@@ -46,7 +46,8 @@ function memThumb(m){
 // Directions), not on a raw pin: some seed coordinates are suburb centres.
 function memMapsUrl(m){
   const q=[m.name,m.where_text||'Western Australia'].join(', ');
-  return 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(q);
+  return 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(q)
+    +(m.google_place_id?'&query_place_id='+encodeURIComponent(m.google_place_id):'');
 }
 function memCredit(c){
   if(!c||!c.license)return '';
@@ -325,39 +326,148 @@ async function memDoAgain(id,btn){
   if(row){renderMemList();openMemory(id);openVisitSheet(id,row.id,true);}
 }
 
-// ---------------------------------------------------------------- quick add (no AI yet)
-// Saved as unverified with blank facts. Placed after the chosen cluster.
+// ---------------------------------------------------------------- add (Google suggestions)
 function memGroupLabel(g){return MEM_AREAS[g]||(g?g.replace(/-/g,' ').replace(/^./,c=>c.toUpperCase()):'');}
-async function openMemAdd(){
-  const groups=[...new Set(memItems.map(m=>m.trip_group).filter(Boolean))];
-  const r=await promptSheet({title:'Add to '+MEM_LABEL,
-    subtitle:'Saved as unverified. Facts get checked later.',
-    fields:[
-      {name:'name',label:'Name (1 to 3 words)',required:true,placeholder:'e.g. Bennett Brook railway'},
-      {name:'where',label:'Where',placeholder:'Optional'},
-      {name:'near',label:'Put it near',type:'select',value:'',
-        options:[{value:'',label:'End of list'},...groups.map(g=>({value:g,label:memGroupLabel(g)}))]}
-    ],confirmLabel:'Add'});
-  if(!r)return;
+// As-you-type suggestions from Google Places (New). The key is browser-side by
+// design: Google restricts it to bravourl.github.io and to Places only, with a
+// daily cap. One session token per add groups the calls for billing.
+const MEM_PLACES_KEY='AIzaSyAl3-W54GXUWATbT4qNDjP96F_oXMsd8m8';
+const memNorm=s=>String(s||'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+function memKm(a,b,c,d){const p=Math.PI/180,x=Math.sin((c-a)*p/2)**2+Math.cos(a*p)*Math.cos(c*p)*Math.sin((d-b)*p/2)**2;return 12742*Math.asin(Math.sqrt(x));}
+// New item sits right after the nearest existing item, inside its cluster.
+function memPlaceNear(lat,lon){
+  let best=null,bd=1e9;
+  memItems.forEach(m=>{if(m.lat==null)return;const d=memKm(lat,lon,m.lat,m.lon);if(d<bd){bd=d;best=m;}});
+  return best&&bd<150?best:null;
+}
+function memSortAfter(anchor){
   const all=[...memItems].sort((a,b)=>a.sort_order-b.sort_order);
-  let sort;
-  if(r.near){
-    const inG=all.filter(m=>m.trip_group===r.near),last=inG[inG.length-1];
-    const next=all.find(m=>Number(m.sort_order)>Number(last.sort_order));
-    sort=next?(Number(last.sort_order)+Number(next.sort_order))/2:Number(last.sort_order)+10;
-  }else sort=(all.length?Number(all[all.length-1].sort_order):0)+10;
-  let codes=[];
-  try{codes=await api('bravochore_memories','GET',null,'?select=code&code=like.M*');}catch(_e){}
-  const maxN=Math.max(0,...codes.map(c=>parseInt(c.code.slice(1),10)).filter(n=>!isNaN(n)));
-  const rec={code:'M'+String(maxN+1).padStart(3,'0'),sort_order:sort,name:r.name,where_text:r.where||null,
-    trip_group:r.near||null,origin:'added_on_the_fly',status:'unverified',kind:'experience',created_by:CU||null};
-  try{
-    const [row]=await api('bravochore_memories','POST',rec);
-    memItems.push(row);memItems.sort((a,b)=>a.sort_order-b.sort_order);
-    if(memView!=='todo')setMemView('todo');else renderMemList();
-    document.getElementById('mem-'+row.id)?.scrollIntoView({behavior:'smooth',block:'center'});
-    badge('ok','✓ Added');
-  }catch(_e){badge('er','⚠ Not added');chirp('Connection wobble. Not added, try again.');}
+  if(!anchor)return (all.length?Number(all[all.length-1].sort_order):0)+10;
+  const next=all.find(m=>Number(m.sort_order)>Number(anchor.sort_order));
+  return next?(Number(anchor.sort_order)+Number(next.sort_order))/2:Number(anchor.sort_order)+10;
+}
+function memSortEndOfGroup(g){
+  const inG=[...memItems].filter(m=>m.trip_group===g).sort((a,b)=>a.sort_order-b.sort_order);
+  return memSortAfter(inG[inG.length-1]);
+}
+async function memAutocomplete(input,token){
+  const r=await fetch('https://places.googleapis.com/v1/places:autocomplete',{method:'POST',
+    headers:{'Content-Type':'application/json','X-Goog-Api-Key':MEM_PLACES_KEY},
+    body:JSON.stringify({input,sessionToken:token,includedRegionCodes:['au'],
+      locationBias:{circle:{center:{latitude:MEM_HOME.lat,longitude:MEM_HOME.lon},radius:50000}}})});
+  if(!r.ok)throw new Error('places '+r.status);
+  return ((await r.json()).suggestions||[]).map(x=>x.placePrediction).filter(Boolean);
+}
+async function memPlaceDetails(id,token){
+  const r=await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(id)}?sessionToken=${token}`,{
+    headers:{'X-Goog-Api-Key':MEM_PLACES_KEY,'X-Goog-FieldMask':'id,displayName,formattedAddress,location,addressComponents'}});
+  if(!r.ok)throw new Error('details '+r.status);
+  return r.json();
+}
+function memDupOf(placeId,text){
+  if(placeId){const m=memItems.find(x=>x.google_place_id===placeId);if(m)return m;}
+  const t=memNorm(text);if(t.length<4)return null;
+  return memItems.find(x=>[x.name,x.google_place_name].filter(Boolean).some(nm=>{const n=memNorm(nm);
+    return n===t||(n.length>=5&&(n.includes(t)||t.includes(n)));}))||null;
+}
+
+async function openMemAdd(){
+  const token=(crypto.randomUUID?crypto.randomUUID():String(Date.now()));
+  const groups=[...new Set(memItems.map(m=>m.trip_group).filter(Boolean))];
+  let picked=null, timer=null, seq=0;
+  const wrap=document.createElement('div');
+  wrap.className='mem-overlay';wrap.id='mem-add';
+  wrap.innerHTML=`<div class="mem-sheet" role="dialog" aria-modal="true">
+    <div class="mem-sheet-hdr"><div class="mem-sheet-title">Add to ${memEsc(MEM_LABEL)}</div>
+      <button class="mem-x" id="ma-x" aria-label="Close">✕</button></div>
+    <div class="dp-field"><label class="dp-label" for="ma-q">Place or idea</label>
+      <input class="dp-input" id="ma-q" autocomplete="off" placeholder="e.g. Caversham, zipline, Bennett Brook"></div>
+    <div id="ma-sugg" class="mem-sugg"></div>
+    <div id="ma-dup"></div>
+    <div id="ma-picked" style="display:none">
+      <div class="dp-field"><label class="dp-label" for="ma-name">Name</label><input class="dp-input" id="ma-name"></div>
+      <div class="mem-sub" id="ma-where"></div>
+    </div>
+    <div class="dp-field" style="margin-top:10px"><label class="dp-label" for="ma-near">Put it near</label>
+      <select class="dp-select" id="ma-near"><option value="">End of list</option>${groups.map(g=>`<option value="${g}">${memEsc(memGroupLabel(g))}</option>`).join('')}</select>
+      <div class="mem-sub" id="ma-near-why"></div></div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn-cancel" style="flex:1" id="ma-cancel">Cancel</button>
+      <button class="btn-ok" style="flex:1" id="ma-save" disabled>Add</button>
+    </div>
+    <div class="mem-credit" style="margin-top:8px">Suggestions by Google</div>
+  </div>`;
+  document.body.appendChild(wrap);
+  const $=id=>wrap.querySelector('#'+id);
+  const close=()=>{clearTimeout(timer);wrap.remove();};
+  wrap.addEventListener('click',e=>{if(e.target===wrap)close();});
+  $('ma-x').onclick=close;$('ma-cancel').onclick=close;
+  const q=$('ma-q'),sugg=$('ma-sugg'),save=$('ma-save');
+  setTimeout(()=>q.focus(),50);
+
+  function showDup(m){
+    $('ma-dup').innerHTML=m?`<div class="mem-warn" style="margin-top:8px">Already on your list: <b>${memEsc(m.name)}</b>${memIsDone(m.id)?' (done)':''}.
+      <button class="mem-link" style="display:inline;margin:0;min-height:0;padding:0 4px;text-decoration:underline" id="ma-open">Open it</button></div>`:'';
+    if(m)$('ma-open').onclick=()=>{close();openMemory(m.id);};
+  }
+  function refreshSave(){save.disabled=!(picked?$('ma-name').value.trim():q.value.trim());}
+
+  q.addEventListener('input',()=>{
+    picked=null;$('ma-picked').style.display='none';$('ma-near-why').textContent='';
+    const text=q.value.trim();showDup(memDupOf(null,text));refreshSave();
+    clearTimeout(timer);
+    if(text.length<3){sugg.innerHTML='';return;}
+    timer=setTimeout(async()=>{
+      const my=++seq;
+      let list=[];try{list=await memAutocomplete(text,token);}catch(_e){}
+      if(my!==seq)return;
+      sugg.innerHTML=list.slice(0,5).map((p,i)=>{
+        const sf=p.structuredFormat||{};
+        return `<button type="button" class="mem-sugg-row" data-i="${i}">
+          <span class="mem-sugg-main">${memEsc((sf.mainText||{}).text||(p.text||{}).text)}</span>
+          <span class="mem-sugg-sec">${memEsc((sf.secondaryText||{}).text||'')}</span></button>`;
+      }).join('')+(text?`<button type="button" class="mem-sugg-row typed" data-typed="1"><span class="mem-sugg-main">Add "${memEsc(text)}" as typed</span><span class="mem-sugg-sec">No place, facts checked later</span></button>`:'');
+      sugg.querySelectorAll('.mem-sugg-row').forEach(b=>b.onclick=async()=>{
+        if(b.dataset.typed){sugg.innerHTML='';q.blur();refreshSave();save.focus();return;}
+        const p=list[+b.dataset.i];sugg.innerHTML='<div class="mem-muted">Loading…</div>';
+        try{
+          const d=await memPlaceDetails(p.placeId,token);
+          const comp=t=>(d.addressComponents||[]).find(c=>(c.types||[]).includes(t));
+          const loc=comp('locality'),st=comp('administrative_area_level_1');
+          picked={id:d.id,name:(d.displayName||{}).text||q.value.trim(),lat:d.location?.latitude,lon:d.location?.longitude,
+            where:[loc&&loc.longText,st&&st.shortText].filter(Boolean).join(', ')||d.formattedAddress||''};
+          sugg.innerHTML='';$('ma-picked').style.display='';
+          $('ma-name').value=picked.name;$('ma-where').textContent=picked.where;
+          showDup(memDupOf(picked.id,picked.name));
+          const near=picked.lat!=null?memPlaceNear(picked.lat,picked.lon):null;
+          if(near&&near.trip_group){$('ma-near').value=near.trip_group;$('ma-near-why').textContent='Closest on your list: '+near.name;}
+          refreshSave();
+        }catch(_e){sugg.innerHTML='<div class="mem-muted">Could not load that place. Add it as typed instead.</div>';}
+      });
+    },250);
+  });
+  $('ma-name').addEventListener('input',refreshSave);
+
+  save.onclick=async()=>{
+    const name=(picked?$('ma-name').value:q.value).trim();if(!name)return;
+    save.disabled=true;save.textContent='Adding…';
+    const g=$('ma-near').value;
+    const near=picked&&picked.lat!=null?memPlaceNear(picked.lat,picked.lon):null;
+    const sort=(near&&near.trip_group===g)?memSortAfter(near):(g?memSortEndOfGroup(g):memSortAfter(null));
+    let codes=[];try{codes=await api('bravochore_memories','GET',null,'?select=code&code=like.M*');}catch(_e){}
+    const maxN=Math.max(0,...codes.map(c=>parseInt(c.code.slice(1),10)).filter(n=>!isNaN(n)));
+    const rec={code:'M'+String(maxN+1).padStart(3,'0'),sort_order:sort,name,where_text:picked?picked.where:null,
+      trip_group:g||null,origin:'added_on_the_fly',status:'unverified',kind:'experience',created_by:CU||null,
+      lat:picked?picked.lat:null,lon:picked?picked.lon:null,
+      google_place_id:picked?picked.id:null,google_place_name:picked?picked.name:null,google_place_checked:picked?'manual':null};
+    try{
+      const [row]=await api('bravochore_memories','POST',rec);
+      memItems.push(row);memItems.sort((a,b)=>a.sort_order-b.sort_order);close();
+      if(memView!=='todo')setMemView('todo');else renderMemList();
+      document.getElementById('mem-'+row.id)?.scrollIntoView({behavior:'smooth',block:'center'});
+      badge('ok','✓ Added');
+    }catch(_e){save.disabled=false;save.textContent='Not added. Retry';badge('er','⚠ Not added');}
+  };
 }
 
 // Bottom-nav label follows the constant.
