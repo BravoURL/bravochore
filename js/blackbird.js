@@ -174,8 +174,8 @@ Rules:
 - blackbird_comment: dry, warm, brief — like a good assistant confirming the plan`;
 
     try{
-      const res=await fetch(BB_PROXY,{method:'POST',headers:{'Content-Type':'application/json','apikey':SK},
-        body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,system:sys,messages:[...bbHistory,{role:'user',content:userContent}]})});
+      const res=await fetch(BB_PROXY,{method:'POST',headers:{'Content-Type':'application/json','apikey':SK,'Authorization':(typeof bcBearer==='function'?await bcBearer():'Bearer '+SK)},
+        body:JSON.stringify({model:BB_MODEL,max_tokens:600,system:sys,messages:[...bbHistory,{role:'user',content:userContent}]})});
       const data=await res.json();
       const raw=data.content?.find(c=>c.type==='text')?.text||'null';
       let parsed=null;
@@ -195,8 +195,8 @@ ${taskSummary}
 ${taskCtx}
 Be direct, warm, practical. 2-4 sentences max. Suggest specific Bunnings Perth or ABI Interiors products where relevant.`;
     try{
-      const res=await fetch(BB_PROXY,{method:'POST',headers:{'Content-Type':'application/json','apikey':SK},
-        body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,system:sys,messages:[...bbHistory,{role:'user',content:userContent}]})});
+      const res=await fetch(BB_PROXY,{method:'POST',headers:{'Content-Type':'application/json','apikey':SK,'Authorization':(typeof bcBearer==='function'?await bcBearer():'Bearer '+SK)},
+        body:JSON.stringify({model:BB_MODEL,max_tokens:600,system:sys,messages:[...bbHistory,{role:'user',content:userContent}]})});
       const data=await res.json();
       const reply=data.content?.find(c=>c.type==='text')?.text||"Try again.";
       bbHistory.push({role:'user',content:typeof userContent==='string'?userContent:'[photo + message]'});
@@ -416,8 +416,8 @@ Set null for the kind that doesn't apply. The blackbird_comment is shown to the 
   try{
     const res=await fetch(BB_PROXY,{
       method:'POST',
-      headers:{'Content-Type':'application/json','apikey':SK},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:700,system:sys,messages:[{role:'user',content:userContent}]})
+      headers:{'Content-Type':'application/json','apikey':SK,'Authorization':(typeof bcBearer==='function'?await bcBearer():'Bearer '+SK)},
+      body:JSON.stringify({model:BB_MODEL,max_tokens:700,system:sys,messages:[{role:'user',content:userContent}]})
     });
     const data=await res.json();
     const raw=data.content?.find(c=>c.type==='text')?.text||'null';

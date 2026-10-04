@@ -5,6 +5,12 @@ const SB='https://xgmnyhpzuwngdngtttux.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhnbW55aHB6dXduZ2RuZ3R0dHV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0MDYxOTgsImV4cCI6MjA4OTk4MjE5OH0.aQvdjbOSRqQJmBKF-9z7KOXhC2M_gKPZ1m4rQhPZ9eo';
 const STORAGE_URL=`${SB}/storage/v1/object/public/bravochore-photos`;
 const BB_PROXY=`${SB}/functions/v1/blackbird-proxy`;
+// One place for Blackbird's model. The old 'claude-sonnet-4-20250514' was retired,
+// which silently broke every Blackbird reply.
+const BB_MODEL='claude-sonnet-5-5';
+// Google sign-in (js/auth.js). Off until Supabase Google login is configured
+// and tested. One device can preview with localStorage.bc_auth_preview='1'.
+const AUTH_ENABLED=false||(()=>{try{return localStorage.getItem('bc_auth_preview')==='1';}catch(e){return false;}})();
 const TARGET=new Date('2026-05-02');
 
 // --- Memories module (v2 brief) -------------------------------------------
@@ -71,7 +77,7 @@ function ownerTagShort(code){const o=getOwner(code);return `<span class="task-ta
 // API
 // ================================================================
 async function api(table,method='GET',body=null,params=''){
-  const h={'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'};
+  const h={'apikey':SK,'Authorization':(typeof bcBearer==='function'?await bcBearer():'Bearer '+SK),'Content-Type':'application/json'};
   if(method==='POST')h['Prefer']='return=representation';
   if(method==='PATCH')h['Prefer']='return=minimal';
   const r=await fetch(`${SB}/rest/v1/${table}${params}`,{method,headers:h,body:body?JSON.stringify(body):null});

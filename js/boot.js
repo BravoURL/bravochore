@@ -19,6 +19,8 @@ function pickBlackbirdGreeting(){
 
 async function boot(){
   try{
+  // Google sign-in gate (no-op while AUTH_ENABLED is false).
+  if(typeof bcGate==='function'&&!(await bcGate()))return;
   // First-run onboarding: brand-new users with no bc_user yet are routed
   // through a welcome flow that gathers their name + short code instead of
   // landing on the Wallis-default user-picker.
