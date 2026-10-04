@@ -1,0 +1,48 @@
+name: Keepalive
+
+# Stops the free-tier Supabase project pausing after 7 idle days, and stops
+# GitHub disabling this schedule after 60 idle days in the repo.
+on:
+  schedule:
+    - cron: '17 21 * * *'   # 05:17 AWST daily
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/keepalive.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase
+        run: |
+          SB="https://xgmnyhpzuwngdngtttux.supabase.co"
+          # Anon key: already public in js/state.js, RLS does the protecting.
+          SK="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhnbW55aHB6dXduZ2RuZ3R0dHV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0MDYxOTgsImV4cCI6MjA4OTk4MjE5OH0.aQvdjbOSRqQJmBKF-9z7KOXhC2M_gKPZ1m4rQhPZ9eo"
+          CODE=$(curl -s -o /tmp/out.txt -w "%{http_code}" \
+            -H "apikey: $SK" -H "Authorization: Bearer $SK" \
+            "$SB/rest/v1/bravochore_tasks?select=id&limit=1")
+          echo "HTTP $CODE"
+          if [ "$CODE" != "200" ]; then
+            echo "::error::Supabase ping failed (HTTP $CODE). Project may be paused."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Keep repo active
+        run: |
+          DAYS=$(( ( $(date +%s) - $(git log -1 --format=%ct) ) / 86400 ))
+          echo "Days since last commit: $DAYS"
+          if [ "$DAYS" -ge 40 ]; then
+            date -u +"%Y-%m-%dT%H:%M:%SZ" > .github/last-ping.txt
+            git config user.name  "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add .github/last-ping.txt
+            git commit -m "chore: keepalive"
+            git push
+          fi
