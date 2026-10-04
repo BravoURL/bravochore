@@ -16,32 +16,23 @@ const MEM_HOME={lat:-31.885,lon:116.045};
 // Children: codes and ages only. No names, no dates of birth, until login and
 // strict RLS are live (v2 requirement 43). Edit ages when birthdays pass.
 const MEM_CHILD_AGES_AS_OF='2026-10-04';
-// Memories-only roster. Deliberately NOT merged into `people`: that array feeds
-// every task/event/routine owner dropdown and the dashboard chips, so adding the
-// children there would change existing behaviour (v2 Don'ts). Ratings, "who was
-// there" and Goals owners read MEM_PEOPLE instead.
-const MEM_PEOPLE=[
-  {code:'BW',  bg:'#E6F1FB', color:'#185FA5', child:false},
-  {code:'BJ',  bg:'#FAEEDA', color:'#854F0B', child:false},
-  {code:'Pete',bg:'#EAF3DE', color:'#3B6D11', child:false},
-  {code:'LW',  bg:'#F3E8F5', color:'#6B2D7A', child:true, age_years:7},
-  {code:'GW',  bg:'#FDE8E8', color:'#9B2C2C', child:true, age_years:4},
-  {code:'VW',  bg:'#E3F2EF', color:'#1B5E52', child:true, age_years:1},
+// Children are household members in the shared `people` list (Brent, Oct 2026:
+// they'll get chores of their own). Seeded as codes only: names are not put in
+// public code or the database before login. Rename on the device in
+// Settings > People (stored locally only).
+const MEM_KIDS=[
+  {code:'LW',name:'LW',bg:'#F3E8F5',color:'#6B2D7A',child:true,age_years:7},
+  {code:'GW',name:'GW',bg:'#FDE8E8',color:'#9B2C2C',child:true,age_years:4},
+  {code:'VW',name:'VW',bg:'#E3F2EF',color:'#1B5E52',child:true,age_years:1},
 ];
 // Current age = stored age + whole years since MEM_CHILD_AGES_AS_OF.
 function memAge(code){
-  const p=MEM_PEOPLE.find(x=>x.code===code);
+  const p=people.find(x=>x.code===code)||MEM_KIDS.find(x=>x.code===code);
   if(!p||p.age_years==null)return null;
   const since=(Date.now()-new Date(MEM_CHILD_AGES_AS_OF).getTime())/31557600000;
   return p.age_years+Math.floor(since);
 }
-// Display label for a Memories person. Adults borrow their name from `people`
-// (already local, already shown elsewhere); children stay as codes until login.
-function memName(code){
-  const p=MEM_PEOPLE.find(x=>x.code===code);
-  if(p&&p.child)return code;
-  return (people.find(x=>x.code===code)||{}).name||code;
-}
+function memName(code){return (people.find(x=>x.code===code)||{}).name||code;}
 
 // ================================================================
 // STATE
@@ -63,6 +54,15 @@ let cmResolve=null,cmReject=null;
 let dragSrc=null,dragOver=null,dragGhost=null,dragPlaceholder=null,dragOffsetX=0,dragOffsetY=0;
 
 function savePeople(){localStorage.setItem('bc_people',JSON.stringify(people));}
+// One-time: add the children to the household on every device. Flagged so that
+// removing one in Settings is respected and they are not re-added on next load.
+(function addKidsOnce(){
+  try{
+    if(localStorage.getItem('bc_kids_v1'))return;
+    MEM_KIDS.forEach(k=>{if(!people.some(p=>p.code===k.code))people.push({...k});});
+    savePeople();localStorage.setItem('bc_kids_v1','1');
+  }catch(e){}
+})();
 function getOwner(code){return people.find(p=>p.code===code)||{code,name:code,bg:'#F4F3F0',color:'#5a5a56'};}
 function ownerTag(code){const o=getOwner(code);return `<span class="task-tag" style="background:${o.bg};color:${o.color}">${o.name}</span>`;}
 function ownerTagShort(code){const o=getOwner(code);return `<span class="task-tag" style="background:${o.bg};color:${o.color}">${o.code}</span>`;}
