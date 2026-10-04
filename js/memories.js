@@ -8,7 +8,14 @@
 // Rows render through the shared taskCard() lite variant.
 // Label comes from MEM_LABEL (state.js); internal names stay memory_*.
 // ================================================================
-let memItems=[], memDone=[], memView='todo', memLoaded=false;
+let memItems=[], memDone=[], memView='todo', memArea='', memLoaded=false;
+// Display names for trip groups (the list is already ordered home-outwards).
+const MEM_AREAS={'perth-hills':'Perth Hills','south-hills':'South Hills','swan-valley-whiteman':'Swan Valley & Whiteman',
+  'perth-city':'Perth city','fremantle':'Fremantle','north-coast':'North coast','rockingham-south':'Rockingham',
+  'mandurah-peel':'Mandurah & Peel','activities-perth':'Activities around Perth','water':'On the water',
+  'make-and-investigate':'Make & investigate','north-day-trips':'Day trips north','avon-wheatbelt':'Avon & Wheatbelt',
+  'south-west':'South West','southern-forests':'Southern forests','south-coast':'South coast','goldfields':'Goldfields',
+  'mid-west-coral-coast':'Mid West & Coral Coast','pilbara':'Pilbara','broome':'Broome','kimberley':'Kimberley','interstate':'Interstate'};
 
 const memEsc=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const memFmtY=s=>s?new Date(s+'T00:00:00').toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'}):'';
@@ -25,6 +32,7 @@ async function loadMemories(){
 }
 const memVisits=id=>memDone.filter(d=>d.memory_id===id);
 const memIsDone=id=>memDone.some(d=>d.memory_id===id);
+const memVisitedTxt=v=>'Visited '+(v.done_on?(v.date_approx?'~':'')+memFmtY(v.done_on):'(date unknown)');
 // Stock card photos are public Creative Commons images served from the repo
 // (img/mem/Mxxx.jpg, thumbs in img/mem/t/). Family photos are separate and
 // private (Phase 3, after login).
@@ -33,6 +41,12 @@ function memThumb(m){
   const src=memThumbSrc(m);
   return src?`<img class="mem-thumb" src="${src}" alt="" loading="lazy" decoding="async">`
             :'<div class="mem-thumb" aria-hidden="true"></div>';
+}
+// Search by name + place so Maps lands on the venue's own card (with
+// Directions), not on a raw pin: some seed coordinates are suburb centres.
+function memMapsUrl(m){
+  const q=[m.name,m.where_text||'Western Australia'].join(', ');
+  return 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(q);
 }
 function memCredit(c){
   if(!c||!c.license)return '';
@@ -49,8 +63,16 @@ async function renderMemories(){
     try{await loadMemories();}
     catch(e){el.innerHTML='<div class="empty-state">Connection wobble. Tap the tab again to retry.</div>';return;}
   }
+  memFillAreas();
   renderMemList();
 }
+function memFillAreas(){
+  const sel=document.getElementById('mem-area');if(!sel||sel.dataset.filled)return;
+  const groups=[...new Set(memItems.map(m=>m.trip_group).filter(Boolean))];
+  sel.innerHTML='<option value="">All areas</option>'+groups.map(g=>`<option value="${g}">${memEsc(memGroupLabel(g))}</option>`).join('');
+  sel.dataset.filled='1';
+}
+function setMemArea(v){memArea=v;renderMemList();}
 function setMemView(v){
   memView=v;
   document.querySelectorAll('[data-memv]').forEach(c=>c.classList.toggle('active',c.dataset.memv===v));
@@ -64,10 +86,10 @@ function memUpdateCount(){
 function renderMemList(){
   memUpdateCount();
   const el=document.getElementById('memories-list');
-  const list=memItems.filter(m=>memView==='done'?memIsDone(m.id):!memIsDone(m.id));
+  const list=memItems.filter(m=>(memView==='done'?memIsDone(m.id):!memIsDone(m.id))&&(!memArea||m.trip_group===memArea));
   if(!list.length){
     el.innerHTML=memView==='done'
-      ?'<div class="empty-state">Nothing ticked yet.<br>Tick one off from To do and it lands here.</div>'
+      ?`<div class="empty-state">Nothing ticked${memArea?' in '+memEsc(memGroupLabel(memArea)):''} yet.<br>Tick one off from To do and it lands here.</div>`
       :'<div class="empty-state">All done. Add the next one with + Add.</div>';
     return;
   }
@@ -80,7 +102,7 @@ function memRow(m){
   if(m.valid_until&&memDaysTo(m.valid_until)<=180)meta+=`<span class="mem-badge warn">ends ${memFmtY(m.valid_until)}</span>`;
   if(isDone){
     const v=memVisits(m.id),last=v[v.length-1];
-    meta+=`<span class="mem-sub">${v.length>1?v.length+' visits · ':''}${last.done_on?(last.date_approx?'~':'')+memFmtY(last.done_on):'date unknown'}</span>`;
+    meta+=`<span class="mem-sub">${memVisitedTxt(last)}${v.length>1?' · '+v.length+' times':''}</span>`;
   }
   return taskCard(null,{lite:true,id:'mem-'+m.id,dataId:m.id,cls:'mem-card',checked:isDone,
     onTick:`memTick(${m.id},event)`,onOpen:`openMemory(${m.id})`,
@@ -104,7 +126,7 @@ async function memTick(id,e){
   try{if(e&&e.target)spawnConfetti(e.target);}catch(_e){}
   memCollapse(id);
   const row=await memAddVisit(id);
-  if(row)setTimeout(()=>openVisitSheet(id,row.id),420);
+  if(row)setTimeout(()=>openVisitSheet(id,row.id,true),420);
 }
 async function memAddVisit(id){
   const n=memVisits(id).length+1;
@@ -125,20 +147,19 @@ async function memAddVisit(id){
 
 // Visit sheet: date, who went, a score per person, optional note.
 // Not ticked = absent (excluded from the average). Scores are optional.
-async function openVisitSheet(memId,doneId){
+async function openVisitSheet(memId,doneId,fresh){
   const m=memItems.find(x=>x.id===memId), v=memDone.find(d=>d.id===doneId);
   if(!m||!v)return;
   let ratings=[];
   try{ratings=await api('bravochore_memory_ratings','GET',null,`?done_id=eq.${doneId}`);}catch(_e){}
   const score=c=>(ratings.find(r=>r.person===c&&!r.absent)||{}).rating||'';
   const who=new Set(v.who&&v.who.length?v.who:memDefaultWho());
-  const idx=memVisits(memId).indexOf(v)+1;
 
   const wrap=document.createElement('div');
   wrap.className='mem-overlay';wrap.style.zIndex='930';
   wrap.innerHTML=`<div class="mem-sheet" role="dialog" aria-modal="true">
     <div class="mem-sheet-title">${memEsc(m.name)}</div>
-    <div class="mem-sheet-sub">Visit ${idx}. Scores are optional. Anyone not ticked is absent.</div>
+    <div class="mem-sheet-sub">${fresh?'Ticked off. ':''}Scores are optional. Anyone not ticked is absent.</div>
     <div class="dp-field"><label class="dp-label" for="mv-date">Date</label>
       <input class="dp-input" id="mv-date" type="date" value="${memEsc(v.done_on||'')}"></div>
     <label class="mem-check-line"><input type="checkbox" id="mv-approx" ${v.date_approx?'checked':''}> Date is approximate</label>
@@ -158,7 +179,7 @@ async function openVisitSheet(memId,doneId){
       <button class="btn-cancel" style="flex:1" id="mv-cancel">${ratings.length||v.note?'Cancel':'Skip'}</button>
       <button class="btn-ok" style="flex:1" id="mv-save">Save</button>
     </div>
-    <button class="mem-link danger" id="mv-remove">Remove this visit</button>
+    <button class="mem-link danger" id="mv-remove">${fresh?'Undo tick':'Remove this visit'}</button>
   </div>`;
   document.body.appendChild(wrap);
   const close=()=>wrap.remove();
@@ -167,13 +188,13 @@ async function openVisitSheet(memId,doneId){
   // Two-tap remove (undo-over-confirm; a modal would sit under this sheet).
   const rm=wrap.querySelector('#mv-remove');
   rm.onclick=async()=>{
-    if(!rm.dataset.armed){rm.dataset.armed='1';rm.textContent='Tap again to remove';
+    if(!fresh&&!rm.dataset.armed){rm.dataset.armed='1';rm.textContent='Tap again to remove';
       setTimeout(()=>{if(rm.isConnected){delete rm.dataset.armed;rm.textContent='Remove this visit';}},3000);return;}
     try{
       await api('bravochore_memory_done','DELETE',null,`?id=eq.${doneId}`);
       memDone=memDone.filter(d=>d.id!==doneId);close();renderMemList();
       if(document.getElementById('mem-detail'))openMemory(memId);
-      badge('ok','✓ Removed');
+      badge('ok',fresh?'↶ Undone':'✓ Removed');
     }catch(_e){rm.textContent='Not removed. Try again';delete rm.dataset.armed;}
   };
   wrap.querySelector('#mv-save').onclick=async e=>{
@@ -242,10 +263,11 @@ async function openMemory(id){
       return `<span class="mem-per">${memEsc(p.name)} <b class="mem-num">${r.absent?'absent':r.rating}</b></span>`;
     }).join('');
     return `<div class="mem-visit" onclick="openVisitSheet(${id},${v.id})">
-      <div class="mem-visit-top"><span>Visit ${i+1} · ${v.done_on?(v.date_approx?'~':'')+memFmtY(v.done_on):'date unknown'}</span>
+      <div class="mem-visit-top"><span>${memVisitedTxt(v)}</span>
         ${avg?`<span class="mem-num mem-avg">${avg}</span>`:''}</div>
       ${per?`<div class="mem-pers">${per}</div>`:''}
       ${v.note?`<div class="mem-visit-note">${memEsc(v.note)}</div>`:''}
+      <div class="mem-visit-edit">Edit or remove ›</div>
     </div>`;
   }).join(''):'<div class="mem-muted">Not done yet.</div>';
 
@@ -258,7 +280,8 @@ async function openMemory(id){
       <button class="mem-x" onclick="document.getElementById('mem-detail').remove()" aria-label="Close">✕</button>
     </div>
     ${m.stock_photo_path?`<img class="mem-hero" src="${m.stock_photo_path}" alt="${memEsc(m.name)}" decoding="async">${memCredit(m.stock_photo_credit)}`:''}
-    ${facts.length?`<div class="mem-facts">${facts.join(' · ')}<span class="task-code">${m.code}</span></div>`:`<div class="mem-facts"><span class="task-code">${m.code}</span></div>`}
+    <div class="mem-facts">${facts.join(' · ')}<span class="task-code">${m.code}</span></div>
+    <a class="qa-btn mem-maps" href="${memMapsUrl(m)}" target="_blank" rel="noopener">📍 Open in Google Maps</a>
     ${warns.length?`<div class="mem-warn">${warns.join('<br>')}</div>`:''}
     ${(m.kid_facts||[]).length?`<div class="dp-label" style="margin-top:14px">For the kids</div><ul class="mem-kidfacts">${m.kid_facts.map(f=>`<li>${memEsc(f)}</li>`).join('')}</ul>`:''}
     ${m.notes||m.status_note?`<div class="mem-muted" style="margin-top:8px">${memEsc([m.notes,m.status_note].filter(Boolean).join(' '))}</div>`:''}
@@ -299,12 +322,12 @@ async function memDoAgain(id,btn){
   try{playChime('task');}catch(_e){}
   const row=await memAddVisit(id);
   btn.disabled=false;
-  if(row){renderMemList();openMemory(id);openVisitSheet(id,row.id);}
+  if(row){renderMemList();openMemory(id);openVisitSheet(id,row.id,true);}
 }
 
 // ---------------------------------------------------------------- quick add (no AI yet)
 // Saved as unverified with blank facts. Placed after the chosen cluster.
-function memGroupLabel(g){return g?g.replace(/-/g,' ').replace(/^./,c=>c.toUpperCase()):'';}
+function memGroupLabel(g){return MEM_AREAS[g]||(g?g.replace(/-/g,' ').replace(/^./,c=>c.toUpperCase()):'');}
 async function openMemAdd(){
   const groups=[...new Set(memItems.map(m=>m.trip_group).filter(Boolean))];
   const r=await promptSheet({title:'Add to '+MEM_LABEL,

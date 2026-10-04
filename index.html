@@ -386,6 +386,7 @@ document.querySelector('link[rel="manifest"]').href = url;
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px">
         <div class="filter-chip active" data-memv="todo" onclick="setMemView('todo')">To do</div>
         <div class="filter-chip" data-memv="done" onclick="setMemView('done')">Done</div>
+        <select id="mem-area" class="mem-area" onchange="setMemArea(this.value)" aria-label="Area"><option value="">All areas</option></select>
         <span id="mem-count" class="mem-num" style="margin-left:auto"></span>
       </div>
       <div id="memories-list"></div>
