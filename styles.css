@@ -1162,3 +1162,10 @@ img.mem-thumb{object-fit:cover;display:block}
 .mem-age b{color:var(--tx);font-weight:600}
 .mem-age.unc b{color:var(--amber)}
 .mem-src{color:var(--tx3);font-size:11px}
+.pl-wx{margin-top:4px;padding:12px 14px;border-radius:var(--r);background:var(--surf2);border:1px solid var(--bdr)}
+.pl-wx-main{display:flex;align-items:center;gap:12px}
+.pl-wx-img{width:48px;height:48px;flex-shrink:0}
+.pl-wx-ic{font-size:36px}
+.pl-wx-main b{font-size:15px;color:var(--tx)}
+.pl-wx-hi{font-family:'Playfair Display',serif;font-size:22px;color:var(--tx)}
+.pl-wx-take{margin-top:8px;font-size:13px;color:var(--gd);font-weight:600;line-height:1.4}

@@ -18,7 +18,7 @@ const homeEsc=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replac
 async function homeWeather(){
   try{
     const c=JSON.parse(localStorage.getItem('bc_wx')||'null');
-    if(c&&Date.now()-c.ts<30*60*1000)return c;
+    if(c&&c.v===2&&Date.now()-c.ts<30*60*1000)return c;
   }catch(e){}
   const k=typeof MEM_PLACES_KEY!=='undefined'?MEM_PLACES_KEY:'';
   const loc=`location.latitude=${MEM_HOME.lat}&location.longitude=${MEM_HOME.lon}`;
@@ -27,12 +27,13 @@ async function homeWeather(){
       fetch(`https://weather.googleapis.com/v1/currentConditions:lookup?key=${k}&${loc}`).then(r=>r.json()),
       fetch(`https://weather.googleapis.com/v1/forecast/days:lookup?key=${k}&${loc}&days=10&pageSize=10`).then(r=>r.json())
     ]);
-    const wx={ts:Date.now(),
+    const wx={v:2,ts:Date.now(),
       now:{t:Math.round(now.temperature?.degrees),desc:now.weatherCondition?.description?.text||'',icon:now.weatherCondition?.iconBaseUri||''},
       days:(days.forecastDays||[]).map(f=>{const d=f.displayDate,day=f.daytimeForecast||{};
         return {date:`${d.year}-${String(d.month).padStart(2,'0')}-${String(d.day).padStart(2,'0')}`,
           max:Math.round(f.maxTemperature?.degrees),min:Math.round(f.minTemperature?.degrees),
-          desc:day.weatherCondition?.description?.text||'',rain:day.precipitation?.probability?.percent??null};})};
+          desc:day.weatherCondition?.description?.text||'',rain:day.precipitation?.probability?.percent??null,
+          icon:day.weatherCondition?.iconBaseUri||'',wind:Math.round(day.wind?.speed?.value??NaN),uv:day.uvIndex??null};})};
     if(!isNaN(wx.now.t))localStorage.setItem('bc_wx',JSON.stringify(wx));
     return wx;
   }catch(e){return null;}
