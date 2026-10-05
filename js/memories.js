@@ -224,7 +224,7 @@ function memCollapse(id){
 // new places that fit the family's rules and aren't on the list. New ones show
 // here, as a dot on the Memories tab, and on Home.
 async function memLoadIdeas(){
-  try{memIdeas=await api('bravochore_memory_ideas','GET',null,'?status=eq.new&order=start_date.asc.nullslast,found_at.desc')||[];}catch(_e){memIdeas=[];}
+  try{const r=await api('bravochore_memory_ideas','GET',null,'?status=eq.new&order=start_date.asc.nullslast,found_at.desc')||[];memIdeas=r.filter((x,k)=>r.findIndex(y=>y.id===x.id)===k);}catch(_e){memIdeas=[];}
   memIdeasBadge();
 }
 function memIdeasBadge(){
@@ -234,17 +234,23 @@ function memIdeasBadge(){
   if(tab){let d=tab.querySelector('.bn-dot');if(memIdeas.length&&!d){d=document.createElement('span');d.className='bn-dot';tab.appendChild(d);}if(!memIdeas.length&&d)d.remove();}
 }
 function memIdeasHtml(){
-  const head=`<div class="mem-ideas-hd"><span class="mem-sub">New ideas arrive every Thursday morning.</span><button class="home-link" id="mi-more" onclick="memFindIdeas(this)">Find more now ›</button></div>`;
+  const head=`<div class="mem-ideas-hd"><span class="mem-sub">New ideas every Thursday morning</span><button class="home-link" id="mi-more" onclick="memFindIdeas(this)">Find more now ›</button></div>`;
   if(!memIdeas.length)return head+'<div class="empty-state">Nothing new right now.</div>';
-  return head+memIdeas.map(i=>`<div class="mem-idea" id="idea-${i.id}">
-      <div class="mem-idea-t">${memEsc(i.title)}</div>
-      <div class="mem-sub">${[i.when_text,i.where_text].filter(Boolean).map(memEsc).join(' · ')}</div>
-      ${i.why?`<div class="mem-idea-why">${memEsc(i.why)}</div>`:''}
-      ${i.url?`<a class="mem-src" href="${memEsc(i.url)}" target="_blank" rel="noopener">Details ›</a>`:''}
-      <div style="display:flex;gap:8px;margin-top:10px">
-        <button class="qa-btn" style="flex:1;min-height:40px" onclick="memIdeaDismiss(${i.id},this)">Not for us</button>
-        <button class="qa-btn accent" style="flex:1;min-height:40px" onclick="memIdeaAdd(${i.id},this)">Add to list</button>
-      </div></div>`).join('');
+  const today=tdStr(),wk=(()=>{const [y,m,d]=today.split('-').map(Number);const x=new Date(y,m-1,d+7);return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;})();
+  const ev=i=>i.kind!=='place'&&i.start_date;
+  const groups=[['This week',i=>ev(i)&&i.start_date<=wk],['Coming up',i=>ev(i)&&i.start_date>wk],['Places to try',i=>!ev(i)]];
+  const row=i=>`<div class="mem-idea" id="idea-${i.id}">
+      <div class="mem-idea-ic" aria-hidden="true">${memEsc(i.icon||(i.kind==='place'?'📍':'📅'))}</div>
+      <div class="mem-idea-main" ${i.url?`onclick="window.open('${memEsc(i.url)}','_blank','noopener')"`:''}>
+        <div class="mem-idea-t">${memEsc(i.title)}</div>
+        <div class="mem-idea-when">${[i.when_text,i.where_text].filter(Boolean).map(memEsc).join(' · ')}</div>
+        ${i.why?`<div class="mem-idea-why">${memEsc(i.why)}</div>`:''}
+      </div>
+      <div class="mem-idea-acts">
+        <button class="mem-idea-add" onclick="memIdeaAdd(${i.id},this)" aria-label="Add to list">+</button>
+        <button class="mem-idea-no" onclick="memIdeaDismiss(${i.id},this)" aria-label="Not for us">✕</button>
+      </div></div>`;
+  return head+groups.map(([label,f])=>{const g=memIdeas.filter(f);return g.length?`<div class="cart-sec-lbl">${label}</div>${g.map(row).join('')}`:'';}).join('');
 }
 async function memIdeaDismiss(id,btn){
   btn.disabled=true;
@@ -254,18 +260,18 @@ async function memIdeaDismiss(id,btn){
 }
 async function memIdeaAdd(id,btn){
   const i=memIdeas.find(x=>x.id===id);if(!i)return;
-  btn.disabled=true;btn.textContent='Adding…';
+  btn.disabled=true;btn.textContent='…';
   const place=await memFindPlace([i.title,i.where_text].filter(Boolean).join(', '));
   const pl=memPlacement(place);
   const row=await memInsert({name:i.title,where:i.where_text||(place&&place.where)||null,group:pl.group,sort:pl.sort,place});
-  if(!row){btn.disabled=false;btn.textContent='Add to list';return;}
+  if(!row){btn.disabled=false;btn.textContent='+';return;}
   const extra={notes:[i.why,i.when_text].filter(Boolean).join(' · ')||null};
   if(i.end_date||i.start_date)extra.valid_until=i.end_date||i.start_date;
   Object.assign(row,extra);api('bravochore_memories','PATCH',extra,`?id=eq.${row.id}`).catch(()=>{});
   try{await api('bravochore_memory_ideas','PATCH',{status:'added',memory_id:row.id},`?id=eq.${id}`);}catch(_e){}
   memIdeas=memIdeas.filter(x=>x.id!==id);memIdeasBadge();
   const card=document.getElementById('idea-'+id);
-  if(card)card.innerHTML=`<div class="mem-idea-t">${memEsc(i.title)}</div><div class="mem-sub">Added to your list${extra.valid_until?`, marked as ending ${memFmtY(extra.valid_until)}`:''}.</div>`;
+  if(card)card.innerHTML=`<div class="mem-idea-ic">✅</div><div class="mem-idea-main"><div class="mem-idea-t">${memEsc(i.title)}</div><div class="mem-idea-when">Added to your list${extra.valid_until?`, ends ${memFmtY(extra.valid_until)}`:''}</div></div>`;
 }
 async function memFindIdeas(btn){
   btn.disabled=true;btn.textContent='Searching the web… about a minute';
