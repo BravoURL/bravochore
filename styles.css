@@ -1157,3 +1157,4 @@ img.mem-thumb{object-fit:cover;display:block}
 .pl-btn{flex:1;display:inline-flex;align-items:center;justify-content:center;min-height:44px;text-decoration:none}
 .pl-wild{margin-top:12px;padding:10px 12px;border-radius:var(--rs);background:var(--gl);color:var(--gd);font-size:13px;line-height:1.5}
 .mem-fav.on{color:var(--red);border-color:var(--red)}
+.pl-book{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px;border:1px solid var(--bdr);border-radius:var(--rs);margin-top:6px;text-decoration:none;color:var(--tx);font-size:14px;background:var(--surf);min-height:44px}

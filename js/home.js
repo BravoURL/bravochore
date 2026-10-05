@@ -2,14 +2,13 @@
 // HOME v2 (Oct 2026): calm home for a household app, not a chore scoreboard.
 // Today (your tasks + routines), Memories (latest photo, progress, weather
 // nudge), Coming up (events). The scoreboard and quick chips move to Tasks.
-// Behind a flag until approved: ?home=new turns it on for a device,
-// ?home=old turns it off.
+// Default since 5 Oct 2026. ?home=old brings back the old dashboard on a device, ?home=new undoes that.
 // ================================================================
 const HOME_V2=(()=>{try{
   const q=new URLSearchParams(location.search);
-  if(q.get('home')==='new')localStorage.setItem('bc_home_v2','1');
-  if(q.get('home')==='old')localStorage.removeItem('bc_home_v2');
-  return localStorage.getItem('bc_home_v2')==='1';}catch(e){return false;}})();
+  if(q.get('home')==='new')localStorage.removeItem('bc_home_old');
+  if(q.get('home')==='old')localStorage.setItem('bc_home_old','1');
+  return localStorage.getItem('bc_home_old')!=='1';}catch(e){return true;}})();
 
 const homeEsc=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
