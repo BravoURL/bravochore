@@ -125,6 +125,11 @@ async function sendToBB(){
     bbSetState('idle');
     return;
   }
+  // Memories lane comes before task creation, or "add X to memories" becomes a chore.
+  if(typeof memIntent==='function'){
+    try{if(typeof memEnsureLoaded==='function')await memEnsureLoaded();}catch(_e){}
+    if(memIntent(msg)){await memHandleBB(msg);bbSetState('idle');return;}
+  }
   // Detect add-task intent (text-only)
   const addIntent=/add|create|new task|remind|schedule|put.*on.*list|add.*list|need to|remember to|fertilise|trim|fix|paint|install|buy|get|order|plant|clean|wash|repair|replace|sort|organise|organize/i.test(msg);
 
@@ -192,7 +197,7 @@ Rules:
     // GENERAL CHAT MODE
     const sys=`You are Blackbird, the AI inside BravoChore. Warm, direct, genuinely helpful — like a smart friend who knows the house. Brent (BW) and Bernadette (BJ), Perth WA. User: ${CUN}. Conversational tone, not corporate.
 ${taskSummary}
-${taskCtx}
+${taskCtx}${typeof memSummaryForAI==='function'?memSummaryForAI():''}
 Be direct, warm, practical. 2-4 sentences max. Suggest specific Bunnings Perth or ABI Interiors products where relevant.`;
     try{
       const res=await fetch(BB_PROXY,{method:'POST',headers:{'Content-Type':'application/json','apikey':SK,'Authorization':(typeof bcBearer==='function'?await bcBearer():'Bearer '+SK)},

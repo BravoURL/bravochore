@@ -371,6 +371,31 @@ function memDupOf(placeId,text){
     return n===t||(n.length>=5&&(n.includes(t)||t.includes(n)));}))||null;
 }
 
+// Shared by the Add sheet and Blackbird. place = {id,name,lat,lon,where} or null.
+async function memInsert({name,where,group,sort,place}){
+  let codes=[];try{codes=await api('bravochore_memories','GET',null,'?select=code&code=like.M*');}catch(_e){}
+  const maxN=Math.max(0,...codes.map(c=>parseInt(c.code.slice(1),10)).filter(n=>!isNaN(n)));
+  const rec={code:'M'+String(maxN+1).padStart(3,'0'),sort_order:sort,name,where_text:where||null,
+    trip_group:group||null,origin:'added_on_the_fly',status:'unverified',kind:'experience',created_by:CU||null,
+    lat:place?place.lat:null,lon:place?place.lon:null,
+    google_place_id:place?place.id:null,google_place_name:place?place.name:null,google_place_checked:place?'manual':null};
+  try{
+    const [row]=await api('bravochore_memories','POST',rec);
+    memItems.push(row);memItems.sort((a,b)=>a.sort_order-b.sort_order);
+    badge('ok','✓ Added');return row;
+  }catch(_e){badge('er','⚠ Not added');return null;}
+}
+function memAfterInsert(row){
+  if(!document.getElementById('view-memories')?.classList.contains('active'))return;
+  if(memView!=='todo')setMemView('todo');else renderMemList();
+  document.getElementById('mem-'+row.id)?.scrollIntoView({behavior:'smooth',block:'center'});
+}
+// Where a new item goes: next to the nearest item already on the list.
+function memPlacement(place){
+  const near=place&&place.lat!=null?memPlaceNear(place.lat,place.lon):null;
+  return near?{group:near.trip_group,sort:memSortAfter(near),near}:{group:null,sort:memSortAfter(null),near:null};
+}
+
 async function openMemAdd(){
   const token=(crypto.randomUUID?crypto.randomUUID():String(Date.now()));
   const groups=[...new Set(memItems.map(m=>m.trip_group).filter(Boolean))];
@@ -454,20 +479,112 @@ async function openMemAdd(){
     const g=$('ma-near').value;
     const near=picked&&picked.lat!=null?memPlaceNear(picked.lat,picked.lon):null;
     const sort=(near&&near.trip_group===g)?memSortAfter(near):(g?memSortEndOfGroup(g):memSortAfter(null));
-    let codes=[];try{codes=await api('bravochore_memories','GET',null,'?select=code&code=like.M*');}catch(_e){}
-    const maxN=Math.max(0,...codes.map(c=>parseInt(c.code.slice(1),10)).filter(n=>!isNaN(n)));
-    const rec={code:'M'+String(maxN+1).padStart(3,'0'),sort_order:sort,name,where_text:picked?picked.where:null,
-      trip_group:g||null,origin:'added_on_the_fly',status:'unverified',kind:'experience',created_by:CU||null,
-      lat:picked?picked.lat:null,lon:picked?picked.lon:null,
-      google_place_id:picked?picked.id:null,google_place_name:picked?picked.name:null,google_place_checked:picked?'manual':null};
-    try{
-      const [row]=await api('bravochore_memories','POST',rec);
-      memItems.push(row);memItems.sort((a,b)=>a.sort_order-b.sort_order);close();
-      if(memView!=='todo')setMemView('todo');else renderMemList();
-      document.getElementById('mem-'+row.id)?.scrollIntoView({behavior:'smooth',block:'center'});
-      badge('ok','✓ Added');
-    }catch(_e){save.disabled=false;save.textContent='Not added. Retry';badge('er','⚠ Not added');}
+    const row=await memInsert({name,where:picked?picked.where:null,group:g,sort,place:picked});
+    if(row){close();memAfterInsert(row);}
+    else{save.disabled=false;save.textContent='Not added. Retry';}
   };
+}
+
+// ---------------------------------------------------------------- Blackbird lane
+// blackbird.js hands a message here when it's about Memories. One AI call
+// returns {action: add|tick|chat}; the app then does the lookup, duplicate
+// check and placement itself, and asks before saving anything.
+async function memEnsureLoaded(){if(!memLoaded)await loadMemories();}
+const MEM_RULES=`List rules: every item is ONE finishable outing you can tick off (not a habit, not open-ended like "go to the beach more"). Repeats are fine and logged as extra visits. Never add: Aboriginal cultural tours (including Murujuga rock art); footy and Scorchers games. Names are 1 to 3 words.`;
+function memListForAI(){
+  const byArea={};
+  memItems.forEach(m=>{(byArea[memGroupLabel(m.trip_group)||'Other']=byArea[memGroupLabel(m.trip_group)||'Other']||[]).push(`${m.code} ${m.name}${memIsDone(m.id)?' [done]':''}`);});
+  return Object.entries(byArea).map(([a,l])=>`${a}: ${l.join('; ')}`).join('\n');
+}
+// Short summary for Blackbird's everyday chat, so it knows the list exists.
+function memSummaryForAI(){
+  if(!memLoaded)return '';
+  const done=memItems.filter(m=>memIsDone(m.id));
+  const recent=[...memDone].filter(d=>d.done_on).sort((a,b)=>b.done_on.localeCompare(a.done_on)).slice(0,5)
+    .map(d=>{const m=memItems.find(x=>x.id===d.memory_id);return m?`${m.name} (${memFmtY(d.done_on)})`:null;}).filter(Boolean);
+  return `\nMEMORIES TAB: the family's hit list of outings, ${done.length}/${memItems.length} done.${recent.length?' Recently: '+recent.join(', ')+'.':''} If they want to add, tick or plan one, tell them to say e.g. "add X to memories" or "we did X today".`;
+}
+function memIntent(msg){
+  if(/\bmemor(y|ies)\b|bucket ?list|hit ?list|family (outing|day out)/i.test(msg))return true;
+  if(!memLoaded||!/\b(we|i|kids)\b.*\b(went|did|visited|been)\b|\btick( off)?\b/i.test(msg))return false;
+  const t=memNorm(msg);
+  return memItems.some(m=>{const n=memNorm(m.name);return n.length>=6&&t.includes(n);});
+}
+async function memFindPlace(text){
+  try{
+    const r=await fetch('https://places.googleapis.com/v1/places:searchText',{method:'POST',
+      headers:{'Content-Type':'application/json','X-Goog-Api-Key':MEM_PLACES_KEY,
+        'X-Goog-FieldMask':'places.id,places.displayName,places.formattedAddress,places.location,places.addressComponents'},
+      body:JSON.stringify({textQuery:text,pageSize:1,regionCode:'AU',
+        locationBias:{circle:{center:{latitude:MEM_HOME.lat,longitude:MEM_HOME.lon},radius:50000}}})});
+    if(!r.ok)return null;
+    const p=((await r.json()).places||[])[0];if(!p)return null;
+    const comp=t=>(p.addressComponents||[]).find(c=>(c.types||[]).includes(t));
+    const loc=comp('locality'),st=comp('administrative_area_level_1');
+    return {id:p.id,name:(p.displayName||{}).text,lat:p.location?.latitude,lon:p.location?.longitude,
+      where:[loc&&loc.longText,st&&st.shortText].filter(Boolean).join(', ')||p.formattedAddress||''};
+  }catch(_e){return null;}
+}
+async function memHandleBB(msg){
+  try{await memEnsureLoaded();}catch(_e){bbMsg("I can't reach Memories right now. Try again in a sec.",'from-bb');return;}
+  const sys=`You are Blackbird inside BravoChore, handling the family Memories list (outings to tick off together). User: ${CUN}. Family: Brent (BW), Bernadette (BJ), kids LW, GW, VW. Home: Swan View, Perth WA. Today: ${tdStr()}.
+${MEM_RULES}
+THE LIST (code name, [done] if ticked):
+${memListForAI()}
+
+Decide what they want and reply ONLY with JSON, no markdown:
+{"action":"add"|"tick"|"chat","name":"short name for a NEW item or null","search":"what to look up on Google Maps for a NEW item, e.g. 'Bennett Brook Railway Whiteman Park' or null","code":"existing item code for tick, or the existing match if they try to add something already listed, else null","reply":"one or two warm, brief sentences. For add or tick, nothing is saved yet: they confirm with a button, so phrase it as an offer (e.g. 'Want me to add it?'), never 'Added'. Never show item codes like M012 in the reply; use names."}
+- add: a new finishable outing not already on the list. If it's already listed, use action "chat", put its code in "code" and say so.
+- tick: they did an existing item; put its code in "code".
+- chat: questions, suggestions, ideas that break the rules (say why, kindly), anything else.`;
+  let p=null,raw='';
+  try{
+    const res=await fetch(BB_PROXY,{method:'POST',headers:{'Content-Type':'application/json','apikey':SK,'Authorization':await bcBearer()},
+      body:JSON.stringify({model:BB_MODEL,max_tokens:500,system:sys,messages:[...bbHistory.slice(-6),{role:'user',content:msg}]})});
+    const data=await res.json();
+    raw=data.content?.find(c=>c.type==='text')?.text||'';
+    // The model sometimes writes a sentence before the JSON; take the {...} block.
+    const a=raw.indexOf('{'),z=raw.lastIndexOf('}');
+    p=JSON.parse(a>=0&&z>a?raw.slice(a,z+1):raw);
+  }catch(_e){}
+  bbHistory.push({role:'user',content:msg});
+  if(!p){bbMsg(raw||"Connection issue. Try again.",'from-bb');return;}
+  bbHistory.push({role:'assistant',content:p.reply||''});
+  const item=p.code?memItems.find(m=>m.code===p.code):null;
+
+  if(p.action==='tick'&&item){
+    memBBCard(`${memEsc(p.reply||'')}<div class="mem-bb-item">${memThumb(item)}<div><b>${memEsc(item.name)}</b><div class="mem-sub">${memEsc(item.where_text||'')}</div></div></div>`,
+      'Tick it off',async()=>{const row=await memAddVisit(item.id);if(row){renderMemListIfOpen();openVisitSheet(item.id,row.id,true);return 'Ticked off. Add scores in the sheet, or skip.';}return 'That didn\'t save. Try again.';},
+      ()=>openMemory(item.id));
+    return;
+  }
+  if(p.action==='add'&&p.name){
+    const place=await memFindPlace(p.search||p.name);
+    const dup=memDupOf(place&&place.id,p.name)||(place?memDupOf(null,place.name):null);
+    if(dup){bbMsgHTML(`Already on the list: <b>${memEsc(dup.name)}</b>${memIsDone(dup.id)?' (done)':''}. <button class="mem-link" style="display:inline;margin:0;min-height:0;padding:0 4px;text-decoration:underline" onclick="openMemory(${dup.id})">Open it</button>`,'from-bb');return;}
+    const pl=memPlacement(place);
+    memBBCard(`${memEsc(p.reply||'')}<div class="mem-bb-item"><div class="mem-thumb"></div><div><b>${memEsc(p.name)}</b><div class="mem-sub">${memEsc(place?place.where:'No place found, saved as typed')}${pl.near?' · next to '+memEsc(pl.near.name):''}</div></div></div>`,
+      'Add to '+MEM_LABEL,async()=>{const row=await memInsert({name:p.name,where:place?place.where:null,group:pl.group,sort:pl.sort,place});if(row){renderMemListIfOpen();return 'Added. Marked unverified until the facts are checked.';}return 'That didn\'t save. Try again.';});
+    return;
+  }
+  if(item){bbMsgHTML(`${memEsc(p.reply||'')} <button class="mem-link" style="display:inline;margin:0;min-height:0;padding:0 4px;text-decoration:underline" onclick="openMemory(${item.id})">Open ${memEsc(item.name)}</button>`,'from-bb');return;}
+  bbMsg(p.reply||'Try again.','from-bb');
+}
+function renderMemListIfOpen(){if(document.getElementById('view-memories')?.classList.contains('active'))renderMemList();else memUpdateCount();}
+// Confirm card in the Blackbird chat. Nothing saves until they tap the button.
+function memBBCard(html,label,onYes,onOpen){
+  const id='mbb'+Date.now();
+  bbMsgHTML(`<div id="${id}">${html}<div style="display:flex;gap:8px;margin-top:10px">
+    <button class="btn-ok" style="flex:1" data-yes>${memEsc(label)}</button>
+    <button class="btn-cancel" style="flex:1" data-no>No</button></div></div>`,'from-bb');
+  const el=document.getElementById(id);
+  el.querySelector('[data-yes]').onclick=async e=>{
+    const b=e.currentTarget;b.disabled=true;b.textContent='Saving…';
+    const msg=await onYes();el.querySelector('[data-no]').remove();b.remove();
+    el.insertAdjacentHTML('beforeend',`<div class="mem-sub" style="margin-top:8px">${memEsc(msg)}</div>`);
+  };
+  el.querySelector('[data-no]').onclick=()=>{el.querySelectorAll('button').forEach(x=>x.remove());el.insertAdjacentHTML('beforeend','<div class="mem-sub" style="margin-top:8px">No worries, left it.</div>');};
+  if(onOpen){const im=el.querySelector('.mem-bb-item');if(im){im.style.cursor='pointer';im.onclick=onOpen;}}
 }
 
 // Bottom-nav label follows the constant.

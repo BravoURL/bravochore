@@ -1093,3 +1093,5 @@ img.mem-thumb{object-fit:cover;display:block}
 .bc-google-btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:48px;border-radius:var(--r);border:1px solid var(--bdrm);background:var(--surf);color:var(--tx);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer}
 .bc-signin-btn{width:100%;min-height:48px}
 .bc-signin-err{font-size:12px;color:var(--red);margin-top:14px}
+.mem-bb-item{display:flex;gap:10px;align-items:center;margin-top:10px;padding:8px;border:1px solid var(--bdr);border-radius:var(--rs);background:var(--surf)}
+.mem-bb-item b{font-size:14px}
