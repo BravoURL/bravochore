@@ -159,6 +159,7 @@ async function homeFillMemories(wx){
       <div class="home-card-hd"><span class="home-label">${homeEsc(MEM_LABEL)}</span><button class="home-link" onclick="bnNav('memories')">${done.length} of ${memItems.length} ›</button></div>
       <div class="home-sumline">${lastM?`Last: ${homeEsc(lastM.name)} · ${memFmtY(lastV.done_on)}`:'Nothing ticked yet. Pick a first one.'}</div>
       <div class="home-bar"><div style="width:${done.length?pct:0}%"></div></div>
+      ${memIdeas.length?`<button class="home-foot home-ideas" onclick="bnNav('memories');setTimeout(()=>setMemView('ideas'),50)">✨ ${memIdeas.length} new idea${memIdeas.length>1?'s':''} for you <span>›</span></button>`:''}
       <div id="home-nudge"></div>
       <button class="home-foot" onclick="plOpen()">Got a free day? Plan it <span>›</span></button>
     </div>`;

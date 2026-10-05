@@ -8,7 +8,7 @@
 // Rows render through the shared taskCard() lite variant.
 // Label comes from MEM_LABEL (state.js); internal names stay memory_*.
 // ================================================================
-let memItems=[], memGoals=[], memDone=[], memPhotos=[], memView='todo', memArea='', memLoaded=false;
+let memItems=[], memIdeas=[], memGoals=[], memDone=[], memPhotos=[], memView='todo', memArea='', memLoaded=false;
 // Display names for trip groups (the list is already ordered home-outwards).
 const MEM_AREAS={'perth-hills':'Perth Hills','south-hills':'South Hills','swan-valley-whiteman':'Swan Valley & Whiteman',
   'perth-city':'Perth city','fremantle':'Fremantle','north-coast':'North coast','rockingham-south':'Rockingham',
@@ -30,6 +30,7 @@ async function loadMemories(){
   ]);
   memItems=items;memDone=done;
   try{memGoals=await api('bravochore_memories','GET',null,'?kind=eq.goal&removed_at=is.null&order=sort_order.asc');}catch(_e){memGoals=[];}
+  await memLoadIdeas();
   try{memPhotos=await api('bravochore_memory_photos','GET',null,'?select=id,memory_id,done_id,path,thumb_path,width,height&order=id.asc');}catch(_e){memPhotos=[];}
   await memSign(memPhotos.map(p=>p.thumb_path));
   memLoaded=true;
@@ -185,8 +186,9 @@ function memUpdateCount(){
 function renderMemList(){
   memUpdateCount();
   const el=document.getElementById('memories-list');
-  const area=document.getElementById('mem-area');if(area)area.style.display=memView==='goals'?'none':'';
+  const area=document.getElementById('mem-area');if(area)area.style.display=(memView==='goals'||memView==='ideas')?'none':'';
   if(memView==='goals'){el.innerHTML=memGoalsHtml();return;}
+  if(memView==='ideas'){el.innerHTML=memIdeasHtml();return;}
   const list=memItems.filter(m=>(memView==='done'?memIsDone(m.id):!memIsDone(m.id))&&(!memArea||m.trip_group===memArea));
   if(!list.length){
     el.innerHTML=memView==='done'
@@ -215,6 +217,63 @@ function memCollapse(id){
   card.style.maxHeight=card.offsetHeight+'px';card.style.overflow='hidden';
   requestAnimationFrame(()=>{card.style.opacity='0';card.style.maxHeight='0';card.style.marginBottom='0';});
   setTimeout(()=>card.remove(),280);
+}
+
+// ---------------------------------------------------------------- ideas (Discover)
+// memory-discover searches the web every Thursday 7am for upcoming events and
+// new places that fit the family's rules and aren't on the list. New ones show
+// here, as a dot on the Memories tab, and on Home.
+async function memLoadIdeas(){
+  try{memIdeas=await api('bravochore_memory_ideas','GET',null,'?status=eq.new&order=start_date.asc.nullslast,found_at.desc')||[];}catch(_e){memIdeas=[];}
+  memIdeasBadge();
+}
+function memIdeasBadge(){
+  const chip=document.querySelector('[data-memv="ideas"]');
+  if(chip)chip.textContent=memIdeas.length?`Ideas · ${memIdeas.length}`:'Ideas';
+  const tab=document.querySelector('#bn-memories .bn-icon-wrap');
+  if(tab){let d=tab.querySelector('.bn-dot');if(memIdeas.length&&!d){d=document.createElement('span');d.className='bn-dot';tab.appendChild(d);}if(!memIdeas.length&&d)d.remove();}
+}
+function memIdeasHtml(){
+  const head=`<div class="mem-ideas-hd"><span class="mem-sub">New ideas arrive every Thursday morning.</span><button class="home-link" id="mi-more" onclick="memFindIdeas(this)">Find more now ›</button></div>`;
+  if(!memIdeas.length)return head+'<div class="empty-state">Nothing new right now.</div>';
+  return head+memIdeas.map(i=>`<div class="mem-idea" id="idea-${i.id}">
+      <div class="mem-idea-t">${memEsc(i.title)}</div>
+      <div class="mem-sub">${[i.when_text,i.where_text].filter(Boolean).map(memEsc).join(' · ')}</div>
+      ${i.why?`<div class="mem-idea-why">${memEsc(i.why)}</div>`:''}
+      ${i.url?`<a class="mem-src" href="${memEsc(i.url)}" target="_blank" rel="noopener">Details ›</a>`:''}
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="qa-btn" style="flex:1;min-height:40px" onclick="memIdeaDismiss(${i.id},this)">Not for us</button>
+        <button class="qa-btn accent" style="flex:1;min-height:40px" onclick="memIdeaAdd(${i.id},this)">Add to list</button>
+      </div></div>`).join('');
+}
+async function memIdeaDismiss(id,btn){
+  btn.disabled=true;
+  try{await api('bravochore_memory_ideas','PATCH',{status:'dismissed'},`?id=eq.${id}`);
+    memIdeas=memIdeas.filter(x=>x.id!==id);memIdeasBadge();document.getElementById('idea-'+id)?.remove();
+    if(!memIdeas.length)renderMemList();}catch(_e){btn.disabled=false;badge('er','⚠ Not saved');}
+}
+async function memIdeaAdd(id,btn){
+  const i=memIdeas.find(x=>x.id===id);if(!i)return;
+  btn.disabled=true;btn.textContent='Adding…';
+  const place=await memFindPlace([i.title,i.where_text].filter(Boolean).join(', '));
+  const pl=memPlacement(place);
+  const row=await memInsert({name:i.title,where:i.where_text||(place&&place.where)||null,group:pl.group,sort:pl.sort,place});
+  if(!row){btn.disabled=false;btn.textContent='Add to list';return;}
+  const extra={notes:[i.why,i.when_text].filter(Boolean).join(' · ')||null};
+  if(i.end_date||i.start_date)extra.valid_until=i.end_date||i.start_date;
+  Object.assign(row,extra);api('bravochore_memories','PATCH',extra,`?id=eq.${row.id}`).catch(()=>{});
+  try{await api('bravochore_memory_ideas','PATCH',{status:'added',memory_id:row.id},`?id=eq.${id}`);}catch(_e){}
+  memIdeas=memIdeas.filter(x=>x.id!==id);memIdeasBadge();
+  const card=document.getElementById('idea-'+id);
+  if(card)card.innerHTML=`<div class="mem-idea-t">${memEsc(i.title)}</div><div class="mem-sub">Added to your list${extra.valid_until?`, marked as ending ${memFmtY(extra.valid_until)}`:''}.</div>`;
+}
+async function memFindIdeas(btn){
+  btn.disabled=true;btn.textContent='Searching the web… about a minute';
+  try{
+    const r=await fetch(`${SB}/functions/v1/memory-discover`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SK,'Authorization':await bcBearer()},body:'{}'});
+    const d=await r.json();await memLoadIdeas();renderMemList();
+    chirp(d.ok?`Found ${d.out?.[0]?.found??0} new idea${(d.out?.[0]?.found??0)===1?'':'s'}.`:"Couldn't search just now.");
+  }catch(_e){btn.disabled=false;btn.textContent='Find more now ›';chirp("Couldn't search just now.");}
 }
 
 // ---------------------------------------------------------------- goals

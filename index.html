@@ -385,10 +385,11 @@ document.querySelector('link[rel="manifest"]').href = url;
         <div style="display:flex;gap:6px"><button class="qa-btn" style="font-size:11px;padding:7px 12px" onclick="plOpen()">Plan</button>
         <button class="qa-btn accent" style="font-size:11px;padding:7px 12px" onclick="memView==='goals'?openGoalAdd():openMemAdd()">+ Add</button></div>
       </div>
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px;flex-wrap:wrap">
         <div class="filter-chip active" data-memv="todo" onclick="setMemView('todo')">To do</div>
         <div class="filter-chip" data-memv="done" onclick="setMemView('done')">Done</div>
         <div class="filter-chip" data-memv="goals" onclick="setMemView('goals')">Goals</div>
+        <div class="filter-chip" data-memv="ideas" onclick="setMemView('ideas')">Ideas</div>
         <select id="mem-area" class="mem-area" onchange="setMemArea(this.value)" aria-label="Area"><option value="">All areas</option></select>
         <span id="mem-count" class="mem-num" style="margin-left:auto"></span>
       </div>
