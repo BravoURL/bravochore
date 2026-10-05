@@ -1182,3 +1182,5 @@ img.mem-thumb{object-fit:cover;display:block}
 .pl-daywx{display:flex;align-items:center;gap:8px;margin-top:8px;padding:6px 10px;border-radius:var(--rs);background:var(--surf2);font-size:13px;color:var(--tx2)}
 .pl-daywx img{width:28px;height:28px}
 .pl-daywx b{color:var(--tx);font-weight:600}
+.cart-sec-lbl{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--tx3);margin:12px 0 2px}
+.cart-sec-lbl:first-child{margin-top:4px}

@@ -3,38 +3,45 @@
 // SHOPPING
 // ================================================================
 // Bunnings category map — fastest pick route
+// Sections in a sensible walking order for a typical store (keys are in
+// route order). Bunnings: start inside near the front, heavy/bulk and plants
+// last so nothing gets carried round or squashed. Coles: fresh first, cold last.
 const BUNNINGS_CATS={
-  'Nursery & Garden':['plant','ivy','liriope','pine','mulch','soil','potting','seeds','seedling','garden bed','planter','pot'],
-  'Outdoor & Landscaping':['paving','brick','sand','gravel','edging','retaining'],
-  'Irrigation':['retic','drip','dripper','irrigation','hose','sprinkler','valve'],
-  'Paint':['paint','primer','sealer','stain','varnish','epoxy'],
-  'Electrical':['downlight','smart light','switch','cable','conduit','light'],
-  'Flooring':['vinyl','lino','floor','tile'],
-  'Hardware & Fasteners':['screw','bolt','bracket','hook','anchor','rawl','hinge','handle'],
-  'Doors & Windows':['door','window','lock','mortice','latch','rebate','strike'],
-  'Tools & Equipment':['chair','storage','rack','tool'],
+  'Paint':['paint','primer','sealer','stain','varnish','epoxy','brush','roller','masking'],
+  'Electrical & lighting':['downlight','smart light','switch','cable','conduit','light','globe','bulb','power point','extension lead','battery'],
+  'Hardware & fasteners':['screw','bolt','bracket','hook','anchor','rawl','hinge','handle','nail','glue','adhesive','silicone'],
+  'Doors & windows':['door','window','lock','mortice','latch','rebate','strike'],
+  'Tools & storage':['chair','storage','rack','tool','drill','saw','ladder','shelf','tub','bin'],
+  'Plumbing & irrigation':['retic','drip','dripper','irrigation','hose','sprinkler','valve','tap','pipe','fitting'],
+  'Flooring':['vinyl','lino','floor','tile','grout','underlay'],
+  'Timber & building':['timber','pine board','plywood','mdf','sleeper','post','decking','cement','concrete','plaster'],
+  'Outdoor & landscaping':['paving','paver','brick','sand','gravel','edging','retaining','mulch','soil','compost','rock'],
+  'Garden centre':['plant','ivy','liriope','pines','pine x','seeds','seedling','garden bed','planter','pot','fertiliser','tree','shrub','grass','herb'],
   'General':[]
 };
 const COLES_CATS={
-  'Bakery':['bread','bun','roll','cake','pastry'],
-  'Deli & Cheese':['cheese','deli','ham','salami','prosciutto'],
-  'Meat & Seafood':['beef','chicken','pork','lamb','fish','seafood','steak','mince'],
-  'Fruit & Veg':['vegetable','fruit','salad','herb','onion','tomato','potato','apple','lemon'],
-  'Personal Care':['shaving','shampoo','conditioner','deodorant','toothpaste','toothbrush','soap','body wash','face wash','moisturiser','sunscreen','razor','tampon','nappy','diaper','cotton bud','hand cream','face cream','body lotion'],
-  'Dairy & Eggs':['milk','egg','butter','yoghurt','yogurt','cream cheese','sour cream','thickened cream','double cream','pure cream'],
-  'Frozen':['frozen','ice cream','pizza'],
-  'Pantry':['oil','vinegar','sauce','pasta','rice','flour','sugar','spice','can','tin'],
-  'Drinks':['wine','beer','juice','water','soft drink','coffee','tea'],
-  'Household':['cleaning','detergent','paper','tissue'],
+  'Fruit & veg':['vegetable','fruit','salad','herb','onion','tomato','potato','apple','lemon','banana','avocado','carrot','lettuce','berries'],
+  'Bakery':['bread','bun','roll','cake','pastry','wrap','muffin'],
+  'Deli & cheese':['cheese','deli','ham','salami','prosciutto','olive','dip'],
+  'Meat & seafood':['beef','chicken','pork','lamb','fish','seafood','steak','mince','sausage','bacon'],
+  'Pantry':['oil','vinegar','sauce','pasta','rice','flour','sugar','spice','can','tin','cereal','biscuit','snack','chips','honey','jam','peanut butter'],
+  'Drinks':['wine','beer','juice','water','soft drink','coffee','tea','cordial'],
+  'Household':['cleaning','detergent','paper towel','toilet paper','tissue','foil','glad wrap','bin bag','dishwash','sponge'],
+  'Personal care & baby':['shaving','shampoo','conditioner','deodorant','toothpaste','toothbrush','soap','body wash','sunscreen','razor','nappy','nappies','wipes','formula'],
+  'Dairy & eggs':['milk','egg','butter','yoghurt','yogurt','sour cream','thickened cream','pure cream','cream cheese'],
+  'Frozen':['frozen','ice cream','ice block','icy pole','pizza','peas'],
   'General':[]
 };
+// Woolworths shares Coles' walking order.
+const STORE_ROUTES={Bunnings:BUNNINGS_CATS,Coles:COLES_CATS,Woolworths:COLES_CATS,Woolies:COLES_CATS};
 
 function categoriseItems(items,store){
-  const cats=store==='Bunnings'?BUNNINGS_CATS:store==='Coles'?COLES_CATS:null;
+  const cats=STORE_ROUTES[store]||null;
   if(!cats)return[{cat:'Items',items}];
   const result={};
   Object.keys(cats).forEach(c=>result[c]=[]);
   items.forEach(item=>{
+    if(item.section&&result[item.section]&&item.section!=='General'){result[item.section].push(item);return;}
     const name=(item.name+' '+(item.note||'')).toLowerCase();
     let assigned=false;
     for(const[cat,keywords]of Object.entries(cats)){
@@ -43,8 +50,36 @@ function categoriseItems(items,store){
     }
     if(!assigned)result['General'].push(item);
   });
-  return Object.entries(result).filter(([,items])=>items.length).map(([cat,items])=>({cat,items}));
+  const order=['General',...Object.keys(cats).filter(c=>c!=='General')];
+  return order.filter(c=>result[c].length).map(c=>({cat:c==='General'?'Other':c,items:result[c]}));
 }
+// Items the keyword rules can't place: ask Claude once (Haiku), remember it.
+let shopSorting=false;
+async function shopSortUnknown(){
+  if(shopSorting)return;
+  const todo=shopping.filter(i=>!i.done&&!i.section&&STORE_ROUTES[i.store]&&categoriseItems([i],i.store)[0].cat==='Other');
+  if(!todo.length)return;
+  shopSorting=true;
+  try{
+    const lines=todo.map(i=>`${i.id} | ${i.store} | ${i.name}${i.note?' ('+i.note+')':''}`).join('\n');
+    const sections=Object.entries(STORE_ROUTES).map(([st,c])=>`${st}: ${Object.keys(c).filter(k=>k!=='General').join(', ')}`).join('\n');
+    const r=await fetch(BB_PROXY,{method:'POST',headers:{'Content-Type':'application/json','apikey':SK,'Authorization':await bcBearer()},
+      body:JSON.stringify({thinking:{type:'disabled'},model:'claude-haiku-4-5-20251001',max_tokens:800,
+        system:`Assign each shopping item to the store section it is found in. Sections by store:\n${sections}\nReply ONLY with JSON {"items":[{"id":"...","section":"exact section name"}]}.`,
+        messages:[{role:'user',content:lines}]})});
+    const d=await r.json();const raw=d.content?.find(c=>c.type==='text')?.text||'';
+    const a=raw.indexOf('{'),z=raw.lastIndexOf('}');
+    const out=JSON.parse(raw.slice(a,z+1)).items||[];
+    for(const x of out){const it=shopping.find(i=>i.id===x.id);
+      if(it&&STORE_ROUTES[it.store]&&STORE_ROUTES[it.store][x.section]){it.section=x.section;
+        api('bravochore_shopping','PATCH',{section:x.section},`?id=eq.${encodeURIComponent(it.id)}`).catch(()=>{});}}
+    renderShopping();
+  }catch(e){}finally{shopSorting=false;}
+}
+// Ticked items stay 24 hours (in case of a wrong tick), then the server clears them.
+const SHOP_KEEP_MS=24*3600*1000;
+function shopVisible(i){return !i.done||!i.done_at||Date.now()-new Date(i.done_at).getTime()<SHOP_KEEP_MS;}
+function shopClearsIn(i){if(!i.done||!i.done_at)return '';const h=Math.max(1,Math.ceil((SHOP_KEEP_MS-(Date.now()-new Date(i.done_at).getTime()))/3600000));return `clears in ${h}h`;}
 
 // Per-household shopping stores. Loaded from bravochore_stores into this
 // state array on boot. Replaces the old hardcoded Bunnings/Coles/ABI/Other.
@@ -69,18 +104,26 @@ function renderShopping(){
   const knownCodes=new Set(displayStores.map(s=>s.short_code));
   const buckets={};displayStores.forEach(s=>{buckets[s.short_code]=[];});
   const fallbackKey=displayStores.find(s=>s.short_code==='Other')?.short_code||displayStores[displayStores.length-1]?.short_code;
-  shopping.forEach(i=>{
+  shopping.filter(shopVisible).forEach(i=>{
     const code=knownCodes.has(i.store)?i.store:fallbackKey;
     if(code&&buckets[code])buckets[code].push(i);
   });
+  setTimeout(shopSortUnknown,0);
   container.innerHTML=displayStores.map(s=>{
     const items=buckets[s.short_code]||[];
     const pendingCount=items.filter(i=>!i.done).length;
-    const itemsHtml=items.length?items.map(i=>`<div class="cart-item">
+    const row=i=>`<div class="cart-item">
       <div class="cart-chk ${i.done?'checked':''}" onclick="toggleShop('${i.id}')"></div>
-      <div style="flex:1"><div style="${i.done?'text-decoration:line-through;color:var(--tx3)':''}">${i.name}</div><div style="font-size:11px;color:var(--tx3)">${i.note||''}</div></div>
+      <div style="flex:1"><div style="${i.done?'text-decoration:line-through;color:var(--tx3)':''}">${i.name}</div><div style="font-size:11px;color:var(--tx3)">${[i.note,shopClearsIn(i)].filter(Boolean).join(' · ')}</div></div>
       <button class="icon-btn" onclick="removeShop('${i.id}')" style="font-size:13px">✕</button>
-    </div>`).join(''):'<p style="color:var(--tx3);font-size:13px;padding:6px 0">Nothing here yet.</p>';
+    </div>`;
+    const open=items.filter(i=>!i.done),got=items.filter(i=>i.done);
+    const groups=categoriseItems(open,s.short_code);
+    const itemsHtml=items.length?(groups.length>1||groups[0]?.cat!=='Items'
+        ?groups.map(g=>`<div class="cart-sec-lbl">${g.cat}</div>${g.items.map(row).join('')}`).join('')
+        :open.map(row).join(''))
+      +(got.length?`<div class="cart-sec-lbl">Got it</div>${got.map(row).join('')}`:'')
+      :'<p style="color:var(--tx3);font-size:13px;padding:6px 0">Nothing here yet.</p>';
     return `<div class="cart-sec">
       <div class="cart-hdr">
         <div class="cart-ttl"><div class="cart-ico" style="background:${s.bg_color||'var(--surf2)'}">${s.icon||'📦'}</div>${s.name}</div>
@@ -265,8 +308,8 @@ async function finishShopping(){
   for(const id of sheetTicked){
     const item=shopping.find(i=>i.id===id);
     if(item){
-      item.done=true;
-      try{await api('bravochore_shopping','PATCH',{done:true},`?id=eq.${id}`);}catch(e){}
+      item.done=true;item.done_at=new Date().toISOString();
+      try{await api('bravochore_shopping','PATCH',{done:true,done_at:item.done_at},`?id=eq.${id}`);}catch(e){}
       if(item.milestone_id&&typeof setMilestoneDone==='function'){
         await setMilestoneDone(item.milestone_id,true);
       }
@@ -282,9 +325,9 @@ document.addEventListener('DOMContentLoaded',()=>document.getElementById('shop-m
 
 async function toggleShop(id){
   const i=shopping.find(x=>x.id===id);if(!i)return;
-  i.done=!i.done;
+  i.done=!i.done;i.done_at=i.done?new Date().toISOString():null;
   renderShopping();
-  try{await api('bravochore_shopping','PATCH',{done:i.done},`?id=eq.${id}`);}catch(e){}
+  try{await api('bravochore_shopping','PATCH',{done:i.done,done_at:i.done_at},`?id=eq.${id}`);}catch(e){}
   // Mirror to the linked milestone so the parent task's progress reflects this purchase.
   // Per BRAND.md milestones-first principle: ticking the buy step is partial progress
   // on the parent task, not full completion.

@@ -6,7 +6,7 @@ const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6I
 const STORAGE_URL=`${SB}/storage/v1/object/public/bravochore-photos`;
 // Bumped on every deploy (with version.txt). The app checks version.txt when
 // it comes to the foreground and offers a refresh if it's out of date.
-const APP_VERSION='20261005023003';
+const APP_VERSION='20261005023421';
 const BB_PROXY=`${SB}/functions/v1/blackbird-proxy`;
 // One place for Blackbird's model. The old 'claude-sonnet-4-20250514' was retired,
 // which silently broke every Blackbird reply.
