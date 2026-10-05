@@ -870,6 +870,7 @@ function doPrint(filtered,ownerLabel,code){
 // RERENDER
 // ================================================================
 function rerender(){
+  if(typeof autoCompleteEvents==='function')autoCompleteEvents();
   const v=document.querySelector('.view.active')?.id;
   if(v==='view-dashboard')renderDashboard();
   else if(v==='view-tasks')renderTasksView();

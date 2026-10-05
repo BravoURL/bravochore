@@ -164,6 +164,23 @@ async function loadEvents(){
     const ev=await api('bravochore_events','GET',null,'?order=due.asc');
     events=ev||[];
   }catch(e){events=[];}
+  autoCompleteEvents();
+}
+
+// An event whose tasks are all ticked is done, not overdue. Shelved tasks
+// don't count (they live in `shelved`, not `tasks`). Runs on load and after
+// every re-render, so the last tick closes the event straight away.
+function autoCompleteEvents(){
+  if(!Array.isArray(events)||!Array.isArray(tasks))return;
+  events.forEach(ev=>{
+    if(ev.status==='completed')return;
+    const evTasks=tasks.filter(t=>t.event_id===ev.id);
+    if(!evTasks.length||evTasks.some(t=>!t.done))return;
+    ev.status='completed';ev.completed_at=new Date().toISOString();
+    api('bravochore_events','PATCH',{status:'completed',completed_at:ev.completed_at},`?id=eq.${ev.id}`)
+      .then(()=>{try{chirp(`🎉 ${ev.title} is all done.`);}catch(_e){}})
+      .catch(()=>{ev.status='active';ev.completed_at=null;});
+  });
 }
 
 function renderEvents(){
