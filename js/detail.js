@@ -706,7 +706,7 @@ ${context}`;
     const resp=await fetch(BB_PROXY,{
       method:'POST',
       headers:{'Content-Type':'application/json','apikey':SK,'Authorization':await bcBearer()},
-      body:JSON.stringify({model:BB_MODEL,system:sysPrompt,messages:apiMsgs})
+      body:JSON.stringify({thinking:{type:'disabled'},model:BB_MODEL,system:sysPrompt,messages:apiMsgs})
     });
     const data=await resp.json();
     const reply=data?.content?.[0]?.text;

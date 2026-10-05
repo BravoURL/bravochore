@@ -382,7 +382,8 @@ document.querySelector('link[rel="manifest"]').href = url;
     <div id="view-memories" class="view">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <h2 id="mem-title" style="font-family:'Playfair Display',serif;font-size:20px;font-weight:500">Memories</h2>
-        <button class="qa-btn accent" style="font-size:11px;padding:7px 12px" onclick="openMemAdd()">+ Add</button>
+        <div style="display:flex;gap:6px"><button class="qa-btn" style="font-size:11px;padding:7px 12px" onclick="plOpen()">Plan a day</button>
+        <button class="qa-btn accent" style="font-size:11px;padding:7px 12px" onclick="openMemAdd()">+ Add</button></div>
       </div>
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px">
         <div class="filter-chip active" data-memv="todo" onclick="setMemView('todo')">To do</div>
@@ -842,6 +843,7 @@ document.querySelector('link[rel="manifest"]').href = url;
 <script src="js/onboarding.js"></script>
 <script src="js/memories.js"></script>
 <script src="js/home.js"></script>
+<script src="js/planner.js"></script>
 <script src="js/boot.js"></script>
 
 <!-- ════════════════════════════════════════════════════

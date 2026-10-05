@@ -344,6 +344,13 @@ async function openVisitSheet(memId,doneId,fresh){
       await api('bravochore_memory_ratings','DELETE',null,`?done_id=eq.${doneId}`);
       if(rows.length)await api('bravochore_memory_ratings','POST',rows);
       Object.assign(v,patch);close();renderMemList();
+      // Everyone loved it (average 8+)? Make it a favourite automatically.
+      const sc=rows.filter(r=>!r.absent&&r.rating);
+      const m0=memItems.find(x=>x.id===memId);
+      if(m0&&!m0.repeat_ok&&sc.length&&sc.reduce((a,r)=>a+r.rating,0)/sc.length>=8){
+        m0.repeat_ok=true;api('bravochore_memories','PATCH',{repeat_ok:true},`?id=eq.${memId}`).catch(()=>{});
+        chirp('♥ Everyone loved it, saved as a favourite.');
+      }
       if(document.getElementById('mem-detail'))openMemory(memId);
       badge('ok','✓ Saved');
     }catch(_e){btn.disabled=false;btn.textContent='Not saved. Retry';badge('er','⚠ Not saved');}
@@ -354,6 +361,14 @@ function memToggleWho(btn){
   btn.setAttribute('aria-pressed',r.classList.contains('on'));
 }
 function memScorePicked(sel){if(sel.value)sel.closest('.mem-person').classList.add('on');}
+
+// Favourites: things worth repeating. The planner includes them even when done.
+async function memToggleFav(id,btn){
+  const m=memItems.find(x=>x.id===id);if(!m)return;
+  const v=!m.repeat_ok;m.repeat_ok=v;
+  if(btn){btn.classList.toggle('on',v);btn.setAttribute('aria-pressed',v);btn.textContent=v?'♥ Favourite':"♡ We'd do it again";}
+  try{await api('bravochore_memories','PATCH',{repeat_ok:v},`?id=eq.${id}`);}catch(e){m.repeat_ok=!v;badge('er','⚠ Not saved');}
+}
 
 // ---------------------------------------------------------------- detail
 async function openMemory(id){
@@ -415,7 +430,10 @@ async function openMemory(id){
     ${heroFam?`<img class="mem-hero" src="${memSigned[heroFam.path]||memSigned[heroFam.thumb_path]}" alt="${memEsc(m.name)}" decoding="async"><div class="mem-credit">Your photo</div>`
       :m.stock_photo_path?`<img class="mem-hero" src="${m.stock_photo_path}" alt="${memEsc(m.name)}" decoding="async">${memCredit(m.stock_photo_credit)}`:''}
     <div class="mem-facts">${facts.join(' · ')}<span class="task-code">${m.code}</span></div>
-    <a class="qa-btn mem-maps" href="${memMapsUrl(m)}" target="_blank" rel="noopener">📍 Open in Google Maps</a>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <a class="qa-btn mem-maps" href="${memMapsUrl(m)}" target="_blank" rel="noopener">📍 Open in Google Maps</a>
+      <button class="qa-btn mem-maps mem-fav ${m.repeat_ok?'on':''}" onclick="memToggleFav(${m.id},this)" aria-pressed="${!!m.repeat_ok}">${m.repeat_ok?'♥ Favourite':'♡ We\'d do it again'}</button>
+    </div>
     ${warns.length?`<div class="mem-warn">${warns.join('<br>')}</div>`:''}
     ${(m.kid_facts||[]).length?`<div class="dp-label" style="margin-top:14px">For the kids</div><ul class="mem-kidfacts">${m.kid_facts.map(f=>`<li>${memEsc(f)}</li>`).join('')}</ul>`:''}
     ${m.notes||m.status_note?`<div class="mem-muted" style="margin-top:8px">${memEsc([m.notes,m.status_note].filter(Boolean).join(' '))}</div>`:''}
@@ -696,7 +714,7 @@ Decide what they want and reply with ONLY the JSON object below: no text before 
   let p=null,raw='';
   try{
     const res=await fetch(BB_PROXY,{method:'POST',headers:{'Content-Type':'application/json','apikey':SK,'Authorization':await bcBearer()},
-      body:JSON.stringify({model:BB_MODEL,max_tokens:700,system:sys,messages:[...bbHistory.slice(-6),{role:'user',content:msg}]})});
+      body:JSON.stringify({thinking:{type:'disabled'},model:BB_MODEL,max_tokens:700,system:sys,messages:[...bbHistory.slice(-6),{role:'user',content:msg}]})});
     const data=await res.json();
     raw=data.content?.find(c=>c.type==='text')?.text||'';
     p=memParseAI(raw);

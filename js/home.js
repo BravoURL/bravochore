@@ -57,7 +57,7 @@ Pick the single best fit for the weather (indoor if wet, outdoor if fine). If a 
 Reply ONLY with JSON: {"code":"item code or null","line":"under 12 words, e.g. 'Sunny Saturday, good for Lake Leschenaultia, 29 min'"}`;
   try{
     const r=await fetch(BB_PROXY,{method:'POST',headers:{'Content-Type':'application/json','apikey':SK,'Authorization':await bcBearer()},
-      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:120,system:sys,messages:[{role:'user',content:'Suggest one.'}]})});
+      body:JSON.stringify({thinking:{type:'disabled'},model:'claude-haiku-4-5-20251001',max_tokens:120,system:sys,messages:[{role:'user',content:'Suggest one.'}]})});
     const d=await r.json();const raw=d.content?.find(c=>c.type==='text')?.text||'';
     const a=raw.indexOf('{'),z=raw.lastIndexOf('}');
     const n=JSON.parse(raw.slice(a,z+1));
@@ -127,8 +127,12 @@ async function renderHome(){
     <div class="home-card home-mem" id="home-mem"><div class="home-card-hd"><span class="home-label">${homeEsc(MEM_LABEL)}</span></div><div class="mem-muted">Loading…</div></div>
     <div class="home-card">
       <div class="home-card-hd"><span class="home-label">Coming up</span><button class="home-link" onclick="bnNav('events')">Events ›</button></div>
+      <div id="home-plans"></div>
       ${evHtml}
     </div>`;
+  if(typeof plUpcoming==='function')plUpcoming().then(ps=>{const box=document.getElementById('home-plans');if(!box||!ps.length)return;
+    box.innerHTML=ps.map(p=>`<button class="home-row" onclick="plOpenSaved(${p.id})"><span class="home-row-main">${homeEsc(p.title)}</span><span class="mem-sub">${new Date(p.plan_date+'T00:00:00').toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'})}</span></button>`).join('');
+    const empty=box.parentElement.querySelector(':scope > .mem-muted');if(empty)empty.remove();});
 
   // Slower bits fill in after first paint.
   homeWeather().then(wx=>{const w=document.getElementById('home-wx');if(w&&wx)w.innerHTML=homeWxText(wx);homeFillMemories(wx);});
@@ -156,6 +160,7 @@ async function homeFillMemories(wx){
       <div class="home-sumline">${lastM?`Last: ${homeEsc(lastM.name)} · ${memFmtY(lastV.done_on)}`:'Nothing ticked yet. Pick a first one.'}</div>
       <div class="home-bar"><div style="width:${done.length?pct:0}%"></div></div>
       <div id="home-nudge"></div>
+      <button class="home-foot" onclick="plOpen()">Got a free day? Plan it <span>›</span></button>
     </div>`;
   const n=await homeNudge(wx);
   const nb=document.getElementById('home-nudge');
