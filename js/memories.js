@@ -125,7 +125,7 @@ async function memDeletePhoto(ph){
 }
 function memPhotoStrip(list,editable){
   return list.map(p=>`<button type="button" class="mem-ph" data-ph="${p.id}" aria-label="Open photo">
-    <img src="${memSigned[p.thumb_path]||''}" alt="" loading="lazy"></button>`).join('');
+    <img src="${memSigned[p.thumb_path]||''}" alt="" decoding="async"></button>`).join('');
 }
 // Full-screen viewer. Tap the sides to move, ✕ to close, bin to delete.
 async function memOpenViewer(list,startId,onChange){
