@@ -184,6 +184,7 @@ function autoCompleteEvents(){
 }
 
 function renderEvents(){
+  if(typeof autoCompleteEvents==='function')autoCompleteEvents();
   const list=document.getElementById('events-list');
   const empty=document.getElementById('events-empty');
   if(!list)return;

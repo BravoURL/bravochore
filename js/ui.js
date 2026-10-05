@@ -244,6 +244,7 @@ async function focusTick(id){
 // DASHBOARD
 // ================================================================
 function renderDashboard(){
+  if(typeof autoCompleteEvents==='function')autoCompleteEvents();
   const today=tdStr();
   const allI=allItems();
   const done=allI.filter(i=>i.done);
