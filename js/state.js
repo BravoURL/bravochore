@@ -4,6 +4,9 @@
 const SB='https://xgmnyhpzuwngdngtttux.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhnbW55aHB6dXduZ2RuZ3R0dHV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0MDYxOTgsImV4cCI6MjA4OTk4MjE5OH0.aQvdjbOSRqQJmBKF-9z7KOXhC2M_gKPZ1m4rQhPZ9eo';
 const STORAGE_URL=`${SB}/storage/v1/object/public/bravochore-photos`;
+// Bumped on every deploy (with version.txt). The app checks version.txt when
+// it comes to the foreground and offers a refresh if it's out of date.
+const APP_VERSION='20261005023003';
 const BB_PROXY=`${SB}/functions/v1/blackbird-proxy`;
 // One place for Blackbird's model. The old 'claude-sonnet-4-20250514' was retired,
 // which silently broke every Blackbird reply.
@@ -79,7 +82,12 @@ async function api(table,method='GET',body=null,params=''){
   const h={'apikey':SK,'Authorization':(typeof bcBearer==='function'?await bcBearer():'Bearer '+SK),'Content-Type':'application/json'};
   if(method==='POST')h['Prefer']='return=representation';
   if(method==='PATCH')h['Prefer']='return=minimal';
-  const r=await fetch(`${SB}/rest/v1/${table}${params}`,{method,headers:h,body:body?JSON.stringify(body):null});
+  let r=await fetch(`${SB}/rest/v1/${table}${params}`,{method,headers:h,body:body?JSON.stringify(body):null});
+  // Signed-in token rejected (expired mid-session): refresh once and retry.
+  if(r.status===401&&typeof bcForceRefresh==='function'&&await bcForceRefresh()){
+    h['Authorization']=await bcBearer();
+    r=await fetch(`${SB}/rest/v1/${table}${params}`,{method,headers:h,body:body?JSON.stringify(body):null});
+  }
   if(!r.ok)throw new Error(await r.text());
   if(method==='DELETE'||method==='PATCH')return true;
   const t=await r.text();return t?JSON.parse(t):[];

@@ -64,3 +64,19 @@ async function boot(){
   }
 }
 boot();
+
+// ---------------------------------------------------------------- update check
+async function bcCheckVersion(){
+  try{
+    const r=await fetch('version.txt?cb='+Date.now(),{cache:'no-store'});if(!r.ok)return;
+    const v=(await r.text()).trim();if(!/^\d{14}$/.test(v))return;
+    if(v&&v!==APP_VERSION&&!document.getElementById('bc-update')){
+      const b=document.createElement('button');b.id='bc-update';b.className='bc-update';
+      b.textContent='Update available. Tap to refresh';b.onclick=()=>location.reload();
+      document.body.appendChild(b);
+    }
+  }catch(e){}
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')bcCheckVersion();});
+setInterval(bcCheckVersion,15*60*1000);
+setTimeout(bcCheckVersion,5000);

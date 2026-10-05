@@ -7,13 +7,16 @@
 // ================================================================
 const PL_MAX_CANDS=22;          // shortlist cap (only home -> each is looked up for these)
 // Regions worth an overnight (trip_group slugs).
+// Overnight regions within ~4 hours' drive, for 'wherever the weather's best'.
+const PL_NEAR_REGIONS=['south-west','southern-forests','mandurah-peel','avon-wheatbelt','north-day-trips','south-coast'];
 const PL_TRIP_REGIONS=['south-west','southern-forests','south-coast','mandurah-peel','avon-wheatbelt','north-day-trips','mid-west-coral-coast','goldfields','pilbara','broome','kimberley','interstate'];
 let plLast=null;                // last generated result, for Save
 
 const plEsc=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const plMin=t=>{const [h,m]=t.split(':').map(Number);return h*60+m;};
 const plHHMM=m=>{const h=Math.floor(m/60),mm=Math.round(m%60);const h12=((h+11)%12)+1;return `${h12}:${String(mm).padStart(2,'0')}${h<12?'am':'pm'}`;};
-function plNextSat(){const d=new Date();d.setDate(d.getDate()+((6-d.getDay()+7)%7||7));return d.toISOString().slice(0,10);}
+const plYMD=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+function plNextSat(){const d=new Date();d.setDate(d.getDate()+((6-d.getDay()+7)%7||7));return plYMD(d);}
 // Rough drive estimate when Routes isn't available: road ~1.3x straight line at ~65 km/h.
 const plEstDrive=(a,b)=>Math.round(memKm(a.lat,a.lon,b.lat,b.lon)*1.3/65*60)+5;
 
@@ -31,7 +34,7 @@ function plOpen(pre){
     <div class="mem-sheet-sub" id="pl-sub">${pre.trip?'Day-by-day route, where to stay, and links to book.':'Weather, drive times and what fits. Nothing\'s booked or saved until you say.'}</div>
     <div id="pl-tripbits" style="display:${pre.trip?'block':'none'}">
       <div class="dp-field"><label class="dp-label" for="pl-region">Where</label>
-        <select class="dp-select" id="pl-region">${PL_TRIP_REGIONS.map(g=>`<option value="${g}" ${pre.region===g?'selected':''}>${plEsc(memGroupLabel(g))}</option>`).join('')}</select></div>
+        <select class="dp-select" id="pl-region"><option value="best" ${pre.region==='best'?'selected':''}>Wherever the weather's best (within 4 hours)</option>${PL_TRIP_REGIONS.map(g=>`<option value="${g}" ${pre.region===g?'selected':''}>${plEsc(memGroupLabel(g))}</option>`).join('')}</select></div>
       <div style="display:flex;gap:8px">
         <div class="dp-field" style="flex:1"><label class="dp-label" for="pl-nights">Nights</label><input class="dp-input" type="number" min="1" max="14" id="pl-nights" value="${pre.nights||2}"></div>
         <div class="dp-field" style="flex:1"><label class="dp-label" for="pl-travel">Getting there</label>
@@ -142,7 +145,7 @@ ${pair}
 
 Reply ONLY with JSON, no other text:
 {"weather_take":"one plain line on what this weather means for the day (e.g. 'Warm and dry: great for outdoors, find shade after 2pm')",
- "items":[{"code":"M012","minutes":150,"indoor":false}],
+ "items":[{"code":"M012","minutes":150,"ok":true}],
  "plans":[{"title":"2 to 6 words, final wording only","why":"one sentence","codes":["M012","M005"]}],
  "wildcard":{"title":"short","why":"one honest sentence","search":"Google Maps search text or null"} or null}
 Rules:
@@ -150,16 +153,16 @@ Rules:
 - Real family time on site, including food: a park, dam or lookout with picnic or BBQ facilities (e.g. Fred Jacoby, North or South Ledge, John Forrest, Lake Leschenaultia) is lunch there, 2-3 hours; animal parks and farms 1.5-2.5 hours; a museum or attraction 1.5-2 hours; a quick look 30-45 minutes. A 1-year-old means a slower pace and a rest.
 - Each plan includes a proper lunch stop (picnic or BBQ at a park counts) and suits the weather (indoors if wet, shade or water if hot).
 - Give 3 plans: one that packs the most in, one easier, one different in style or area. Favourites are welcome.
-- "items" gives minutes for every candidate you use in a plan.
+- "items" covers EVERY candidate: realistic minutes, and "ok": false if it is wrong for this day (out of season, e.g. Christmas lights in October; likely closed; unsuitable for this weather or these kids). The app may add "ok" items to fill gaps.
 - Wildcard only if something off the list clearly beats the list today (e.g. perfect beach weather); otherwise null.`;
   const res=await fetch(BB_PROXY,{method:'POST',headers:{'Content-Type':'application/json','apikey':SK,'Authorization':await bcBearer()},
-    body:JSON.stringify({model:BB_MODEL,max_tokens:3000,thinking:{type:'disabled'},system:sys,messages:[{role:'user',content:'Plan it.'}]})});
+    body:JSON.stringify({model:BB_MODEL,max_tokens:4000,thinking:{type:'disabled'},system:sys,messages:[{role:'user',content:'Plan it.'}]})});
   const data=await res.json();
   const raw=data.content?.find(c=>c.type==='text')?.text||'';
   const ai=memParseAI(raw);
   if(!ai||!Array.isArray(ai.plans)){console.warn('Planner reply:',data.error||raw.slice(0,600),'stop:',data.stop_reason);throw new Error('bad plan reply');}
-  const mins={};
-  (ai.items||[]).forEach(x=>{if(x&&x.code)mins[x.code]=Math.max(20,Math.min(420,Number(x.minutes)||90));});
+  const mins={},okFor=new Set();
+  (ai.items||[]).forEach(x=>{if(x&&x.code){mins[x.code]=Math.max(20,Math.min(420,Number(x.minutes)||90));if(x.ok===true)okFor.add(x.code);}});
   // The model is good at choosing and bad at arithmetic, so the app fills the
   // day itself: top up short plans with the next-best nearby stop, then give
   // each stop more time, until it ends close to the home-by time.
@@ -171,7 +174,7 @@ Rules:
     const estEnd=st=>{let t=start,prev=home;st.forEach(m=>{t+=plEstDrive(prev,m)+pm[m.code];prev=m;});return t+plEstDrive(prev,home);};
     while(stops.length<6&&end-estEnd(stops)>75){
       let best=null;
-      cands.filter(m=>!stops.includes(m)).forEach(m=>{
+      cands.filter(m=>!stops.includes(m)&&okFor.has(m.code)).forEach(m=>{
         const mm=pm[m.code]||mins[m.code]||90;
         // cheapest place to slot it in
         for(let k=0;k<=stops.length;k++){const tr=[...stops.slice(0,k),m,...stops.slice(k)];pm[m.code]=mm;const e=estEnd(tr);
@@ -246,7 +249,7 @@ function plShow(res,savedId){
       ${p.why?`<div class="pl-why">${plEsc(p.why)}</div>`:''}
       <div class="pl-tl">
         <div class="pl-tl-row pl-home"><span class="pl-t">${plHHMM(plMin(res.opts.from))}</span><span>Leave home</span></div>
-        ${p.stops.map(s=>`<div class="pl-tl-drive">${s.drive} min drive</div>
+        ${p.stops.map(s=>`<div class="pl-tl-drive">${s.drive<2?'same area':s.drive+' min drive'}</div>
           <button class="pl-tl-row" onclick="openMemory(${s.id})"><span class="pl-t">${plHHMM(s.arrive)}</span><span><b>${plEsc(s.name)}</b><span class="mem-sub"> until ${plHHMM(s.leave)}${s.added?' · added to fill your day':''}</span></span></button>`).join('')}
         <div class="pl-tl-drive">${p.back} min drive</div>
         <div class="pl-tl-row pl-home"><span class="pl-t">${plHHMM(p.homeAt)}</span><span>Home</span></div>
@@ -298,7 +301,7 @@ async function plUpcoming(){
 // day's stops for the shortest drive, and builds Booking.com / Google Flights
 // links already filled in (no booking API: Booking.com's is contract-only).
 // ================================================================
-const trAddDays=(d,n)=>{const x=new Date(d+'T00:00:00');x.setDate(x.getDate()+n);return x.toISOString().slice(0,10);};
+const trAddDays=(d,n)=>{const [y,m,dd]=d.split('-').map(Number);return plYMD(new Date(y,m-1,dd+n));};
 async function trGeocode(text){const p=await memFindPlace(text);return p?{lat:p.lat,lon:p.lon,name:p.name}:null;}
 function trParty(who){
   const kids=who.map(c=>({c,a:memAge(c)})).filter(x=>x.a!=null&&people.find(p=>p.code===x.c&&p.child));
@@ -314,31 +317,52 @@ function trBookingUrl(base,checkin,checkout,party){
 function trFlightsUrl(from,to,depart,ret){
   return 'https://www.google.com/travel/flights?q='+encodeURIComponent(`Flights from ${from} to ${to} on ${depart} returning ${ret}`);
 }
+function trCentre(g){
+  const its=memItems.filter(m=>m.trip_group===g&&m.lat!=null);
+  return its.length?{lat:its.reduce((a,m)=>a+m.lat,0)/its.length,lon:its.reduce((a,m)=>a+m.lon,0)/its.length}:null;
+}
+async function trForecast(c,from,to){
+  try{
+    const r=await fetch(`https://weather.googleapis.com/v1/forecast/days:lookup?key=${MEM_PLACES_KEY}&location.latitude=${c.lat}&location.longitude=${c.lon}&days=10&pageSize=10`).then(r=>r.json());
+    return (r.forecastDays||[]).map(f=>{const d=f.displayDate,day=f.daytimeForecast||{};
+      return {date:`${d.year}-${String(d.month).padStart(2,'0')}-${String(d.day).padStart(2,'0')}`,desc:day.weatherCondition?.description?.text||'',
+        icon:day.weatherCondition?.iconBaseUri||'',max:Math.round(f.maxTemperature?.degrees),min:Math.round(f.minTemperature?.degrees),
+        rain:day.precipitation?.probability?.percent??null};}).filter(x=>x.date>=from&&x.date<=to);
+  }catch(e){return [];}
+}
+// Higher is nicer: dry, and close to 24°C.
+function trWxScore(days){if(!days.length)return null;return days.reduce((a,d)=>a+(100-(d.rain??20))-Math.abs(d.max-24)*3,0)/days.length;}
 async function trRun(o){
   await memEnsureLoaded();
   const youngest=Math.min(99,...o.who.map(c=>memAge(c)).filter(a=>a!=null));
   const tooYoung=m=>m.min_age!=null&&youngest<m.min_age;
-  const inRegion=memItems.filter(m=>m.trip_group===o.region&&m.lat!=null&&(!memIsDone(m.id)||m.repeat_ok)&&!tooYoung(m));
-  // Include close neighbours of the region (within 120 km of its centre).
-  const c=inRegion.length?{lat:inRegion.reduce((a,m)=>a+m.lat,0)/inRegion.length,lon:inRegion.reduce((a,m)=>a+m.lon,0)/inRegion.length}:null;
-  const near=c?memItems.filter(m=>m.trip_group!==o.region&&m.lat!=null&&!memIsDone(m.id)&&!tooYoung(m)&&memKm(c.lat,c.lon,m.lat,m.lon)<=120):[];
-  const cands=[...inRegion,...near].slice(0,18);
-  if(!cands.length)throw new Error('nothing in that region');
   const endDate=trAddDays(o.date,o.nights);
+  // "Wherever the weather's best": score each nearby region's forecast for the
+  // trip dates (dry, and close to 24°C) and go with the winner.
+  let region=o.region,regionWhy='';
+  if(region==='best'){
+    const scored=(await Promise.all(PL_NEAR_REGIONS.map(async g=>{const c=trCentre(g);if(!c)return null;
+      const d=await trForecast(c,o.date,endDate);return {g,d,score:trWxScore(d)};}))).filter(x=>x&&x.score!=null).sort((a,b)=>b.score-a.score);
+    if(scored.length){
+      region=scored[0].g;
+      const sum=x=>`${x.d[0].desc.toLowerCase()}, up to ${Math.max(...x.d.map(d=>d.max))}°, ${Math.max(...x.d.map(d=>d.rain??0))}% rain`;
+      regionWhy=`Best weather: ${memGroupLabel(region)} (${sum(scored[0])})${scored[1]?`. Next best ${memGroupLabel(scored[1].g)} (${sum(scored[1])})`:''}.`;
+    }else{region='south-west';regionWhy="No forecast yet for those dates, so I went with the South West.";}
+  }
+  const inRegion=memItems.filter(m=>m.trip_group===region&&m.lat!=null&&(!memIsDone(m.id)||m.repeat_ok)&&!tooYoung(m));
+  // Include close neighbours of the region (within 120 km of its centre).
+  const c=trCentre(region);
+  const near=c?memItems.filter(m=>m.trip_group!==region&&m.lat!=null&&!memIsDone(m.id)&&!tooYoung(m)&&memKm(c.lat,c.lon,m.lat,m.lon)<=120):[];
+  const cands=[...inRegion,...near].slice(0,22);
+  if(!cands.length)throw new Error('nothing in that region');
   const party=trParty(o.who);
-  let weather='Forecast not available yet.';
-  try{
-    if(c){const k=MEM_PLACES_KEY;const r=await fetch(`https://weather.googleapis.com/v1/forecast/days:lookup?key=${k}&location.latitude=${c.lat}&location.longitude=${c.lon}&days=10&pageSize=10`).then(r=>r.json());
-      const days=(r.forecastDays||[]).map(f=>{const d=f.displayDate;const ds=`${d.year}-${String(d.month).padStart(2,'0')}-${String(d.day).padStart(2,'0')}`;
-        return {ds,t:`${ds}: ${f.daytimeForecast?.weatherCondition?.description?.text||''}, ${Math.round(f.minTemperature?.degrees)}-${Math.round(f.maxTemperature?.degrees)}°C, rain ${f.daytimeForecast?.precipitation?.probability?.percent??'?'}%`};})
-        .filter(x=>x.ds>=o.date&&x.ds<=endDate);
-      if(days.length)weather=days.map(x=>x.t).join(' | ');}
-  }catch(e){}
+  const wxDays=c?await trForecast(c,o.date,endDate):[];
+  const weather=wxDays.length?wxDays.map(d=>`${d.date}: ${d.desc}, ${d.min}-${d.max}°C, rain ${d.rain??'?'}%`).join(' | '):'Forecast not available yet.';
   const prefs=await plPrefs();
   const ages=o.who.map(cd=>{const a=memAge(cd);return a!=null?`${cd} (${a})`:cd;}).join(', ');
   const list=cands.map(m=>`${m.code} | ${m.name} | ${m.where_text||memGroupLabel(m.trip_group)}${m.repeat_ok?' | FAVOURITE':''}${m.est_minutes?` | ~${m.est_minutes} min`:''}${m.age_note?` | ages: ${m.age_note}`:''}`).join('\n');
   const sys=`You plan family road trips for the Wallis family (home Swan View, Perth WA).
-Trip: ${memGroupLabel(o.region)}, leaving ${o.date}, ${o.nights} night${o.nights>1?'s':''}, back ${endDate}. Getting there: ${o.travel==='fly'?'flying from Perth (PER), hire car there':'driving from home'}.
+Trip: ${memGroupLabel(region)}, leaving ${o.date}, ${o.nights} night${o.nights>1?'s':''}, back ${endDate}. Getting there: ${o.travel==='fly'?'flying from Perth (PER), hire car there':'driving from home'}.
 Coming: ${ages}.${o.vibe?`\nThey said: "${o.vibe}".`:''}
 Weather: ${weather}
 Family preferences: ${prefs||'none'}
@@ -348,18 +372,18 @@ ${list}
 
 Reply ONLY with JSON:
 {"title":"short trip name","why":"one sentence",
- "items":[{"code":"M150","minutes":90}],
+ "items":[{"code":"M150","minutes":90,"ok":true}],
  "days":[{"title":"short","base":"town they sleep in that night (last day: Home)","codes":["M150"],"notes":"one practical line (food stop, swim, rest)"}],
  "fly":{"from":"PER","to":"IATA code"} or null,
  "tips":["max 3 short practical tips for this trip with these kids"]}
-Rules: exactly ${o.nights+1} days. Day 1 starts ${o.travel==='fly'?'at the destination airport':'from home'}; the last day ends at home${o.travel==='fly'?' (flight back)':''}. Keep daily driving sane for kids (under ~3 hours where possible, break long drives). Use 1-3 list items a day, leave slack. Bases must be real towns. "items" gives time-on-site for every code you use.`;
+Rules: exactly ${o.nights+1} days, each roughly 9am to 5:30pm, and fill them: real family time on site (a picnic or BBQ spot is lunch there, 2-3 hours; attractions 1.5-2.5 hours). Day 1 starts ${o.travel==='fly'?'at the destination airport':'from home'}; the last day ends at home${o.travel==='fly'?' (flight back)':''}. Keep daily driving sane for kids (under ~3 hours where possible, break long drives). Use 1-3 list items a day, leave slack. Bases must be real towns. "items" covers EVERY candidate: time on site, and "ok": false if it is wrong for these dates (out of season, e.g. Christmas lights in October; closed; unsuitable for this weather or these kids). The app may add "ok" items to fill gaps.`;
   const res=await fetch(BB_PROXY,{method:'POST',headers:{'Content-Type':'application/json','apikey':SK,'Authorization':await bcBearer()},
-    body:JSON.stringify({thinking:{type:'disabled'},model:BB_MODEL,max_tokens:3500,system:sys,messages:[{role:'user',content:'Plan the trip.'}]})});
+    body:JSON.stringify({thinking:{type:'disabled'},model:BB_MODEL,max_tokens:5000,system:sys,messages:[{role:'user',content:'Plan the trip.'}]})});
   const data=await res.json();
   const raw=data.content?.find(x=>x.type==='text')?.text||'';
   const ai=memParseAI(raw);
   if(!ai||!Array.isArray(ai.days)){console.warn('Trip reply:',data.error||raw.slice(0,500),data.stop_reason);throw new Error('bad trip reply');}
-  const mins={};(ai.items||[]).forEach(x=>{if(x&&x.code)mins[x.code]=Math.max(20,Math.min(360,Number(x.minutes)||60));});
+  const mins={},okFor=new Set();(ai.items||[]).forEach(x=>{if(x&&x.code){mins[x.code]=Math.max(20,Math.min(360,Number(x.minutes)||60));if(x.ok===true)okFor.add(x.code);}});
 
   // Geocode bases (and the arrival airport when flying).
   const baseNames=[...new Set(ai.days.map(d=>d.base).filter(b=>b&&!/^home$/i.test(b)))];
@@ -371,20 +395,38 @@ Rules: exactly ${o.nights+1} days. Day 1 starts ${o.travel==='fly'?'at the desti
   const perms=a=>a.length<2?[a]:a.flatMap((x,i)=>perms([...a.slice(0,i),...a.slice(i+1)]).map(r=>[x,...r]));
   let real=false;
   let prev=start,date=o.date;
+  const usedCodes=new Set();
   const days=[];
   for(let n=0;n<ai.days.length;n++){
     const d=ai.days[n],last=n===ai.days.length-1;
     const end=last?(ai.fly&&ai.fly.to?start:home):(geo[d.base]?{name:d.base,...geo[d.base]}:prev);
-    const stops=(d.codes||[]).map(cd=>cands.find(m=>m.code===cd)).filter(Boolean).slice(0,4);
+    let stops=(d.codes||[]).map(cd=>cands.find(m=>m.code===cd)&&!usedCodes.has(cd)?cands.find(m=>m.code===cd):null).filter(Boolean).slice(0,4);
+    stops.forEach(m=>{usedCodes.add(m.code);if(!mins[m.code])mins[m.code]=90;});
+    // Top up a short day with the best nearby unused item (estimates first).
+    const dayEnd=17*60+30,estEnd=st=>{let t=9*60,p0=prev;st.forEach(m=>{t+=plEstDrive(p0,m)+mins[m.code];p0=m;});return t+plEstDrive(p0,end);};
+    while(stops.length<4&&dayEnd-estEnd(stops)>90){
+      let best=null;
+      cands.filter(m=>!usedCodes.has(m.code)&&okFor.has(m.code)).forEach(m=>{const mm=mins[m.code]||90,had=mins[m.code];mins[m.code]=mm;
+        for(let k=0;k<=stops.length;k++){const tr=[...stops.slice(0,k),m,...stops.slice(k)],e=estEnd(tr);
+          if(e<=dayEnd&&(!best||e-mm<best.score))best={tr,score:e-mm,m};}
+        if(had===undefined&&(!best||best.m!==m))delete mins[m.code];});
+      if(!best)break;stops=best.tr;usedCodes.add(best.m.code);best.m._added=true;
+    }
     const pts=[prev,...stops,end];
     const r=await plMatrix(pts);if(r.real)real=true;
     const M=r.M,ix=p=>pts.indexOf(p);
     const cost=ord=>{let c=0,p=prev;ord.forEach(m=>{c+=M[ix(p)][ix(m)];p=m;});return c+M[ix(p)][ix(end)];};
     const order=stops.length?perms(stops).reduce((b,ord)=>!b||cost(ord)<cost(b)?ord:b,null):[];
-    let t=9*60,p=prev;const tl=order.map(m=>{const drive=M[ix(p)][ix(m)];t+=drive;const arrive=t;t+=mins[m.code]||90;p=m;
-      return {code:m.code,id:m.id,name:m.name,lat:m.lat,lon:m.lon,drive,arrive,leave:t};});
-    const back=M[ix(p)][ix(end)];
-    days.push({n:n+1,date,title:d.title||`Day ${n+1}`,notes:d.notes||'',from:prev.name,to:end.name,stops:tl,back,endAt:t+back,
+    const tlOf=()=>{let t=9*60,p=prev;const tl=order.map(m=>{const drive=M[ix(p)][ix(m)];t+=drive;const arrive=t;t+=mins[m.code]||90;p=m;
+      return {code:m.code,id:m.id,name:m.name,lat:m.lat,lon:m.lon,drive,arrive,leave:t,added:!!m._added};});return {tl,back:M[ix(p)][ix(end)]};};
+    let {tl,back}=tlOf();
+    // Then stretch stops so the day ends near 5:30pm.
+    const spare=dayEnd-((tl.length?tl[tl.length-1].leave:9*60)+back);
+    if(spare>60&&order.length){const tot=order.reduce((a,m)=>a+(mins[m.code]||90),0);
+      order.forEach(m=>{const b=mins[m.code]||90;mins[m.code]=Math.round(b+Math.min(b*0.6,(spare-30)*b/tot));});({tl,back}=tlOf());}
+    const t=(tl.length?tl[tl.length-1].leave:9*60);
+    const wxd=wxDays.find(w=>w.date===date)||null;
+    days.push({n:n+1,date,wx:wxd,title:d.title||`Day ${n+1}`,notes:d.notes||'',from:prev.name,to:end.name,stops:tl,back,endAt:t+back,
       fromLL:{lat:prev.lat,lon:prev.lon},toLL:{lat:end.lat,lon:end.lon},driveTotal:tl.reduce((a,x)=>a+x.drive,0)+back});
     prev=end;date=trAddDays(date,1);
   }
@@ -395,7 +437,8 @@ Rules: exactly ${o.nights+1} days. Day 1 starts ${o.travel==='fly'?'at the desti
     else stays.push({base:d.to,checkin:d.date,checkout:trAddDays(d.date,1)});});
   stays.forEach(s=>{s.nights=Math.round((new Date(s.checkout)-new Date(s.checkin))/86400000);s.url=trBookingUrl(s.base,s.checkin,s.checkout,party);});
   const flights=ai.fly&&ai.fly.to?{to:ai.fly.to,url:trFlightsUrl('Perth',ai.fly.to,o.date,endDate)}:null;
-  return {trip:true,opts:o,title:ai.title||'Trip',why:ai.why||'',tips:ai.tips||[],weather,real,days,stays,flights,endDate,party};
+  cands.forEach(m=>{delete m._added;});
+  return {trip:true,opts:o,region,regionWhy,title:ai.title||'Trip',why:ai.why||'',tips:ai.tips||[],weather,real,days,stays,flights,endDate,party};
 }
 function trDayMaps(d){
   const q=new URLSearchParams({api:'1',origin:`${d.fromLL.lat},${d.fromLL.lon}`,destination:`${d.toLL.lat},${d.toLL.lon}`,travelmode:'driving'});
@@ -411,6 +454,7 @@ function trShow(res,savedId){
     <div class="mem-sheet-hdr"><div><div class="mem-sheet-title">${plEsc(res.title)}</div>
       <div class="mem-sheet-sub">${fmtD(res.opts.date)} to ${fmtD(res.endDate)} · ${res.opts.nights} night${res.opts.nights>1?'s':''} · ${res.party.adults} adults${ages}</div></div>
       <button class="mem-x" onclick="document.getElementById('pl-res').remove()" aria-label="Close">✕</button></div>
+    ${res.regionWhy?`<div class="pl-wx-take" style="margin:0 0 6px">☀️ ${plEsc(res.regionWhy)}</div>`:''}
     ${res.why?`<div class="pl-why" style="margin-top:0">${plEsc(res.why)}</div>`:''}
     <div class="dp-label" style="margin-top:14px">Book</div>
     ${res.flights?`<a class="pl-book" href="${res.flights.url}" target="_blank" rel="noopener"><span>✈️ Flights Perth ⇄ ${plEsc(res.flights.to)}</span><span class="mem-sub">Google Flights ›</span></a>`:''}
@@ -418,18 +462,19 @@ function trShow(res,savedId){
     ${res.days.map(d=>`<div class="pl-card">
       <div class="pl-title">Day ${d.n} · ${plEsc(d.title)}</div>
       <div class="mem-sub">${fmtD(d.date)} · ${plEsc(d.from)} → ${plEsc(d.to)} · ${d.driveTotal} min driving</div>
+      ${d.wx?`<div class="pl-daywx">${d.wx.icon?`<img src="${d.wx.icon}.svg" alt="">`:''}<span><b>${plEsc(d.wx.desc)}</b> ${d.wx.max}° / ${d.wx.min}° · 💧 ${d.wx.rain??'?'}%</span></div>`:''}
       ${d.notes?`<div class="pl-why">${plEsc(d.notes)}</div>`:''}
       <div class="pl-tl">
         <div class="pl-tl-row pl-home"><span class="pl-t">9:00am</span><span>Leave ${plEsc(d.from)}</span></div>
-        ${d.stops.map(s=>`<div class="pl-tl-drive">${s.drive} min drive</div>
-          <button class="pl-tl-row" onclick="openMemory(${s.id})"><span class="pl-t">${plHHMM(s.arrive)}</span><span><b>${plEsc(s.name)}</b><span class="mem-sub"> until ${plHHMM(s.leave)}</span></span></button>`).join('')}
+        ${d.stops.map(s=>`<div class="pl-tl-drive">${s.drive<2?'same area':s.drive+' min drive'}</div>
+          <button class="pl-tl-row" onclick="openMemory(${s.id})"><span class="pl-t">${plHHMM(s.arrive)}</span><span><b>${plEsc(s.name)}</b><span class="mem-sub"> until ${plHHMM(s.leave)}${s.added?' · added to fill your day':''}</span></span></button>`).join('')}
         <div class="pl-tl-drive">${d.back} min drive</div>
         <div class="pl-tl-row pl-home"><span class="pl-t">${plHHMM(d.endAt)}</span><span>${plEsc(d.to)}</span></div>
       </div>
       <a class="qa-btn pl-btn" style="margin-top:10px" href="${trDayMaps(d)}" target="_blank" rel="noopener">📍 Day ${d.n} route in Maps</a>
     </div>`).join('')}
     ${res.tips.length?`<div class="dp-label" style="margin-top:14px">Tips</div><ul class="mem-kidfacts">${res.tips.map(t=>`<li>${plEsc(t)}</li>`).join('')}</ul>`:''}
-    <div class="mem-credit" style="margin-top:10px">${plEsc(res.weather)}<br>${res.real?'Drive times from Google.':'Drive times are estimates.'} Booking links open pre-filled; you choose and book there.</div>
+    <div class="mem-credit" style="margin-top:10px">${res.days.some(d=>d.wx)?'':'No forecast yet for these dates (more than 10 days out). '}${res.real?'Drive times from Google.':'Drive times are estimates.'} Booking links open pre-filled; you choose and book there.</div>
     ${savedId?`<button class="mem-link danger" id="pl-del">Delete this trip</button>`
       :`<div style="display:flex;gap:8px;margin-top:12px"><button class="qa-btn pl-btn" onclick="document.getElementById('pl-res').remove();plOpen(plLast&&plLast.opts)">Change it</button><button class="qa-btn accent pl-btn" id="tr-save">Save trip</button></div>`}
   </div>`;

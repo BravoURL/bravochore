@@ -32,20 +32,44 @@ function bcSaveSession(s){
   }
 })();
 
-// Valid access token, refreshed when within a minute of expiry. Null if signed out.
+// Valid access token, refreshed when within five minutes of expiry.
+// One refresh at a time (refresh tokens are single-use, so parallel refreshes
+// can knock each other out). If a refresh truly fails, the user is asked to
+// sign in again rather than the app silently falling back to the public key.
+let bcRefreshing=null;
+async function bcRefresh(){
+  if(bcRefreshing)return bcRefreshing;
+  bcRefreshing=(async()=>{
+    for(let attempt=0;attempt<2;attempt++){
+      try{
+        const r=await fetch(`${SB}/auth/v1/token?grant_type=refresh_token`,{method:'POST',
+          headers:{apikey:SK,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:bcSession.refresh_token})});
+        if(r.ok){const d=await r.json();
+          bcSaveSession({access_token:d.access_token,refresh_token:d.refresh_token,expires_at:Math.floor(Date.now()/1000)+(d.expires_in||3600)});
+          return d.access_token;}
+        if(r.status>=400&&r.status<500)break;   // token genuinely dead
+      }catch(e){}                               // network blip: try once more
+      await new Promise(res=>setTimeout(res,1500));
+    }
+    return null;
+  })();
+  try{return await bcRefreshing;}finally{bcRefreshing=null;}
+}
 async function bcToken(){
   if(!AUTH_ENABLED||!bcSession)return null;
-  if(bcSession.expires_at-60>Date.now()/1000)return bcSession.access_token;
-  try{
-    const r=await fetch(`${SB}/auth/v1/token?grant_type=refresh_token`,{method:'POST',
-      headers:{apikey:SK,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:bcSession.refresh_token})});
-    if(!r.ok)throw new Error('refresh '+r.status);
-    const d=await r.json();
-    bcSaveSession({access_token:d.access_token,refresh_token:d.refresh_token,
-      expires_at:Math.floor(Date.now()/1000)+(d.expires_in||3600)});
-    return d.access_token;
-  }catch(e){bcSaveSession(null);return null;}
+  if(bcSession.expires_at-300>Date.now()/1000)return bcSession.access_token;
+  const t=await bcRefresh();
+  if(!t){bcSaveSession(null);bcShowSignIn(false,'Your sign-in expired. Please sign in again.');}
+  return t;
 }
+async function bcForceRefresh(){
+  if(!AUTH_ENABLED||!bcSession)return false;
+  const t=await bcRefresh();
+  if(!t){bcSaveSession(null);bcShowSignIn(false,'Your sign-in expired. Please sign in again.');}
+  return !!t;
+}
+// Refresh quietly whenever the app comes back to the foreground.
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&bcSession)bcToken();});
 // Bearer for API calls: the user's token when signed in, else the anon key.
 async function bcBearer(){return 'Bearer '+((await bcToken())||SK);}
 
@@ -84,7 +108,7 @@ async function bcGate(){
   return false;
 }
 
-function bcShowSignIn(notMember){
+function bcShowSignIn(notMember,msg){
   const ls=document.getElementById('loading-screen');if(ls)ls.style.display='none';
   let el=document.getElementById('bc-signin');
   if(!el){el=document.createElement('div');el.id='bc-signin';document.body.appendChild(el);}
