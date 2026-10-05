@@ -9,6 +9,7 @@
 // ================================================================
 const BC_SESSION_KEY='bc_session';
 let bcSession=null;
+let bcHouseholdCode=null;
 
 function bcLoadSession(){try{bcSession=JSON.parse(localStorage.getItem(BC_SESSION_KEY)||'null');}catch(e){bcSession=null;}}
 function bcSaveSession(s){
@@ -75,7 +76,7 @@ async function bcGate(){
   const me=bcSession?await bcWhoAmI():null;
   if(me&&me.person_code){
     const p=people.find(x=>x.code===me.person_code)||{name:me.person_code};
-    CU=me.person_code;CUN=p.name;
+    CU=me.person_code;CUN=p.name;bcHouseholdCode=me.household_code;
     localStorage.setItem('bc_user',CU);localStorage.setItem('bc_username',CUN);
     return true;
   }

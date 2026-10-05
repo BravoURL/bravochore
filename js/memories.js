@@ -8,7 +8,7 @@
 // Rows render through the shared taskCard() lite variant.
 // Label comes from MEM_LABEL (state.js); internal names stay memory_*.
 // ================================================================
-let memItems=[], memDone=[], memView='todo', memArea='', memLoaded=false;
+let memItems=[], memDone=[], memPhotos=[], memView='todo', memArea='', memLoaded=false;
 // Display names for trip groups (the list is already ordered home-outwards).
 const MEM_AREAS={'perth-hills':'Perth Hills','south-hills':'South Hills','swan-valley-whiteman':'Swan Valley & Whiteman',
   'perth-city':'Perth city','fremantle':'Fremantle','north-coast':'North coast','rockingham-south':'Rockingham',
@@ -28,7 +28,10 @@ async function loadMemories(){
     api('bravochore_memories','GET',null,'?kind=eq.experience&removed_at=is.null&order=sort_order.asc'),
     api('bravochore_memory_done','GET',null,'?select=id,memory_id,visit_number,done_on,date_approx,who,note&order=id.asc')
   ]);
-  memItems=items;memDone=done;memLoaded=true;
+  memItems=items;memDone=done;
+  try{memPhotos=await api('bravochore_memory_photos','GET',null,'?select=id,memory_id,done_id,path,thumb_path,width,height&order=id.asc');}catch(_e){memPhotos=[];}
+  await memSign(memPhotos.map(p=>p.thumb_path));
+  memLoaded=true;
 }
 const memVisits=id=>memDone.filter(d=>d.memory_id===id);
 const memIsDone=id=>memDone.some(d=>d.memory_id===id);
@@ -38,7 +41,8 @@ const memVisitedTxt=v=>'Visited '+(v.done_on?(v.date_approx?'~':'')+memFmtY(v.do
 // private (Phase 3, after login).
 const memThumbSrc=m=>m.stock_photo_path?m.stock_photo_path.replace('img/mem/','img/mem/t/'):null;
 function memThumb(m){
-  const src=memThumbSrc(m);
+  const fam=memPhotos.filter(p=>p.memory_id===m.id).pop();
+  const src=(fam&&memSigned[fam.thumb_path])||memThumbSrc(m);
   return src?`<img class="mem-thumb" src="${src}" alt="" loading="lazy" decoding="async">`
             :'<div class="mem-thumb" aria-hidden="true"></div>';
 }
@@ -53,6 +57,99 @@ function memCredit(c){
   if(!c||!c.license)return '';
   const by=c.artist?memEsc(c.artist.replace(/<[^>]*>/g,'').trim())+', ':'';
   return `<div class="mem-credit">Photo: ${by}${c.url?`<a href="${memEsc(c.url)}" target="_blank" rel="noopener">${memEsc(c.license)}</a>`:memEsc(c.license)}</div>`;
+}
+
+// ---------------------------------------------------------------- family photos
+// Private bucket memory-photos, files under <household>/<memory_id>/. Shown via
+// short-lived signed links. Resized in the browser (long edge 1600px) and
+// re-encoded, which also strips EXIF, so GPS location never leaves the phone.
+const MEM_BUCKET='memory-photos', MEM_PHOTO_CAP=10;
+const memSigned={};
+async function memSign(paths){
+  const need=[...new Set(paths)].filter(p=>p&&!memSigned[p]);
+  if(!need.length)return;
+  try{
+    const r=await fetch(`${SB}/storage/v1/object/sign/${MEM_BUCKET}`,{method:'POST',
+      headers:{apikey:SK,Authorization:await bcBearer(),'Content-Type':'application/json'},
+      body:JSON.stringify({expiresIn:60*60*12,paths:need})});
+    if(!r.ok)return;
+    (await r.json()).forEach(x=>{if(x.signedURL)memSigned[x.path]=SB+'/storage/v1'+x.signedURL;});
+  }catch(_e){}
+}
+async function memDecode(file){
+  try{return await createImageBitmap(file,{imageOrientation:'from-image'});}
+  catch(_e){
+    return await new Promise((res,rej)=>{const u=URL.createObjectURL(file),i=new Image();
+      i.onload=()=>{URL.revokeObjectURL(u);res(i);};i.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('decode'));};i.src=u;});
+  }
+}
+function memToJpeg(src,w,h,sx,sy,sw,sh,q){
+  const c=document.createElement('canvas');c.width=w;c.height=h;
+  c.getContext('2d').drawImage(src,sx,sy,sw,sh,0,0,w,h);
+  return new Promise(r=>c.toBlob(r,'image/jpeg',q));
+}
+async function memPrepImage(file){
+  const img=await memDecode(file);
+  const W=img.width,H=img.height,k=Math.min(1,1600/Math.max(W,H));
+  const full=await memToJpeg(img,Math.round(W*k),Math.round(H*k),0,0,W,H,0.82);
+  const side=Math.min(W,H);
+  const thumb=await memToJpeg(img,300,300,(W-side)/2,(H-side)/2,side,side,0.75);
+  return {full,thumb,w:Math.round(W*k),h:Math.round(H*k)};
+}
+async function memStoragePut(path,blob){
+  const r=await fetch(`${SB}/storage/v1/object/${MEM_BUCKET}/${path}`,{method:'POST',
+    headers:{apikey:SK,Authorization:await bcBearer(),'Content-Type':'image/jpeg'},body:blob});
+  if(!r.ok)throw new Error('upload '+r.status);
+}
+async function memStorageDel(paths){
+  if(!paths.length)return;
+  try{await fetch(`${SB}/storage/v1/object/${MEM_BUCKET}`,{method:'DELETE',
+    headers:{apikey:SK,Authorization:await bcBearer(),'Content-Type':'application/json'},body:JSON.stringify({prefixes:paths})});}catch(_e){}
+}
+async function memUploadPhoto(memId,doneId,file){
+  const hh=(typeof bcHouseholdCode!=='undefined'&&bcHouseholdCode)||'WALLIS';
+  const {full,thumb,w,h}=await memPrepImage(file);
+  const id=(crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random().toString(36).slice(2));
+  const path=`${hh}/${memId}/${id}.jpg`,thumb_path=`${hh}/${memId}/${id}_t.jpg`;
+  await memStoragePut(path,full);
+  try{await memStoragePut(thumb_path,thumb);}catch(e){await memStorageDel([path]);throw e;}
+  try{
+    const [row]=await api('bravochore_memory_photos','POST',{memory_id:memId,done_id:doneId,path,thumb_path,width:w,height:h,created_by:CU||null});
+    memPhotos.push(row);await memSign([thumb_path]);return row;
+  }catch(e){await memStorageDel([path,thumb_path]);throw e;}
+}
+async function memDeletePhoto(ph){
+  await api('bravochore_memory_photos','DELETE',null,`?id=eq.${ph.id}`);
+  await memStorageDel([ph.path,ph.thumb_path]);
+  memPhotos=memPhotos.filter(x=>x.id!==ph.id);
+}
+function memPhotoStrip(list,editable){
+  return list.map(p=>`<button type="button" class="mem-ph" data-ph="${p.id}" aria-label="Open photo">
+    <img src="${memSigned[p.thumb_path]||''}" alt="" loading="lazy"></button>`).join('');
+}
+// Full-screen viewer. Tap the sides to move, ✕ to close, bin to delete.
+async function memOpenViewer(list,startId,onChange){
+  let i=Math.max(0,list.findIndex(p=>p.id===startId));
+  await memSign(list.map(p=>p.path));
+  const v=document.createElement('div');v.className='mem-viewer';
+  const draw=()=>{const p=list[i];v.innerHTML=`<img src="${memSigned[p.path]||memSigned[p.thumb_path]||''}" alt="">
+    <button class="mem-viewer-x" aria-label="Close">✕</button>
+    <div class="mem-viewer-bar"><span>${i+1} / ${list.length}</span><button class="mem-viewer-del">Delete</button></div>
+    ${list.length>1?'<button class="mem-viewer-prev" aria-label="Previous"></button><button class="mem-viewer-next" aria-label="Next"></button>':''}`;
+    v.querySelector('.mem-viewer-x').onclick=()=>v.remove();
+    const pv=v.querySelector('.mem-viewer-prev'),nx=v.querySelector('.mem-viewer-next');
+    if(pv)pv.onclick=()=>{i=(i-1+list.length)%list.length;draw();};
+    if(nx)nx.onclick=()=>{i=(i+1)%list.length;draw();};
+    const del=v.querySelector('.mem-viewer-del');
+    del.onclick=async()=>{
+      if(!del.dataset.armed){del.dataset.armed='1';del.textContent='Tap again to delete';return;}
+      del.textContent='Deleting…';
+      try{await memDeletePhoto(list[i]);list.splice(i,1);if(onChange)onChange();
+        if(!list.length){v.remove();return;}i=Math.min(i,list.length-1);draw();}
+      catch(_e){del.textContent='Not deleted. Retry';delete del.dataset.armed;}
+    };
+  };
+  draw();document.body.appendChild(v);
 }
 
 // ---------------------------------------------------------------- list
@@ -176,6 +273,12 @@ async function openVisitSheet(memId,doneId,fresh){
       </div>`).join('')}</div>
     <div class="dp-field" style="margin-top:12px"><label class="dp-label" for="mv-note">Note</label>
       <textarea class="dp-textarea" id="mv-note" style="min-height:56px" placeholder="Optional">${memEsc(v.note||'')}</textarea></div>
+    <div class="dp-label" style="margin-top:12px">Photos <span class="mem-sub" style="text-transform:none;letter-spacing:0;font-weight:400">pick your best 1 to 3</span></div>
+    <div class="mem-ph-row" id="mv-photos"></div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <label class="qa-btn mem-ph-btn">📷 Camera<input type="file" accept="image/*" capture="environment" hidden id="mv-cam"></label>
+      <label class="qa-btn mem-ph-btn">🖼 Gallery<input type="file" accept="image/*" multiple hidden id="mv-gal"></label>
+    </div>
     <div style="display:flex;gap:8px;margin-top:14px">
       <button class="btn-cancel" style="flex:1" id="mv-cancel">${ratings.length||v.note?'Cancel':'Skip'}</button>
       <button class="btn-ok" style="flex:1" id="mv-save">Save</button>
@@ -186,13 +289,38 @@ async function openVisitSheet(memId,doneId,fresh){
   const close=()=>wrap.remove();
   wrap.addEventListener('click',e=>{if(e.target===wrap)close();});
   wrap.querySelector('#mv-cancel').onclick=close;
+  // Photos upload straight away; Save/Skip only covers date, people, scores and note.
+  const phRow=wrap.querySelector('#mv-photos');
+  const visitPhotos=()=>memPhotos.filter(p=>p.done_id===doneId);
+  const drawPhotos=()=>{
+    phRow.innerHTML=memPhotoStrip(visitPhotos());
+    phRow.querySelectorAll('[data-ph]').forEach(b=>b.onclick=()=>memOpenViewer(visitPhotos(),+b.dataset.ph,()=>{drawPhotos();renderMemListIfOpen();}));
+  };
+  drawPhotos();
+  const addFiles=async files=>{
+    const room=MEM_PHOTO_CAP-visitPhotos().length;
+    const list=[...files].slice(0,Math.max(0,room));
+    if(files.length>list.length)chirp(`Up to ${MEM_PHOTO_CAP} photos per visit.`);
+    for(const f of list){
+      const ph=document.createElement('div');ph.className='mem-ph uploading';ph.textContent='…';phRow.appendChild(ph);
+      try{await memUploadPhoto(memId,doneId,f);}
+      catch(_e){badge('er','⚠ Photo not saved');chirp("A photo didn't upload. Try again.");}
+      drawPhotos();
+    }
+    renderMemListIfOpen();
+  };
+  wrap.querySelector('#mv-cam').onchange=e=>{addFiles(e.target.files);e.target.value='';};
+  wrap.querySelector('#mv-gal').onchange=e=>{addFiles(e.target.files);e.target.value='';};
   // Two-tap remove (undo-over-confirm; a modal would sit under this sheet).
   const rm=wrap.querySelector('#mv-remove');
   rm.onclick=async()=>{
     if(!fresh&&!rm.dataset.armed){rm.dataset.armed='1';rm.textContent='Tap again to remove';
       setTimeout(()=>{if(rm.isConnected){delete rm.dataset.armed;rm.textContent='Remove this visit';}},3000);return;}
     try{
+      const gone=memPhotos.filter(p=>p.done_id===doneId);
       await api('bravochore_memory_done','DELETE',null,`?id=eq.${doneId}`);
+      await memStorageDel(gone.flatMap(p=>[p.path,p.thumb_path]));
+      memPhotos=memPhotos.filter(p=>p.done_id!==doneId);
       memDone=memDone.filter(d=>d.id!==doneId);close();renderMemList();
       if(document.getElementById('mem-detail'))openMemory(memId);
       badge('ok',fresh?'↶ Undone':'✓ Removed');
@@ -232,6 +360,9 @@ async function openMemory(id){
   const m=memItems.find(x=>x.id===id);if(!m)return;
   document.getElementById('mem-detail')?.remove();
   const visits=memVisits(id);
+  const famPhotos=memPhotos.filter(p=>p.memory_id===id);
+  const heroFam=famPhotos[famPhotos.length-1]||null;
+  if(heroFam)await memSign([heroFam.path]);
   const doneIds=visits.map(v=>v.id).filter(x=>x>0);
   let ratings=[],comments=[];
   try{
@@ -268,7 +399,8 @@ async function openMemory(id){
         ${avg?`<span class="mem-num mem-avg">${avg}</span>`:''}</div>
       ${per?`<div class="mem-pers">${per}</div>`:''}
       ${v.note?`<div class="mem-visit-note">${memEsc(v.note)}</div>`:''}
-      <div class="mem-visit-edit">Edit or remove ›</div>
+      ${memPhotos.some(p=>p.done_id===v.id)?`<div class="mem-ph-row" data-visit="${v.id}">${memPhotoStrip(memPhotos.filter(p=>p.done_id===v.id))}</div>`:''}
+      <div class="mem-visit-edit">Photos, scores, edit or remove ›</div>
     </div>`;
   }).join(''):'<div class="mem-muted">Not done yet.</div>';
 
@@ -280,7 +412,8 @@ async function openMemory(id){
         ${m.where_text?`<div class="mem-sheet-sub">${memEsc(m.where_text)}</div>`:''}</div>
       <button class="mem-x" onclick="document.getElementById('mem-detail').remove()" aria-label="Close">✕</button>
     </div>
-    ${m.stock_photo_path?`<img class="mem-hero" src="${m.stock_photo_path}" alt="${memEsc(m.name)}" decoding="async">${memCredit(m.stock_photo_credit)}`:''}
+    ${heroFam?`<img class="mem-hero" src="${memSigned[heroFam.path]||memSigned[heroFam.thumb_path]}" alt="${memEsc(m.name)}" decoding="async"><div class="mem-credit">Your photo</div>`
+      :m.stock_photo_path?`<img class="mem-hero" src="${m.stock_photo_path}" alt="${memEsc(m.name)}" decoding="async">${memCredit(m.stock_photo_credit)}`:''}
     <div class="mem-facts">${facts.join(' · ')}<span class="task-code">${m.code}</span></div>
     <a class="qa-btn mem-maps" href="${memMapsUrl(m)}" target="_blank" rel="noopener">📍 Open in Google Maps</a>
     ${warns.length?`<div class="mem-warn">${warns.join('<br>')}</div>`:''}
@@ -300,6 +433,11 @@ async function openMemory(id){
   </div>`;
   wrap.addEventListener('click',e=>{if(e.target===wrap)wrap.remove();});
   document.body.appendChild(wrap);
+  // Photo thumbs inside a visit open the viewer, not the visit editor.
+  wrap.querySelectorAll('[data-visit] [data-ph]').forEach(b=>b.addEventListener('click',e=>{
+    e.stopPropagation();
+    memOpenViewer(memPhotos.filter(p=>p.memory_id===id),+b.dataset.ph,()=>{renderMemListIfOpen();openMemory(id);});
+  }));
 }
 function memCommentHtml(c){
   return `<div class="mem-comment">${ownerTag(c.author)}<span class="mem-sub">${memFmtY((c.created_at||'').slice(0,10))}</span>
