@@ -1158,3 +1158,7 @@ img.mem-thumb{object-fit:cover;display:block}
 .pl-wild{margin-top:12px;padding:10px 12px;border-radius:var(--rs);background:var(--gl);color:var(--gd);font-size:13px;line-height:1.5}
 .mem-fav.on{color:var(--red);border-color:var(--red)}
 .pl-book{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px;border:1px solid var(--bdr);border-radius:var(--rs);margin-top:6px;text-decoration:none;color:var(--tx);font-size:14px;background:var(--surf);min-height:44px}
+.mem-age{margin-top:10px;padding:10px 12px;border-radius:var(--rs);background:var(--surf2);font-size:13px;line-height:1.5;color:var(--tx2)}
+.mem-age b{color:var(--tx);font-weight:600}
+.mem-age.unc b{color:var(--amber)}
+.mem-src{color:var(--tx3);font-size:11px}

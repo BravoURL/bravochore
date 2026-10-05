@@ -103,7 +103,9 @@ async function plMatrix(points){
 function plCandidates(opts,windowMin){
   const reach=Math.max(25,windowMin*0.35);
   const home={lat:MEM_HOME.lat,lon:MEM_HOME.lon};
-  const pool=memItems.filter(m=>m.lat!=null&&(!memIsDone(m.id)||m.repeat_ok))
+  // Leave out anything the youngest coming is too young for.
+  const youngest=Math.min(99,...opts.who.map(c=>memAge(c)).filter(a=>a!=null));
+  const pool=memItems.filter(m=>m.lat!=null&&(!memIsDone(m.id)||m.repeat_ok)&&!(m.min_age!=null&&youngest<m.min_age))
     .map(m=>({m,d:m.drive_min||plEstDrive(home,m)})).filter(x=>x.d<=reach);
   // Favourites always make the shortlist; the rest by closeness.
   const fav=pool.filter(x=>x.m.repeat_ok),rest=pool.filter(x=>!x.m.repeat_ok).sort((a,b)=>a.d-b.d);
@@ -119,7 +121,7 @@ async function plRun(opts){
   const [{M,real},weather,prefs]=await Promise.all([plMatrix(pts),plWeatherFor(opts.date),plPrefs()]);
   const ages=opts.who.map(c=>{const a=memAge(c);return a!=null?`${c} (${a})`:c;}).join(', ');
   const day=new Date(opts.date+'T00:00:00').toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'});
-  const list=cands.map((m,i)=>`${m.code} | ${m.name} | ${memGroupLabel(m.trip_group)} | ${M[0][i+1]} min from home${m.repeat_ok?' | FAVOURITE (done before, loved it)':''}${m.est_minutes?` | usually ${m.est_minutes} min there`:''}${(m.kid_facts||[])[0]?` | ${m.kid_facts[0]}`:''}`).join('\n');
+  const list=cands.map((m,i)=>`${m.code} | ${m.name} | ${memGroupLabel(m.trip_group)} | ${M[0][i+1]} min from home${m.repeat_ok?' | FAVOURITE (done before, loved it)':''}${m.est_minutes?` | usually ${m.est_minutes} min there`:''}${m.age_note?` | ages: ${m.age_note}`:''}${(m.kid_facts||[])[0]?` | ${m.kid_facts[0]}`:''}`).join('\n');
   const pair=cands.map((a,i)=>cands.map((b,j)=>i===j?'-':M[i+1][j+1]).join(' ')).join('\n');
   const sys=`You plan family outings for the Wallis family (home Swan View, Perth WA). Be practical and honest.
 Day: ${day}. Window: leave home ${plHHMM(plMin(opts.from))}, home by ${plHHMM(plMin(opts.to))} (${windowMin} min total, including all driving).
@@ -264,10 +266,12 @@ function trFlightsUrl(from,to,depart,ret){
 }
 async function trRun(o){
   await memEnsureLoaded();
-  const inRegion=memItems.filter(m=>m.trip_group===o.region&&m.lat!=null&&(!memIsDone(m.id)||m.repeat_ok));
+  const youngest=Math.min(99,...o.who.map(c=>memAge(c)).filter(a=>a!=null));
+  const tooYoung=m=>m.min_age!=null&&youngest<m.min_age;
+  const inRegion=memItems.filter(m=>m.trip_group===o.region&&m.lat!=null&&(!memIsDone(m.id)||m.repeat_ok)&&!tooYoung(m));
   // Include close neighbours of the region (within 120 km of its centre).
   const c=inRegion.length?{lat:inRegion.reduce((a,m)=>a+m.lat,0)/inRegion.length,lon:inRegion.reduce((a,m)=>a+m.lon,0)/inRegion.length}:null;
-  const near=c?memItems.filter(m=>m.trip_group!==o.region&&m.lat!=null&&!memIsDone(m.id)&&memKm(c.lat,c.lon,m.lat,m.lon)<=120):[];
+  const near=c?memItems.filter(m=>m.trip_group!==o.region&&m.lat!=null&&!memIsDone(m.id)&&!tooYoung(m)&&memKm(c.lat,c.lon,m.lat,m.lon)<=120):[];
   const cands=[...inRegion,...near].slice(0,18);
   if(!cands.length)throw new Error('nothing in that region');
   const endDate=trAddDays(o.date,o.nights);
@@ -282,7 +286,7 @@ async function trRun(o){
   }catch(e){}
   const prefs=await plPrefs();
   const ages=o.who.map(cd=>{const a=memAge(cd);return a!=null?`${cd} (${a})`:cd;}).join(', ');
-  const list=cands.map(m=>`${m.code} | ${m.name} | ${m.where_text||memGroupLabel(m.trip_group)}${m.repeat_ok?' | FAVOURITE':''}${m.est_minutes?` | ~${m.est_minutes} min`:''}${m.min_age!=null?` | min age ${m.min_age}`:''}`).join('\n');
+  const list=cands.map(m=>`${m.code} | ${m.name} | ${m.where_text||memGroupLabel(m.trip_group)}${m.repeat_ok?' | FAVOURITE':''}${m.est_minutes?` | ~${m.est_minutes} min`:''}${m.age_note?` | ages: ${m.age_note}`:''}`).join('\n');
   const sys=`You plan family road trips for the Wallis family (home Swan View, Perth WA).
 Trip: ${memGroupLabel(o.region)}, leaving ${o.date}, ${o.nights} night${o.nights>1?'s':''}, back ${endDate}. Getting there: ${o.travel==='fly'?'flying from Perth (PER), hire car there':'driving from home'}.
 Coming: ${ages}.${o.vibe?`\nThey said: "${o.vibe}".`:''}

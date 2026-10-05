@@ -8,7 +8,7 @@
 // Rows render through the shared taskCard() lite variant.
 // Label comes from MEM_LABEL (state.js); internal names stay memory_*.
 // ================================================================
-let memItems=[], memDone=[], memPhotos=[], memView='todo', memArea='', memLoaded=false;
+let memItems=[], memGoals=[], memDone=[], memPhotos=[], memView='todo', memArea='', memLoaded=false;
 // Display names for trip groups (the list is already ordered home-outwards).
 const MEM_AREAS={'perth-hills':'Perth Hills','south-hills':'South Hills','swan-valley-whiteman':'Swan Valley & Whiteman',
   'perth-city':'Perth city','fremantle':'Fremantle','north-coast':'North coast','rockingham-south':'Rockingham',
@@ -29,6 +29,7 @@ async function loadMemories(){
     api('bravochore_memory_done','GET',null,'?select=id,memory_id,visit_number,done_on,date_approx,who,note&order=id.asc')
   ]);
   memItems=items;memDone=done;
+  try{memGoals=await api('bravochore_memories','GET',null,'?kind=eq.goal&removed_at=is.null&order=sort_order.asc');}catch(_e){memGoals=[];}
   try{memPhotos=await api('bravochore_memory_photos','GET',null,'?select=id,memory_id,done_id,path,thumb_path,width,height&order=id.asc');}catch(_e){memPhotos=[];}
   await memSign(memPhotos.map(p=>p.thumb_path));
   memLoaded=true;
@@ -184,6 +185,8 @@ function memUpdateCount(){
 function renderMemList(){
   memUpdateCount();
   const el=document.getElementById('memories-list');
+  const area=document.getElementById('mem-area');if(area)area.style.display=memView==='goals'?'none':'';
+  if(memView==='goals'){el.innerHTML=memGoalsHtml();return;}
   const list=memItems.filter(m=>(memView==='done'?memIsDone(m.id):!memIsDone(m.id))&&(!memArea||m.trip_group===memArea));
   if(!list.length){
     el.innerHTML=memView==='done'
@@ -212,6 +215,87 @@ function memCollapse(id){
   card.style.maxHeight=card.offsetHeight+'px';card.style.overflow='hidden';
   requestAnimationFrame(()=>{card.style.opacity='0';card.style.maxHeight='0';card.style.marginBottom='0';});
   setTimeout(()=>card.remove(),280);
+}
+
+// ---------------------------------------------------------------- goals
+// Long-term goals (kind='goal'): learn piano, French, Bronze Medallion. Not
+// finishable in one outing, so no visits or scores: owners, status, dates and
+// progress notes (the comments table). Ticking one means achieved.
+const MEM_GOAL_STATUS={not_started:'Not started',active:'Under way',paused:'Paused',achieved:'Achieved'};
+function memGoalsHtml(){
+  if(!memGoals.length)return '<div class="empty-state">No goals yet. Add a long-term one with + Add.</div>';
+  const order={active:0,not_started:1,paused:2,achieved:3};
+  return [...memGoals].sort((a,b)=>(order[a.goal_status||'not_started']-order[b.goal_status||'not_started'])||(a.sort_order-b.sort_order)).map(g=>{
+    const st=g.goal_status||'not_started';
+    const own=(g.owners||[]).map(c=>ownerTag(c)).join(' ');
+    const when=st==='achieved'&&g.achieved_on?` · ${memFmtY(g.achieved_on)}`:st==='active'&&g.started_on?` · since ${memFmtY(g.started_on)}`:'';
+    return taskCard(null,{lite:true,id:'goal-'+g.id,dataId:g.id,cls:'mem-card'+(st==='achieved'?' done':''),checked:st==='achieved',
+      onTick:`memGoalTick(${g.id},event)`,onOpen:`openGoal(${g.id})`,title:memEsc(g.name),
+      meta:`${own||'<span class="mem-sub">Nobody yet</span>'} <span class="mem-sub">${MEM_GOAL_STATUS[st]}${when}</span>`});
+  }).join('');
+}
+async function memGoalPatch(g,patch){
+  Object.assign(g,patch);
+  try{await api('bravochore_memories','PATCH',patch,`?id=eq.${g.id}`);badge('ok','✓');}catch(_e){badge('er','⚠ Not saved');}
+  renderMemList();
+}
+async function memGoalTick(id,e){
+  if(e)e.stopPropagation();
+  const g=memGoals.find(x=>x.id===id);if(!g)return;
+  if(g.goal_status==='achieved'){openGoal(id);return;}
+  try{playChime('task');}catch(_e){}try{if(e&&e.target)spawnConfetti(e.target);}catch(_e){}
+  await memGoalPatch(g,{goal_status:'achieved',achieved_on:tdStr()});
+  chirp(`🎉 ${g.name}: achieved!`);
+}
+async function openGoal(id){
+  const g=memGoals.find(x=>x.id===id);if(!g)return;
+  document.getElementById('mem-detail')?.remove();
+  let comments=[];try{comments=await api('bravochore_memory_comments','GET',null,`?memory_id=eq.${id}&order=created_at.desc`);}catch(_e){}
+  const st=g.goal_status||'not_started';
+  const wrap=document.createElement('div');wrap.className='mem-overlay';wrap.id='mem-detail';
+  wrap.innerHTML=`<div class="mem-sheet tall" role="dialog" aria-modal="true">
+    <div class="mem-sheet-hdr"><div><div class="mem-sheet-title">${memEsc(g.name)}</div><div class="mem-sheet-sub">Long-term goal</div></div>
+      <button class="mem-x" onclick="document.getElementById('mem-detail').remove()" aria-label="Close">✕</button></div>
+    ${g.notes?`<div class="mem-muted">${memEsc(g.notes)}</div>`:''}
+    <div class="dp-label" style="margin-top:14px">Whose goal</div>
+    <div class="pl-who">${people.filter(p=>p.code!=='Pete').map(p=>`<button type="button" class="pl-chip ${(g.owners||[]).includes(p.code)?'on':''}" data-own="${p.code}"><span class="task-tag" style="background:${p.bg};color:${p.color}">${memEsc(p.name)}</span></button>`).join('')}</div>
+    <div class="dp-label" style="margin-top:14px">Status</div>
+    <div class="pl-who">${Object.entries(MEM_GOAL_STATUS).map(([k,v])=>`<div class="filter-chip ${st===k?'active':''}" data-st="${k}">${v}</div>`).join('')}</div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <div class="dp-field" style="flex:1"><label class="dp-label" for="g-start">Started</label><input class="dp-input" type="date" id="g-start" value="${g.started_on||''}"></div>
+      <div class="dp-field" style="flex:1"><label class="dp-label" for="g-done">Achieved</label><input class="dp-input" type="date" id="g-done" value="${g.achieved_on||''}"></div>
+    </div>
+    <div class="dp-label" style="margin-top:14px">Progress notes</div>
+    <div class="mem-comment-add">
+      <textarea class="dp-textarea" id="mc-body" style="min-height:44px" placeholder="e.g. passed grade 1, first full conversation"></textarea>
+      <button class="qa-btn" onclick="memPostComment(${id},this)">Post</button>
+    </div>
+    <div id="mc-list">${comments.map(memCommentHtml).join('')||'<div class="mem-muted">No notes yet.</div>'}</div>
+  </div>`;
+  wrap.addEventListener('click',e=>{if(e.target===wrap)wrap.remove();});
+  document.body.appendChild(wrap);
+  wrap.querySelectorAll('[data-own]').forEach(b=>b.onclick=()=>{
+    b.classList.toggle('on');
+    memGoalPatch(g,{owners:[...wrap.querySelectorAll('[data-own].on')].map(x=>x.dataset.own)});});
+  wrap.querySelectorAll('[data-st]').forEach(c=>c.onclick=()=>{
+    wrap.querySelectorAll('[data-st]').forEach(x=>x.classList.toggle('active',x===c));
+    const v=c.dataset.st,patch={goal_status:v};
+    if(v==='active'&&!g.started_on){patch.started_on=tdStr();wrap.querySelector('#g-start').value=patch.started_on;}
+    if(v==='achieved'&&!g.achieved_on){patch.achieved_on=tdStr();wrap.querySelector('#g-done').value=patch.achieved_on;}
+    memGoalPatch(g,patch);});
+  wrap.querySelector('#g-start').onchange=e=>memGoalPatch(g,{started_on:e.target.value||null});
+  wrap.querySelector('#g-done').onchange=e=>memGoalPatch(g,{achieved_on:e.target.value||null});
+}
+async function openGoalAdd(){
+  const r=await promptSheet({title:'New long-term goal',subtitle:'Something that takes months or years, like an instrument or a qualification.',
+    fields:[{name:'name',label:'Goal',required:true,placeholder:'e.g. Learn to swim 1 km'},{name:'notes',label:'Notes',placeholder:'Optional'}],confirmLabel:'Add'});
+  if(!r)return;
+  const n=Math.max(0,...memGoals.map(g=>parseInt((g.code||'').slice(1),10)).filter(x=>!isNaN(x)))+1;
+  try{
+    const [row]=await api('bravochore_memories','POST',{code:'G'+String(n).padStart(3,'0'),kind:'goal',name:r.name,notes:r.notes||null,
+      sort_order:(memGoals.length+1)*10,goal_status:'not_started',owners:[],origin:'added_on_the_fly',created_by:CU||null});
+    memGoals.push(row);renderMemList();badge('ok','✓ Added');
+  }catch(_e){badge('er','⚠ Not added');}
 }
 
 // ---------------------------------------------------------------- tick / visits
@@ -362,6 +446,29 @@ function memToggleWho(btn){
 }
 function memScorePicked(sel){if(sel.value)sel.closest('.mem-person').classList.add('on');}
 
+// Age / height limits researched from operators' own sites (memory-research).
+function memAgeHtml(m){
+  if(!m.age_checked&&m.min_age==null)return '';
+  const lim=[m.min_age!=null?`Ages ${m.min_age}+`:'',m.min_height_cm?`${m.min_height_cm}cm min height`:''].filter(Boolean).join(' · ');
+  const head=m.age_checked==='unconfirmed'?'Age limit not confirmed':lim||'Any age';
+  const src=m.age_source?` <a href="${memEsc(m.age_source)}" target="_blank" rel="noopener" class="mem-src">source</a>`:'';
+  return `<div class="mem-age ${m.age_checked==='unconfirmed'?'unc':''}"><b>👶 ${memEsc(head)}</b>${m.age_note?`<div>${memEsc(m.age_note)}${src}</div>`:src}</div>`;
+}
+// Research a new item's age/height rules in the background (web search).
+async function memResearchAge(row){
+  try{
+    const r=await fetch(`${SB}/functions/v1/memory-research`,{method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SK,'Authorization':await bcBearer()},
+      body:JSON.stringify({items:[{code:row.code,name:row.name,where:row.where_text||''}]})});
+    const x=((await r.json()).results||[])[0];if(!x)return;
+    const age=x.min_age===0?null:x.min_age??null,h=x.min_height_cm??null;
+    const patch=x.confident?{min_age:age,min_height_cm:h,age_note:(x.note||'').slice(0,160),age_source:x.source||null,age_checked:(age!=null||h)?'researched':'no_limit'}
+      :{age_note:(x.note||'Check with the operator').slice(0,160),age_source:x.source||null,age_checked:'unconfirmed'};
+    Object.assign(row,patch);
+    await api('bravochore_memories','PATCH',patch,`?id=eq.${row.id}`);
+  }catch(_e){}
+}
+
 // Favourites: things worth repeating. The planner includes them even when done.
 async function memToggleFav(id,btn){
   const m=memItems.find(x=>x.id===id);if(!m)return;
@@ -391,7 +498,6 @@ async function openMemory(id){
   if(m.drive_min)facts.push(`${m.drive_min} min drive`);
   if(m.fly_note)facts.push(memEsc(m.fly_note));
   if(m.distance_note)facts.push(memEsc(m.distance_note));
-  if(m.min_age!=null)facts.push(`age ${m.min_age}+`);
   const warns=[];
   if(m.status==='unverified')warns.push('Unverified. Facts not checked yet.');
   if(m.valid_until)warns.push(`Time-limited: ends ${memFmtY(m.valid_until)}.`);
@@ -435,6 +541,7 @@ async function openMemory(id){
       <button class="qa-btn mem-maps mem-fav ${m.repeat_ok?'on':''}" onclick="memToggleFav(${m.id},this)" aria-pressed="${!!m.repeat_ok}">${m.repeat_ok?'♥ Favourite':'♡ We\'d do it again'}</button>
     </div>
     ${warns.length?`<div class="mem-warn">${warns.join('<br>')}</div>`:''}
+    ${memAgeHtml(m)}
     ${(m.kid_facts||[]).length?`<div class="dp-label" style="margin-top:14px">For the kids</div><ul class="mem-kidfacts">${m.kid_facts.map(f=>`<li>${memEsc(f)}</li>`).join('')}</ul>`:''}
     ${m.notes||m.status_note?`<div class="mem-muted" style="margin-top:8px">${memEsc([m.notes,m.status_note].filter(Boolean).join(' '))}</div>`:''}
 
@@ -538,7 +645,7 @@ async function memInsert({name,where,group,sort,place}){
   try{
     const [row]=await api('bravochore_memories','POST',rec);
     memItems.push(row);memItems.sort((a,b)=>a.sort_order-b.sort_order);
-    badge('ok','✓ Added');return row;
+    badge('ok','✓ Added');memResearchAge(row);return row;
   }catch(_e){badge('er','⚠ Not added');return null;}
 }
 function memAfterInsert(row){
