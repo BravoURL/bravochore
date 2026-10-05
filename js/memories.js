@@ -525,6 +525,24 @@ async function memFindPlace(text){
       where:[loc&&loc.longText,st&&st.shortText].filter(Boolean).join(', ')||p.formattedAddress||''};
   }catch(_e){return null;}
 }
+// The model sometimes chats first and then writes the JSON. Find the JSON
+// object by brace-matching; if there isn't a usable one, treat the text as a
+// plain reply so code never shows in the chat.
+function memParseAI(raw){
+  const t=String(raw||'').replace(/```json|```/g,'');
+  let i=t.indexOf('{"action"');if(i<0)i=t.indexOf('{');
+  if(i>=0){
+    let depth=0,inStr=false,esc=false;
+    for(let k=i;k<t.length;k++){
+      const c=t[k];
+      if(inStr){if(esc)esc=false;else if(c==='\\')esc=true;else if(c==='"')inStr=false;continue;}
+      if(c==='"')inStr=true;else if(c==='{')depth++;
+      else if(c==='}'&&--depth===0){try{const o=JSON.parse(t.slice(i,k+1));if(!o.reply)o.reply=t.slice(0,i).trim();return o;}catch(_e){}break;}
+    }
+  }
+  const before=(i>=0?t.slice(0,i):t).trim();
+  return before?{action:'chat',reply:before}:null;
+}
 async function memHandleBB(msg){
   try{await memEnsureLoaded();}catch(_e){bbMsg("I can't reach Memories right now. Try again in a sec.",'from-bb');return;}
   const sys=`You are Blackbird inside BravoChore, handling the family Memories list (outings to tick off together). User: ${CUN}. Family: Brent (BW), Bernadette (BJ), kids LW, GW, VW. Home: Swan View, Perth WA. Today: ${tdStr()}.
@@ -532,7 +550,7 @@ ${MEM_RULES}
 THE LIST (code name, [done] if ticked):
 ${memListForAI()}
 
-Decide what they want and reply ONLY with JSON, no markdown:
+Decide what they want and reply with ONLY the JSON object below: no text before or after it, no markdown:
 {"action":"add"|"tick"|"chat","name":"short name for a NEW item or null","search":"what to look up on Google Maps for a NEW item, e.g. 'Bennett Brook Railway Whiteman Park' or null","code":"existing item code for tick, or the existing match if they try to add something already listed, else null","reply":"one or two warm, brief sentences. For add or tick, nothing is saved yet: they confirm with a button, so phrase it as an offer (e.g. 'Want me to add it?'), never 'Added'. Never show item codes like M012 in the reply; use names."}
 - add: a new finishable outing not already on the list. If it's already listed, use action "chat", put its code in "code" and say so.
 - tick: they did an existing item; put its code in "code".
@@ -540,12 +558,10 @@ Decide what they want and reply ONLY with JSON, no markdown:
   let p=null,raw='';
   try{
     const res=await fetch(BB_PROXY,{method:'POST',headers:{'Content-Type':'application/json','apikey':SK,'Authorization':await bcBearer()},
-      body:JSON.stringify({model:BB_MODEL,max_tokens:500,system:sys,messages:[...bbHistory.slice(-6),{role:'user',content:msg}]})});
+      body:JSON.stringify({model:BB_MODEL,max_tokens:700,system:sys,messages:[...bbHistory.slice(-6),{role:'user',content:msg}]})});
     const data=await res.json();
     raw=data.content?.find(c=>c.type==='text')?.text||'';
-    // The model sometimes writes a sentence before the JSON; take the {...} block.
-    const a=raw.indexOf('{'),z=raw.lastIndexOf('}');
-    p=JSON.parse(a>=0&&z>a?raw.slice(a,z+1):raw);
+    p=memParseAI(raw);
   }catch(_e){}
   bbHistory.push({role:'user',content:msg});
   if(!p){bbMsg(raw||"Connection issue. Try again.",'from-bb');return;}
