@@ -44,6 +44,11 @@ function plOpen(pre){
     <div class="dp-field"><label class="dp-label" for="pl-date" id="pl-date-lbl">${pre.trip?'Leave on':'Day'}</label><input class="dp-input" type="date" id="pl-date" value="${pre.date||plNextSat()}"></div>
     <div class="dp-field" id="pl-areabits" style="display:${pre.trip?'none':'block'}"><label class="dp-label" for="pl-area">Where</label>
       <select class="dp-select" id="pl-area"><option value="">Near home</option>${Object.keys(MEM_AREAS).filter(g=>!['interstate','activities-perth','water','make-and-investigate'].includes(g)).map(g=>`<option value="${g}" ${pre.area===g?'selected':''}>Around ${plEsc(memGroupLabel(g))}</option>`).join('')}</select></div>
+    <div class="dp-field" id="pl-pickbits" style="display:${pre.trip?'none':'block'}"><label class="dp-label" for="pl-pick-q">Your stops <span class="mem-sub">(optional)</span></label>
+      <div class="pl-picked" id="pl-picked"></div>
+      <input class="dp-input" id="pl-pick-q" autocomplete="off" placeholder="Type to pick, e.g. North Ledge">
+      <div class="mem-sugg" id="pl-pick-sugg"></div>
+      <div class="mem-sub" id="pl-pick-hint">Leave empty and I'll suggest plans. Pick stops and I'll just build yours.</div></div>
     <div style="display:${pre.trip?'none':'flex'};gap:8px" id="pl-times">
       <div class="dp-field" style="flex:1"><label class="dp-label" for="pl-from">From</label><input class="dp-input" type="time" id="pl-from" value="${pre.from||'12:00'}"></div>
       <div class="dp-field" style="flex:1"><label class="dp-label" for="pl-to">Home by</label><input class="dp-input" type="time" id="pl-to" value="${pre.to||'17:00'}"></div>
@@ -59,6 +64,26 @@ function plOpen(pre){
   wrap.addEventListener('click',e=>{if(e.target===wrap)close();});
   wrap.querySelector('#pl-x').onclick=close;
   wrap.querySelectorAll('.pl-chip').forEach(c=>c.onclick=()=>{c.classList.toggle('on');c.setAttribute('aria-pressed',c.classList.contains('on'));});
+  // Hand-picked stops. Items without a place (e.g. Open fire barbecue) happen
+  // at the stop before them.
+  let picks=(pre.picks||[]).slice();
+  const go=wrap.querySelector('#pl-go');
+  const drawPicks=()=>{
+    wrap.querySelector('#pl-picked').innerHTML=picks.map((m,i)=>`<span class="pl-pick"><span class="mem-num">${i+1}</span> ${plEsc(m.name)}${m.lat==null?' <span class="mem-sub">(no place)</span>':''}<button type="button" data-rm="${i}" aria-label="Remove ${plEsc(m.name)}">✕</button></span>`).join('');
+    wrap.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{picks.splice(+b.dataset.rm,1);drawPicks();});
+    if(mode!=='trip')go.textContent=picks.length?'Build my plan':'Plan it';
+  };
+  const pq=wrap.querySelector('#pl-pick-q'),ps=wrap.querySelector('#pl-pick-sugg');
+  pq.addEventListener('input',()=>{
+    const t=memNorm(pq.value);if(t.length<2){ps.innerHTML='';return;}
+    const hits=memItems.filter(m=>!picks.some(p=>p.code===m.code)&&(memNorm(m.name).includes(t)||memNorm(m.where_text||'').includes(t))).slice(0,6);
+    ps.innerHTML=hits.map(m=>`<button type="button" class="mem-sugg-row" data-code="${m.code}"><span class="mem-sugg-main">${plEsc(m.name)}</span><span class="mem-sugg-sec">${plEsc(m.where_text||'No set place')}</span></button>`).join('')
+      +`<button type="button" class="mem-sugg-row typed" data-free="1"><span class="mem-sugg-main">Add "${plEsc(pq.value.trim())}" as a stop</span><span class="mem-sugg-sec">Not on your list, no place</span></button>`;
+    ps.querySelectorAll('.mem-sugg-row').forEach(b=>b.onclick=()=>{
+      picks.push(b.dataset.free?{code:'F'+(picks.length+1),name:pq.value.trim(),lat:null,lon:null,free:true}:memItems.find(m=>m.code===b.dataset.code));
+      pq.value='';ps.innerHTML='';drawPicks();pq.focus();
+    });
+  });
   let mode=pre.trip?'trip':'day';
   wrap.querySelectorAll('[data-plmode]').forEach(c=>c.onclick=()=>{
     mode=c.dataset.plmode;
@@ -67,9 +92,12 @@ function plOpen(pre){
     wrap.querySelector('#pl-tripbits').style.display=trip?'block':'none';
     wrap.querySelector('#pl-times').style.display=trip?'none':'flex';
     wrap.querySelector('#pl-areabits').style.display=trip?'none':'block';
+    wrap.querySelector('#pl-pickbits').style.display=trip?'none':'block';
+    go.textContent=trip?'Plan it':picks.length?'Build my plan':'Plan it';
     wrap.querySelector('#pl-date-lbl').textContent=trip?'Leave on':'Day';
     wrap.querySelector('#pl-sub').textContent=trip?'Day-by-day route, where to stay, and links to book.':"Weather, drive times and what fits. Nothing's booked or saved until you say.";
   });
+  drawPicks();
   wrap.querySelector('#pl-go').onclick=async e=>{
     const opts={date:wrap.querySelector('#pl-date').value,from:wrap.querySelector('#pl-from').value,to:wrap.querySelector('#pl-to').value,
       who:[...wrap.querySelectorAll('.pl-chip.on')].map(c=>c.dataset.code),vibe:wrap.querySelector('#pl-vibe').value.trim(),
@@ -81,16 +109,18 @@ function plOpen(pre){
       opts.nights=Math.max(1,Math.min(14,parseInt(wrap.querySelector('#pl-nights').value,10)||2));
       opts.travel=wrap.querySelector('#pl-travel').value;
     }else if(!opts.date||!opts.from||!opts.to||plMin(opts.to)-plMin(opts.from)<60){chirp('Give it at least an hour.');return;}
+    if(mode!=='trip'&&picks.length)opts.picks=picks;
     const b=e.currentTarget;b.disabled=true;b.textContent=mode==='trip'?'Planning the trip… (about 30 seconds)':'Checking weather and drive times…';
-    try{const res=mode==='trip'?await trRun(opts):await plRun(opts);close();mode==='trip'?trShow(res):plShow(res);}
-    catch(err){b.disabled=false;b.textContent='Plan it';chirp("Couldn't build a plan just now. Try again.");console.warn(err);}
+    try{const res=mode==='trip'?await trRun(opts):opts.picks?await plManual(opts):await plRun(opts);close();mode==='trip'?trShow(res):plShow(res);}
+    catch(err){b.disabled=false;b.textContent=opts.picks?'Build my plan':'Plan it';chirp("Couldn't build a plan just now. Try again.");console.warn(err);}
   };
 }
 
 // ---------------------------------------------------------------- engine
 async function plWeatherFor(date){
   const wx=await homeWeather();
-  const d=wx&&wx.days.find(x=>x.date===date);
+  if(!wx||!wx.days)return {text:'Forecast unavailable right now. Plan for typical weather.',day:null};
+  const d=wx.days.find(x=>x.date===date);
   if(!d)return {text:'No forecast yet (more than 10 days out). Plan for typical weather.',day:null};
   return {text:`${d.desc}, ${d.min}-${d.max}°C, ${d.rain??'?'}% chance of rain${isNaN(d.wind)?'':`, wind ${d.wind} km/h`}${d.uv!=null?`, UV ${d.uv}`:''}`,day:d};
 }
@@ -234,6 +264,41 @@ Rules:
   plLast={opts,weather:wx.text,wxDay:wx.day,weatherTake:ai.weather_take||'',real,plans,wildcard:ai.wildcard||null,day};
   return plLast;
 }
+// Your own stops: no AI. Real drive times, shortest order, then the time on
+// site is stretched (or squeezed) so you're home about when you said.
+async function plManual(opts){
+  await memEnsureLoaded();
+  const home={code:'HOME',name:'Home',lat:MEM_HOME.lat,lon:MEM_HOME.lon};
+  let anchor=null;
+  const stops=opts.picks.map((m,i)=>{
+    const s={code:m.code||('F'+i),name:m.name,id:m.free?null:m.id,lat:m.lat,lon:m.lon,google_place_id:m.google_place_id||null,free:!!m.free||m.lat==null};
+    if(m.lat!=null){anchor=s;}else{s.at=anchor?anchor.name:null;}
+    return s;
+  });
+  // No-place stops sit with the stop before them (or the first real one).
+  const firstReal=stops.find(s=>s.lat!=null);
+  stops.forEach(s=>{if(s.lat==null){const a=stops.find(x=>x.name===s.at)||firstReal;if(a){s.lat=a.lat;s.lon=a.lon;s.at=a.name;}}});
+  if(!stops.some(s=>s.lat!=null))throw new Error('no located stops');
+  const located=stops.filter(s=>s.lat!=null).slice(0,6);
+  const [{M,real},wx]=await Promise.all([plMatrix([home,...located]),plWeatherFor(opts.date)]);
+  // Same spot = no drive.
+  located.forEach((a,i)=>located.forEach((b,j)=>{if(a.lat===b.lat&&a.lon===b.lon)M[i+1][j+1]=0;}));
+  const pm={};located.forEach(s=>{const m=s.id?memItems.find(x=>x.id===s.id):null;pm[s.code]=(m&&m.est_minutes)||90;});
+  const p={title:'Your plan',why:'',codes:located.map(s=>s.code)};
+  const loose={...opts,to:'23:59'}; // never drop a stop you picked
+  let b=plBuild(p,located,M,pm,loose);
+  const end=plMin(opts.to);
+  for(let k=0;k<2&&b;k++){
+    const gap=end-b.homeAt,total=located.reduce((a,s)=>a+pm[s.code],0);
+    if(Math.abs(gap)<=20)break;
+    located.forEach(s=>{pm[s.code]=Math.max(20,Math.round(pm[s.code]+gap*pm[s.code]/total));});
+    b=plBuild(p,located,M,pm,loose);
+  }
+  b.fits=b.homeAt<=end+10;b.spare=end-b.homeAt;
+  const day=new Date(opts.date+'T00:00:00').toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'});
+  plLast={opts,weather:wx.text,wxDay:wx.day,weatherTake:'',real,plans:[b],wildcard:null,day,manual:true};
+  return plLast;
+}
 // Best visiting order (shortest total drive, home -> stops -> home), then
 // trim from the end until the timeline fits the window.
 function plBuild(p,cands,M,mins,opts){
@@ -244,7 +309,7 @@ function plBuild(p,cands,M,mins,opts){
   let order=perms(idx).reduce((best,o)=>!best||cost(o)<cost(best)?o:best,null);
   const start=plMin(opts.from),end=plMin(opts.to);
   const timeline=o=>{let t=start,prev=-1;const stops=o.map(i=>{const drive=M[prev+1][i+1];t+=drive;const arrive=t;const stay=mins[cands[i].code]||60;t+=stay;prev=i;
-      return {code:cands[i].code,name:cands[i].name,id:cands[i].id,lat:cands[i].lat,lon:cands[i].lon,place:cands[i].google_place_id||null,extra:!!cands[i].extra,search:cands[i].search||null,drive,arrive,leave:t};});
+      return {code:cands[i].code,name:cands[i].name,id:cands[i].id,lat:cands[i].lat,lon:cands[i].lon,place:cands[i].google_place_id||null,extra:!!cands[i].extra,free:!!cands[i].free,at:cands[i].at||null,search:cands[i].search||null,drive,arrive,leave:t};});
     const back=M[prev+1][0];return {stops,homeAt:t+back,back};};
   let tl=timeline(order);
   while(tl.homeAt>end&&order.length>1){order=order.slice(0,-1);tl=timeline(order);}
@@ -265,14 +330,14 @@ function plCacheFacts(cands,mins,indoor){
 function plMapsUrl(stops){
   const home=`${MEM_HOME.lat},${MEM_HOME.lon}`;
   const q=new URLSearchParams({api:'1',origin:home,destination:home,travelmode:'driving'});
-  q.set('waypoints',stops.map(s=>`${s.lat},${s.lon}`).join('|'));
+  q.set('waypoints',stops.filter(s=>!s.free).map(s=>`${s.lat},${s.lon}`).join('|'));
   return 'https://www.google.com/maps/dir/?'+q.toString();
 }
 
 // ---------------------------------------------------------------- results
 function plWxCard(res){
   const d=res.wxDay;
-  if(!d)return `<div class="pl-wx"><div class="pl-wx-main"><span class="pl-wx-ic">🌤</span><div><b>No forecast yet</b><div class="mem-sub">More than 10 days out.</div></div></div></div>`;
+  if(!d)return `<div class="pl-wx"><div class="pl-wx-main"><span class="pl-wx-ic">🌤</span><div><b>No forecast</b><div class="mem-sub">${/unavailable/.test(res.weather||'')?'Couldn\'t get it just now.':'More than 10 days out.'}</div></div></div></div>`;
   return `<div class="pl-wx"><div class="pl-wx-main">${d.icon?`<img class="pl-wx-img" src="${d.icon}.svg" alt="">`:''}
       <div><b>${plEsc(d.desc)}</b><div class="pl-wx-nums"><span class="pl-wx-hi">${d.max}°</span><span class="mem-sub"> / ${d.min}°</span>
       <span class="mem-sub"> · 💧 ${d.rain??'?'}%${isNaN(d.wind)?'':` · 💨 ${d.wind} km/h`}${d.uv!=null?` · UV ${d.uv}`:''}</span></div></div></div>
@@ -283,12 +348,12 @@ function plShow(res,savedId){
   document.getElementById('pl-res')?.remove();
   const wrap=document.createElement('div');wrap.className='mem-overlay';wrap.id='pl-res';
   const plansHtml=res.plans.map((p,i)=>`<div class="pl-card">
-      <div class="pl-card-hd"><div><div class="pl-title">${plEsc(p.title)}</div><div class="mem-sub">${p.stops.length} stop${p.stops.length>1?'s':''} · ${p.driveTotal} min driving · home ${plHHMM(p.homeAt)}${p.spare>90?` · <span class="home-today">${Math.round(p.spare/6)/10}h spare</span>`:''}</div></div></div>
+      <div class="pl-card-hd"><div><div class="pl-title">${plEsc(p.title)}</div><div class="mem-sub">${p.stops.length} stop${p.stops.length>1?'s':''} · ${p.driveTotal} min driving · home ${plHHMM(p.homeAt)}${p.spare>90?` · <span class="home-today">${Math.round(p.spare/6)/10}h spare</span>`:''}${p.spare<-10?` · <b>${-p.spare} min over</b>`:''}</div></div></div>
       ${p.why?`<div class="pl-why">${plEsc(p.why)}</div>`:''}
       <div class="pl-tl">
         <div class="pl-tl-row pl-home"><span class="pl-t">${plHHMM(plMin(res.opts.from))}</span><span>Leave home</span></div>
         ${p.stops.map(s=>`<div class="pl-tl-drive">${s.drive<2?'same area':s.drive+' min drive'}</div>
-          <button class="pl-tl-row" onclick="${s.extra?`window.open('https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.search||s.name)}${s.place?'&query_place_id='+s.place:''}','_blank','noopener')`:`openMemory(${s.id})`}"><span class="pl-t">${plHHMM(s.arrive)}</span><span><b>${plEsc(s.name)}</b><span class="mem-sub"> until ${plHHMM(s.leave)}${s.extra?' · not on your list':s.added?' · added to fill your day':''}</span></span></button>`).join('')}
+          <button class="pl-tl-row" onclick="${s.free?'':s.extra?`window.open('https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.search||s.name)}${s.place?'&query_place_id='+s.place:''}','_blank','noopener')`:`openMemory(${s.id})`}"><span class="pl-t">${plHHMM(s.arrive)}</span><span><b>${plEsc(s.name)}</b><span class="mem-sub"> until ${plHHMM(s.leave)}${s.free&&s.at?' · at '+plEsc(s.at):''}${s.extra?' · not on your list':s.added?' · added to fill your day':''}</span></span></button>`).join('')}
         <div class="pl-tl-drive">${p.back} min drive</div>
         <div class="pl-tl-row pl-home"><span class="pl-t">${plHHMM(p.homeAt)}</span><span>Home</span></div>
       </div>
@@ -306,7 +371,7 @@ function plShow(res,savedId){
     ${wc&&wc.title?`<div class="pl-wild"><b>${plEsc(wc.title)}</b><div>${plEsc(wc.why||'')}</div>${wc.search?`<a class="mem-link" style="display:inline;margin:0;min-height:0;padding:0;text-decoration:underline" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(wc.search)}" target="_blank" rel="noopener">Open in Maps</a>`:''}</div>`:''}
     ${plansHtml||'<div class="mem-muted">Nothing fits that window. Try a longer day.</div>'}
     <div class="mem-credit" style="margin-top:10px">${res.real?'Drive times from Google, normal traffic.':'Drive times are estimates (switch on Google Routes for exact times).'} Opening hours not checked yet — tap a stop to open it in Maps.</div>
-    ${savedId?`<button class="mem-link danger" id="pl-del">Delete this plan</button>`:`<button class="mem-link" onclick="document.getElementById('pl-res').remove();plOpen(plLast&&plLast.opts)">Change the day or times</button>`}
+    ${savedId?`<button class="mem-link danger" id="pl-del">Delete this plan</button>`:`<button class="mem-link" onclick="document.getElementById('pl-res').remove();plOpen(plLast&&plLast.opts)">${res.manual?'Change stops or times':'Change the day or times'}</button>`}
   </div>`;
   wrap.addEventListener('click',e=>{if(e.target===wrap)wrap.remove();});
   document.body.appendChild(wrap);

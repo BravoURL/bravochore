@@ -181,7 +181,55 @@ function setMemView(v){
 function memUpdateCount(){
   const n=memItems.filter(m=>memIsDone(m.id)).length;
   const el=document.getElementById('mem-count');
-  if(el)el.textContent=`${n} / ${memItems.length}`;
+  if(el)el.textContent=`${n} / ${memItems.length} · ${memPct(n,memItems.length)}%`;
+}
+// ---------------------------------------------------------------- scoreboard
+// Family % plus a race between everyone: each memory you were at counts once,
+// so the leaderboard is "% of the list you've done". Who-was-there comes from
+// each visit's "who" (untick someone in the visit sheet and it doesn't count).
+const MEM_BADGES=[1,5,10,25,50,100,150];
+function memPct(n,of){if(!of||!n)return 0;const p=n/of*100;return p<1?Math.round(p*10)/10:Math.round(p);}
+function memStats(){
+  const total=memItems.length,famDone=memItems.filter(m=>memIsDone(m.id)).length;
+  const monthStart=tdStr().slice(0,7);
+  const crew=[...people.filter(p=>p.code!=='Pete'),...(typeof MEM_KIDS!=='undefined'?MEM_KIDS:[]).filter(k=>!people.some(p=>p.code===k.code))];
+  const ppl=crew.map(p=>{
+    const mine=memDone.filter(d=>(d.who&&d.who.length?d.who:memDefaultWho()).includes(p.code));
+    const items=new Set(mine.map(d=>d.memory_id));
+    const month=new Set(mine.filter(d=>(d.done_on||'').startsWith(monthStart)).map(d=>d.memory_id));
+    return {p,n:items.size,visits:mine.length,month:month.size,pct:memPct(items.size,total)};
+  }).sort((a,b)=>b.n-a.n||b.visits-a.visits||a.p.name.localeCompare(b.p.name));
+  return {total,famDone,famPct:memPct(famDone,total),ppl};
+}
+function memNextBadge(n){return MEM_BADGES.find(b=>b>n)||null;}
+function memScoreHtml(){
+  const st=memStats();if(!st.total)return '';
+  let open=true;try{open=localStorage.getItem('bc_mem_score')!=='0';}catch(_e){}
+  const medal=['🥇','🥈','🥉'];
+  let rank=0,prev=null;
+  const rows=st.ppl.map((x,i)=>{if(prev===null||x.n!==prev){rank=i;prev=x.n;}
+    const nb=memNextBadge(x.n);
+    return `<div class="mem-lb-row${x.p.code===CU?' me':''}">
+      <span class="mem-lb-medal">${x.n&&rank<3?medal[rank]:''}</span>
+      <span class="task-tag" style="background:${x.p.bg};color:${x.p.color}">${memEsc(x.p.name)}</span>
+      <span class="mem-lb-bar"><span style="width:${x.n?Math.max(3,Math.min(100,x.pct)):0}%;background:${x.p.color}"></span></span>
+      <span class="mem-lb-n mem-num"><b>${x.n}</b> · ${x.pct}%</span>
+      <span class="mem-lb-sub">${x.month?`+${x.month} this month`:nb?`${nb-x.n} to ${nb}`:'🏆'}</span>
+    </div>`;}).join('');
+  const lead=st.ppl[0]&&st.ppl[0].n&&(!st.ppl[1]||st.ppl[0].n>st.ppl[1].n)?`${memEsc(st.ppl[0].p.name)} leads`:st.ppl[0]&&st.ppl[0].n?'Tied at the top':'Race is on';
+  return `<div class="mem-sb">
+    <button class="mem-sb-hd" onclick="memToggleScore()" aria-expanded="${open}">
+      <span class="mem-sb-pct mem-num">${st.famPct}%</span>
+      <span class="mem-sb-txt"><b>Family: ${st.famDone} of ${st.total}</b><span class="mem-sub">${lead}</span></span>
+      <span class="mem-sb-chev">${open?'▾':'▸'}</span>
+    </button>
+    <div class="home-bar" style="margin-top:8px"><div style="width:${st.famDone?Math.max(1,st.famPct):0}%"></div></div>
+    ${open?`<div class="mem-lb">${rows}</div><div class="mem-sub" style="margin-top:6px">One point per memory you were there for. Untick someone in a visit and it doesn't count for them.</div>`:''}
+  </div>`;
+}
+function memToggleScore(){
+  let open=true;try{open=localStorage.getItem('bc_mem_score')!=='0';localStorage.setItem('bc_mem_score',open?'0':'1');}catch(_e){}
+  renderMemList();
 }
 function renderMemList(){
   memUpdateCount();
@@ -191,12 +239,12 @@ function renderMemList(){
   if(memView==='ideas'){el.innerHTML=memIdeasHtml();return;}
   const list=memItems.filter(m=>(memView==='done'?memIsDone(m.id):!memIsDone(m.id))&&(!memArea||m.trip_group===memArea));
   if(!list.length){
-    el.innerHTML=memView==='done'
+    el.innerHTML=(memArea?'':memScoreHtml())+(memView==='done'
       ?`<div class="empty-state">Nothing ticked${memArea?' in '+memEsc(memGroupLabel(memArea)):''} yet.<br>Tick one off from To do and it lands here.</div>`
-      :'<div class="empty-state">All done. Add the next one with + Add.</div>';
+      :'<div class="empty-state">All done. Add the next one with + Add.</div>');
     return;
   }
-  el.innerHTML=list.map(memRow).join('');
+  el.innerHTML=(memArea?'':memScoreHtml())+list.map(memRow).join('');
 }
 function memRow(m){
   const isDone=memIsDone(m.id);
@@ -724,7 +772,7 @@ function memPlacement(place){
   return near?{group:near.trip_group,sort:memSortAfter(near),near}:{group:null,sort:memSortAfter(null),near:null};
 }
 
-async function openMemAdd(){
+async function openMemAdd(prefill){
   const token=(crypto.randomUUID?crypto.randomUUID():String(Date.now()));
   const groups=[...new Set(memItems.map(m=>m.trip_group).filter(Boolean))];
   let picked=null, timer=null, seq=0;
@@ -800,6 +848,7 @@ async function openMemAdd(){
     },250);
   });
   $('ma-name').addEventListener('input',refreshSave);
+  if(typeof prefill==='string'&&prefill){q.value=prefill;q.dispatchEvent(new Event('input'));}
 
   save.onclick=async()=>{
     const name=(picked?$('ma-name').value:q.value).trim();if(!name)return;
@@ -832,11 +881,22 @@ function memSummaryForAI(){
     .map(d=>{const m=memItems.find(x=>x.id===d.memory_id);return m?`${m.name} (${memFmtY(d.done_on)})`:null;}).filter(Boolean);
   return `\nMEMORIES TAB: the family's hit list of outings, ${done.length}/${memItems.length} done.${recent.length?' Recently: '+recent.join(', ')+'.':''} If they want to add, tick or plan one, tell them to say e.g. "add X to memories" or "we did X today".`;
 }
+// Draft from the last Blackbird add offer, so "pop it open again" or "no
+// location" carry on with it instead of falling out to general chat.
+let memBBDraft=null, memBBAt=0;
 function memIntent(msg){
   if(/\bmemor(y|ies)\b|bucket ?list|hit ?list|family (outing|day out)/i.test(msg))return true;
+  // Follow-ups within 10 minutes of a Memories reply stay in this lane.
+  if(Date.now()-memBBAt<10*60000)return true;
+  // "plan North Ledge and Mundaring Weir this afternoon"
+  if(/\b(plan|itinerary)\b/i.test(msg)&&(/\b(afternoon|morning|today|tomorrow|weekend|saturday|sunday|day out|outing)\b/i.test(msg)||memMentions(msg).length))return true;
   if(!memLoaded||!/\b(we|i|kids)\b.*\b(went|did|visited|been)\b|\btick( off)?\b/i.test(msg))return false;
+  return memMentions(msg).length>0;
+}
+function memMentions(msg){
+  if(!memLoaded)return [];
   const t=memNorm(msg);
-  return memItems.some(m=>{const n=memNorm(m.name);return n.length>=6&&t.includes(n);});
+  return memItems.filter(m=>{const n=memNorm(m.name);return n.length>=6&&t.includes(n);});
 }
 async function memFindPlace(text){
   try{
@@ -873,16 +933,24 @@ function memParseAI(raw){
 }
 async function memHandleBB(msg){
   try{await memEnsureLoaded();}catch(_e){bbMsg("I can't reach Memories right now. Try again in a sec.",'from-bb');return;}
-  const sys=`You are Blackbird inside BravoChore, handling the family Memories list (outings to tick off together). User: ${CUN}. Family: Brent (BW), Bernadette (BJ), kids LW, GW, VW. Home: Swan View, Perth WA. Today: ${tdStr()}.
+  const now=new Date(),hhmm=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  const draft=memBBDraft?`\nPENDING ADD (shown to them, NOT saved yet): name "${memBBDraft.name}", place: ${memBBDraft.place?memBBDraft.place.name+', '+memBBDraft.place.where:'none'}. If they want to see it again, change it, or remove the location, return action "add" with the updated fields.`:'';
+  const sys=`You are Blackbird inside BravoChore, handling the family Memories list (outings to tick off together). User: ${CUN}. Family: Brent (BW), Bernadette (BJ), kids LW, GW, VW. Home: Swan View, Perth WA. Now: ${tdStr()} ${hhmm}.
 ${MEM_RULES}
 THE LIST (code name, [done] if ticked):
-${memListForAI()}
+${memListForAI()}${draft}
 
-Decide what they want and reply with ONLY the JSON object below: no text before or after it, no markdown:
-{"action":"add"|"tick"|"chat","name":"short name for a NEW item or null","search":"what to look up on Google Maps for a NEW item, e.g. 'Bennett Brook Railway Whiteman Park' or null","code":"existing item code for tick, or the existing match if they try to add something already listed, else null","reply":"one or two warm, brief sentences. For add or tick, nothing is saved yet: they confirm with a button, so phrase it as an offer (e.g. 'Want me to add it?'), never 'Added'. Never show item codes like M012 in the reply; use names."}
-- add: a new finishable outing not already on the list. If it's already listed, use action "chat", put its code in "code" and say so.
-- tick: they did an existing item; put its code in "code".
-- chat: questions, suggestions, ideas that break the rules (say why, kindly), anything else.`;
+Reply with ONLY this JSON object, no other text:
+{"action":"add"|"tick"|"plan"|"chat",
+ "name":"short name for a NEW item, or null",
+ "place":"ONLY if they named one specific venue for a new item: Google Maps search text like 'Bennett Brook Railway, Whiteman Park'. null for activities with no fixed venue (open fire barbecue, camping, stargazing, kite flying) or when they said no location. Never guess a venue.",
+ "code":"existing item code for tick, or the existing match if they try to add something already listed, else null",
+ "plan":{"codes":["M002","M001"],"date":"YYYY-MM-DD","from":"HH:MM","to":"HH:MM"} or null,
+ "reply":"short, plain, max 25 words. For add/tick/plan nothing is saved yet: they confirm with a button. Never say 'Added'. Never show codes like M012. Never invent a location."}
+- add: a new finishable outing. Already listed? action "chat", its code in "code", say so.
+- tick: they did an existing item.
+- plan: they want a plan for specific items (list codes in the order they said). "this afternoon" = from the next half hour today to 17:30 unless they say. Things not on the list: leave them out and mention it in reply.
+- chat: anything else. ${BB_STYLE.split('\n').slice(1,3).join(' ')}`;
   let p=null,raw='';
   try{
     const res=await fetch(BB_PROXY,{method:'POST',headers:{'Content-Type':'application/json','apikey':SK,'Authorization':await bcBearer()},
@@ -891,10 +959,11 @@ Decide what they want and reply with ONLY the JSON object below: no text before 
     raw=data.content?.find(c=>c.type==='text')?.text||'';
     p=memParseAI(raw);
   }catch(_e){}
+  memBBAt=Date.now();
   bbHistory.push({role:'user',content:msg});
   if(!p){bbMsg(raw||"Connection issue. Try again.",'from-bb');return;}
-  bbHistory.push({role:'assistant',content:p.reply||''});
   const item=p.code?memItems.find(m=>m.code===p.code):null;
+  bbHistory.push({role:'assistant',content:(p.reply||'')+(p.action==='add'&&p.name?` [Showed an add card: "${p.name}", place: ${p.place||'none'}]`:'')});
 
   if(p.action==='tick'&&item){
     memBBCard(`${memEsc(p.reply||'')}<div class="mem-bb-item">${memThumb(item)}<div><b>${memEsc(item.name)}</b><div class="mem-sub">${memEsc(item.where_text||'')}</div></div></div>`,
@@ -902,13 +971,25 @@ Decide what they want and reply with ONLY the JSON object below: no text before 
       ()=>openMemory(item.id));
     return;
   }
+  if(p.action==='plan'&&p.plan&&Array.isArray(p.plan.codes)){
+    const picks=p.plan.codes.map(c=>memItems.find(m=>m.code===c)).filter(Boolean);
+    if(picks.length){
+      const opts={date:p.plan.date||tdStr(),from:p.plan.from||'13:00',to:p.plan.to||'17:30',who:memDefaultWho(),vibe:'',area:'',picks};
+      memBBCard(`${memEsc(p.reply||'')}<ol class="mem-bb-list">${picks.map(m=>`<li>${memEsc(m.name)}</li>`).join('')}</ol><div class="mem-sub">${memEsc(new Date(opts.date+'T00:00:00').toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'}))}, ${plHHMM(plMin(opts.from))} to ${plHHMM(plMin(opts.to))}</div>`,
+        'Build the plan',async()=>{try{plShow(await plManual(opts));return 'Here it is. Save it to see it on Home.';}catch(_e){return 'Couldn\'t build it just now. Try again.';}},
+        null,{label:'Change it',fn:()=>plOpen(opts)});
+      return;
+    }
+  }
   if(p.action==='add'&&p.name){
-    const place=await memFindPlace(p.search||p.name);
+    const place=p.place?await memFindPlace(p.place):null;
     const dup=memDupOf(place&&place.id,p.name)||(place?memDupOf(null,place.name):null);
-    if(dup){bbMsgHTML(`Already on the list: <b>${memEsc(dup.name)}</b>${memIsDone(dup.id)?' (done)':''}. <button class="mem-link" style="display:inline;margin:0;min-height:0;padding:0 4px;text-decoration:underline" onclick="openMemory(${dup.id})">Open it</button>`,'from-bb');return;}
+    if(dup){memBBDraft=null;bbMsgHTML(`Already on the list: <b>${memEsc(dup.name)}</b>${memIsDone(dup.id)?' (done)':''}. <button class="mem-link" style="display:inline;margin:0;min-height:0;padding:0 4px;text-decoration:underline" onclick="openMemory(${dup.id})">Open it</button>`,'from-bb');return;}
     const pl=memPlacement(place);
-    memBBCard(`${memEsc(p.reply||'')}<div class="mem-bb-item"><div class="mem-thumb"></div><div><b>${memEsc(p.name)}</b><div class="mem-sub">${memEsc(place?place.where:'No place found, saved as typed')}${pl.near?' · next to '+memEsc(pl.near.name):''}</div></div></div>`,
-      'Add to '+MEM_LABEL,async()=>{const row=await memInsert({name:p.name,where:place?place.where:null,group:pl.group,sort:pl.sort,place});if(row){renderMemListIfOpen();return 'Added. Marked unverified until the facts are checked.';}return 'That didn\'t save. Try again.';});
+    memBBDraft={name:p.name,place};
+    memBBCard(`${memEsc(p.reply||'')}<div class="mem-bb-item"><div class="mem-thumb"></div><div><b>${memEsc(p.name)}</b><div class="mem-sub">${place?memEsc(place.where):'No set place'}</div></div></div>`,
+      'Add to '+MEM_LABEL,async()=>{const row=await memInsert({name:p.name,where:place?place.where:null,group:pl.group,sort:pl.sort,place});if(row){memBBDraft=null;renderMemListIfOpen();return 'Added. Open it to add a photo.';}return 'That didn\'t save. Try again.';},
+      null,{label:'Edit first',fn:()=>openMemAdd(p.name)});
     return;
   }
   if(item){bbMsgHTML(`${memEsc(p.reply||'')} <button class="mem-link" style="display:inline;margin:0;min-height:0;padding:0 4px;text-decoration:underline" onclick="openMemory(${item.id})">Open ${memEsc(item.name)}</button>`,'from-bb');return;}
@@ -916,18 +997,20 @@ Decide what they want and reply with ONLY the JSON object below: no text before 
 }
 function renderMemListIfOpen(){if(document.getElementById('view-memories')?.classList.contains('active'))renderMemList();else memUpdateCount();}
 // Confirm card in the Blackbird chat. Nothing saves until they tap the button.
-function memBBCard(html,label,onYes,onOpen){
+function memBBCard(html,label,onYes,onOpen,alt){
   const id='mbb'+Date.now();
-  bbMsgHTML(`<div id="${id}">${html}<div style="display:flex;gap:8px;margin-top:10px">
+  bbMsgHTML(`<div id="${id}">${html}<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
     <button class="btn-ok" style="flex:1" data-yes>${memEsc(label)}</button>
+    ${alt?`<button class="btn-cancel" style="flex:1" data-alt>${memEsc(alt.label)}</button>`:''}
     <button class="btn-cancel" style="flex:1" data-no>No</button></div></div>`,'from-bb');
   const el=document.getElementById(id);
+  if(alt)el.querySelector('[data-alt]').onclick=()=>alt.fn();
   el.querySelector('[data-yes]').onclick=async e=>{
     const b=e.currentTarget;b.disabled=true;b.textContent='Saving…';
-    const msg=await onYes();el.querySelector('[data-no]').remove();b.remove();
+    const msg=await onYes();el.querySelectorAll('[data-no],[data-alt]').forEach(x=>x.remove());b.remove();
     el.insertAdjacentHTML('beforeend',`<div class="mem-sub" style="margin-top:8px">${memEsc(msg)}</div>`);
   };
-  el.querySelector('[data-no]').onclick=()=>{el.querySelectorAll('button').forEach(x=>x.remove());el.insertAdjacentHTML('beforeend','<div class="mem-sub" style="margin-top:8px">No worries, left it.</div>');};
+  el.querySelector('[data-no]').onclick=()=>{memBBDraft=null;el.querySelectorAll('button').forEach(x=>x.remove());el.insertAdjacentHTML('beforeend','<div class="mem-sub" style="margin-top:8px">No worries, left it.</div>');};
   if(onOpen){const im=el.querySelector('.mem-bb-item');if(im){im.style.cursor='pointer';im.onclick=onOpen;}}
 }
 

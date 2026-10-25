@@ -159,6 +159,9 @@ async function homeFillMemories(wx){
       <div class="home-card-hd"><span class="home-label">${homeEsc(MEM_LABEL)}</span><button class="home-link" onclick="bnNav('memories')">${done.length} of ${memItems.length} ›</button></div>
       <div class="home-sumline">${lastM?`Last: ${homeEsc(lastM.name)} · ${memFmtY(lastV.done_on)}`:'Nothing ticked yet. Pick a first one.'}</div>
       <div class="home-bar"><div style="width:${done.length?pct:0}%"></div></div>
+      ${(()=>{const st=memStats(),me=st.ppl.find(x=>x.p.code===CU),top=st.ppl[0];if(!top||!top.n)return '';
+        const meTxt=me?(me===top||me.n===top.n?'You\'re in front':`You: ${me.n} · ${top.p.name} leads with ${top.n}`):`${top.p.name} leads with ${top.n}`;
+        return `<button class="home-foot" onclick="bnNav('memories')">🏆 ${homeEsc(meTxt)} <span>›</span></button>`;})()}
       ${memIdeas.length?`<button class="home-foot home-ideas" onclick="bnNav('memories');setTimeout(()=>setMemView('ideas'),50)">✨ ${memIdeas.length} new idea${memIdeas.length>1?'s':''} for you <span>›</span></button>`:''}
       <div id="home-nudge"></div>
       <button class="home-foot" onclick="plOpen()">Got a free day? Plan it <span>›</span></button>

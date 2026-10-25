@@ -39,9 +39,38 @@ function closeBBFullscreen(){
 function toggleBB(){openBBFullscreen();}
 function bbMsg(text,cls){
   const msgs=document.getElementById('bb-msgs');if(!msgs)return;
-  const d=document.createElement('div');d.className='bb-msg '+cls;d.textContent=text;
+  const d=document.createElement('div');d.className='bb-msg '+cls;
+  if(String(cls).includes('from-bb'))d.innerHTML=bbFormat(text);else d.textContent=text;
   msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;
 }
+// Phone-friendly formatting for Blackbird's replies: short paragraphs,
+// "- " dot points, "1. " numbered steps, **bold**. Everything is escaped first.
+function bbFormat(text){
+  const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const inline=s=>esc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/(^|\s)\*(\S[^*]*?)\*(?=\s|$|[.,!?])/g,'$1<i>$2</i>');
+  const lines=String(text||'').replace(/\r/g,'').split('\n');
+  let html='',list=null,para=[];
+  const flushP=()=>{if(para.length){html+=`<p>${para.map(inline).join('<br>')}</p>`;para=[];}};
+  const flushL=()=>{if(list){html+=`<${list.t}>${list.items.map(i=>`<li>${inline(i)}</li>`).join('')}</${list.t}>`;list=null;}};
+  for(let raw of lines){
+    const l=raw.trim();
+    const h=l.match(/^#{1,6}\s+(.*)$/);
+    const ul=l.match(/^[-*•]\s+(.*)$/);
+    const ol=l.match(/^\d+[.)]\s+(.*)$/);
+    if(!l){flushP();flushL();continue;}
+    if(h){flushP();flushL();html+=`<p><b>${inline(h[1].replace(/\*\*/g,''))}</b></p>`;continue;}
+    if(ul||ol){flushP();const t=ul?'ul':'ol';if(!list||list.t!==t){flushL();list={t,items:[]};}list.items.push((ul||ol)[1]);continue;}
+    flushL();para.push(l);
+  }
+  flushP();flushL();
+  return html||esc(text);
+}
+// Shared style rule for every Blackbird reply that's shown as text.
+const BB_STYLE=`HOW TO WRITE (it's read on a phone):
+- Short. Lead with the answer. Usually 1-2 sentences, never more than about 60 words unless they ask for detail.
+- More than two points: use "- " dot points (max 5, a few words each). Steps in order: "1. ", "2. ".
+- No headings, no preamble, no sign-off, no repeating their question back.
+- Never say you can't do something in the app. You CAN add, tick and plan Memories, add tasks and shopping. If unsure, say the exact words to type, e.g. "add open fire barbecue to memories" or "plan North Ledge and Mundaring Weir this afternoon".`;
 function bbMsgEl(el){
   const msgs=document.getElementById('bb-msgs');if(!msgs)return;
   msgs.appendChild(el);msgs.scrollTop=msgs.scrollHeight;
@@ -198,10 +227,11 @@ Rules:
     const sys=`You are Blackbird, the AI inside BravoChore. Warm, direct, genuinely helpful — like a smart friend who knows the house. Brent (BW) and Bernadette (BJ), Perth WA. User: ${CUN}. Conversational tone, not corporate.
 ${taskSummary}
 ${taskCtx}${typeof memSummaryForAI==='function'?memSummaryForAI():''}
-Be direct, warm, practical. 2-4 sentences max. Suggest specific Bunnings Perth or ABI Interiors products where relevant.`;
+Be direct, warm, practical. Suggest specific Bunnings Perth or ABI Interiors products only where relevant.
+${BB_STYLE}`;
     try{
       const res=await fetch(BB_PROXY,{method:'POST',headers:{'Content-Type':'application/json','apikey':SK,'Authorization':(typeof bcBearer==='function'?await bcBearer():'Bearer '+SK)},
-        body:JSON.stringify({thinking:{type:'disabled'},model:BB_MODEL,max_tokens:600,system:sys,messages:[...bbHistory,{role:'user',content:userContent}]})});
+        body:JSON.stringify({thinking:{type:'disabled'},model:BB_MODEL,max_tokens:500,system:sys,messages:[...bbHistory,{role:'user',content:userContent}]})});
       const data=await res.json();
       const reply=data.content?.find(c=>c.type==='text')?.text||"Try again.";
       bbHistory.push({role:'user',content:typeof userContent==='string'?userContent:'[photo + message]'});
