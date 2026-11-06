@@ -91,6 +91,7 @@ document.querySelector('link[rel="manifest"]').href = url;
   <nav class="topnav">
     <div class="brand" onclick="bnNav('dashboard')">Bravo<span style="color:var(--tx);font-weight:400">Chore</span></div>
     <div class="nav-right">
+      <button onclick="srOpen()" title="Search" aria-label="Search" id="search-btn" style="background:none;border:none;cursor:pointer;padding:4px 6px;color:var(--tx2);display:flex;align-items:center;justify-content:center"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
       <button onclick="bnNav('shopping')" title="Shopping" id="shop-btn" style="background:none;border:none;cursor:pointer;padding:4px 6px;color:var(--tx2);display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></button>
       <button onclick="bnNav('shelved')" title="Shelved" id="shelved-btn" style="background:none;border:none;cursor:pointer;padding:4px 6px;color:var(--tx2);display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v4H4z"/><path d="M4 12h16v4H4z"/><path d="M4 20h16v2H4z"/><circle cx="8" cy="6" r="1" fill="currentColor"/><circle cx="8" cy="14" r="1" fill="currentColor"/></svg></button>
       <!-- Reminders bell hidden per BRAND.md "discoverability" review — feature parked
@@ -382,7 +383,7 @@ document.querySelector('link[rel="manifest"]').href = url;
       <div class="seg" role="tablist"><button class="seg-b" onclick="bnNav('calendar')">Calendar</button><button class="seg-b" onclick="bnNav('meals')">Meals</button><button class="seg-b on" onclick="bnNav('events')">Events</button></div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <h2 style="font-family:'Playfair Display',serif;font-size:20px;font-weight:500">Events</h2>
-        <button class="qa-btn accent" style="font-size:11px;padding:7px 12px" onclick="openNewEventSheet()">+ New Event</button>
+        <div style="display:flex;gap:6px"><button class="qa-btn" style="font-size:11px;padding:7px 12px" onclick="gsOpenRegister()">🏠 Guests</button><button class="qa-btn accent" style="font-size:11px;padding:7px 12px" onclick="openNewEventSheet()">+ New Event</button></div>
       </div>
       <p style="font-size:13px;color:var(--tx2);margin-bottom:16px">Deadlines with focus. Assign existing tasks to an event, track progress together, then close it when it's done.</p>
       <div id="events-list"></div>
@@ -876,6 +877,8 @@ document.querySelector('link[rel="manifest"]').href = url;
 <script src="js/calendar.js"></script>
 <script src="js/meals.js"></script>
 <script src="js/bbact.js"></script>
+<script src="js/guests.js"></script>
+<script src="js/search.js"></script>
 <script src="js/wall.js"></script>
 <script src="js/boot.js"></script>
 

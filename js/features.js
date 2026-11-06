@@ -336,6 +336,10 @@ async function toggleShop(id){
   }
 }
 async function removeShop(id){shopping=shopping.filter(x=>x.id!==id);renderShopping();try{await api('bravochore_shopping','DELETE',null,`?id=eq.${id}`);}catch(e){}}
+// Things bought before, suggested as you type (this list + a remembered history).
+function shopHistory(){let h=[];try{h=JSON.parse(localStorage.getItem('bc_shop_hist')||'[]');}catch(_e){}
+  return [...new Set([...h,...(shopping||[]).map(s=>s.name)])].slice(-300);}
+function shopRemember(name){try{const h=JSON.parse(localStorage.getItem('bc_shop_hist')||'[]').filter(x=>x.toLowerCase()!==name.toLowerCase());h.push(name);localStorage.setItem('bc_shop_hist',JSON.stringify(h.slice(-300)));}catch(_e){}}
 function addShopItem(){
   // Build the store dropdown dynamically from the user's configured stores.
   // Falls back to "Other" if the stores list hasn't loaded yet.
@@ -345,7 +349,7 @@ function addShopItem(){
   picker.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;display:flex;align-items:flex-end;justify-content:center';picker.setAttribute('data-picker','1');
   picker.innerHTML=`<div style="background:var(--surf);border-radius:20px 20px 0 0;width:100%;max-width:700px;padding:20px;padding-bottom:max(20px,env(safe-area-inset-bottom))">
     <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:500;margin-bottom:16px">Add shopping item</div>
-    <div class="dp-field"><label class="dp-label">Item</label><input class="dp-input" id="asi-name" placeholder="e.g. Boston ivy" style="margin-bottom:10px"></div>
+    <div class="dp-field"><label class="dp-label">Item</label><input class="dp-input" id="asi-name" placeholder="e.g. Boston ivy" style="margin-bottom:10px" list="asi-hist" autocomplete="off"><datalist id="asi-hist">${shopHistory().map(n=>`<option value="${String(n).replace(/"/g,'&quot;')}">`).join('')}</datalist></div>
     <div class="dp-field"><label class="dp-label">Store</label>
       <select class="dp-select" id="asi-store" style="margin-bottom:10px">
         ${storeOptions}
@@ -368,6 +372,7 @@ async function doAddShopItem(){
   const store=document.getElementById('asi-store')?.value||'Other';
   const note=document.getElementById('asi-note')?.value||'';
   window._shopPicker?.remove();
+  shopRemember(name);
   const ni={id:'si_'+Date.now(),name,store,note,done:false,sort_order:shopping.length+1};
   shopping.push(ni);renderShopping();
   try{await api('bravochore_shopping','POST',[ni]);}catch(e){}

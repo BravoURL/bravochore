@@ -324,7 +324,7 @@ function renderEventPanel(ev){
     <div class="ep-dash">
       <div class="ep-metric"><div class="ep-metric-val">${allDone.length}</div><div class="ep-metric-lbl">Done</div></div>
       <div class="ep-metric"><div class="ep-metric-val">${allEvTasks.length-allDone.length}</div><div class="ep-metric-lbl">To go</div></div>
-      <div class="ep-metric"><div class="ep-metric-val" style="color:${daysLeft<0?'var(--red)':'var(--tx)'}">${daysLeft!==null?(daysLeft<0?Math.abs(daysLeft)+'d over':(daysLeft===0?'Today':daysLeft+'d')):'—'}</div><div class="ep-metric-lbl">Days left</div></div>
+      <div class="ep-metric"><div class="ep-metric-val" style="color:${ev.status==='completed'?'var(--green)':daysLeft<0?'var(--red)':'var(--tx)'}">${ev.status==='completed'?'Done':daysLeft!==null?(daysLeft<0?Math.abs(daysLeft)+'d over':(daysLeft===0?'Today':daysLeft+'d')):'—'}</div><div class="ep-metric-lbl">Days left</div></div>
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;flex-wrap:wrap">
       <span style="font-family:'Playfair Display',serif;font-size:15px;font-weight:500">Tasks</span>
