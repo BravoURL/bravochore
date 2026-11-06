@@ -210,7 +210,7 @@ function eventCard(ev,done=false){
   return `<div class="event-card" onclick="openEventPanel(${ev.id})" style="border-left:4px solid ${color};opacity:${done?.6:1}">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px">
       <div class="event-title">${ev.title}</div>
-      ${daysLeft!==null?`<span class="event-badge" style="background:${overdue?'var(--rl)':'var(--gl)'};color:${overdue?'var(--red)':'var(--gd)'}">${overdue?Math.abs(daysLeft)+'d overdue':daysLeft===0?'Today':daysLeft+'d left'}</span>`:''}
+      ${done||ev.status==='completed'?'<span class="event-badge" style="background:var(--gl);color:var(--gd)">✓ Done</span>':daysLeft!==null?`<span class="event-badge" style="background:${overdue?'var(--rl)':'var(--gl)'};color:${overdue?'var(--red)':'var(--gd)'}">${overdue?Math.abs(daysLeft)+'d overdue':daysLeft===0?'Today':daysLeft+'d left'}</span>`:''}
     </div>
     ${ev.due?`<div class="event-meta"><span>${fmtDate(ev.due)}</span>${ev.description?`<span>·</span><span>${ev.description}</span>`:''}</div>`:''}
     <div class="event-pbar"><div class="event-pfill" style="width:${pct}%;background:${color}"></div></div>

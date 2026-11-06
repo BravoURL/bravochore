@@ -49,7 +49,8 @@ async function renderCalendar(){
   const today=tdStr();
   let body='';
   if(calMode==='agenda'){
-    for(let i=0;i<21;i++){const d=kjAddDays(today,i),items=calItems(d);
+    // Weekly repeats only show for the coming week, so they don't drown the list.
+    for(let i=0;i<21;i++){const d=kjAddDays(today,i),items=calItems(d).filter(x=>i<7||!x.repeat);
       if(!items.length&&i>0)continue;
       body+=`<div class="cal-day"><div class="cal-day-h">${calDayLabel(d)}</div>${items.map(x=>calItemHtml(x)).join('')||'<div class="mem-sub" style="margin:4px 0">Nothing on.</div>'}</div>`;}
   }else{

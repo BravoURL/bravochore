@@ -187,7 +187,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   const tv=document.getElementById('view-tasks');
   if(!dash||!tv)return;
   dash.classList.add('home-v2');
-  const anchor=tv.firstElementChild;
+  // After the Tasks | Routines switch and the title row.
+  const anchor=tv.children[1]||tv.firstElementChild;
   const h2h=document.getElementById('h2h-card'),qa=dash.querySelector('.quick-actions');
   if(qa){
     // Tasks already has Sprint and + Add in its header; drop the duplicates.
