@@ -75,7 +75,7 @@ async function bcCheckVersion(){
     const v=(await r.text()).trim();if(!/^\d{14}$/.test(v))return;
     if(v&&v!==APP_VERSION&&!document.getElementById('bc-update')){
       const b=document.createElement('button');b.id='bc-update';b.className='bc-update';
-      b.textContent='Update available. Tap to refresh';b.onclick=()=>location.reload();
+      b.textContent='Update available. Tap to refresh';b.onclick=()=>bcHardRefresh(b);
       document.body.appendChild(b);
     }
   }catch(e){}
@@ -83,3 +83,18 @@ async function bcCheckVersion(){
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')bcCheckVersion();});
 setInterval(bcCheckVersion,15*60*1000);
 setTimeout(bcCheckVersion,5000);
+
+// A plain reload can reuse the browser's cached copies of the scripts
+// (GitHub Pages caches for 10 minutes), so the update didn't show until the
+// app was closed. Re-fetch every file past the cache first, then reload.
+async function bcHardRefresh(btn){
+  if(btn){btn.textContent='Updating…';btn.disabled=true;}
+  const urls=[location.pathname,'styles.css','manifest.json','version.txt',
+    ...[...document.scripts].map(s=>s.getAttribute('src')).filter(u=>u&&!/^https?:/.test(u))];
+  try{
+    if('caches' in window){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)));}
+    if(navigator.serviceWorker){const rs=await navigator.serviceWorker.getRegistrations();await Promise.all(rs.map(r=>r.unregister()));}
+    await Promise.all(urls.map(u=>fetch(u,{cache:'reload'}).catch(()=>{})));
+  }catch(_e){}
+  location.reload();
+}
