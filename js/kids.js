@@ -20,7 +20,8 @@ function kjAddDays(day,n){const d=new Date(day+'T00:00:00');d.setDate(d.getDate(
 function kjDowOf(day){return new Date(day+'T00:00:00').getDay();}
 // Week runs Monday to Sunday (Sunday is payday).
 function kjWeekStart(day){const w=kjDowOf(day);return kjAddDays(day,-((w+6)%7));}
-function kjMoney(n){n=Math.round((n||0)*100)/100;return '$'+n.toFixed(2);}
+// Whole dollars only (Brent, Nov 2026: no cents for the kids).
+function kjMoney(n){n=Math.round((n||0)*100)/100;return '$'+(Number.isInteger(n)?n:n.toFixed(2));}
 function kjKids(){return people.filter(p=>p.kind==='child'&&p.on_tablet!==false);}
 function kjAge(code){const k=(typeof MEM_KIDS!=='undefined'?MEM_KIDS:[]).find(x=>x.code===code);return k&&typeof memAge==='function'?memAge(code)??k.age_years:null;}
 function kjReprieve(code){const a=kjAge(code);return a!=null&&a<6;}
@@ -339,7 +340,7 @@ async function kjOpenEditor(){
   </div>`;
 }
 function kjEditJob(id){
-  const j=id?kjJobs.find(x=>x.id===id):{kid:kjEdKid,title:'',icon:'⭐',kind:'paid',days:[0,1,2,3,4,5,6],amount:0.5,by_time:null,parent_confirm:false,sort:99};
+  const j=id?kjJobs.find(x=>x.id===id):{kid:kjEdKid,title:'',icon:'⭐',kind:'paid',days:[0,1,2,3,4,5,6],amount:1,by_time:null,parent_confirm:false,sort:99};
   if(!j)return;
   const icons=['🪥','🛁','🛏️','🌅','📖','🍽️','🧽','🐟','🗑️','🪴','👟','🧺','🧸','🐶','🚗','🧹','✏️','⭐'];
   const w=document.createElement('div');w.className='mem-overlay';w.style.zIndex='950';
@@ -354,7 +355,7 @@ function kjEditJob(id){
       <div class="filter-chip ${j.kind==='paid'?'active':''}" data-kind="paid">Paid</div></div></div>
     <div class="dp-field"><label class="dp-label">Days</label><div style="display:flex;gap:4px">${[1,2,3,4,5,6,0].map(d=>`<div class="filter-chip kj-day ${j.days.includes(d)?'active':''}" data-d="${d}">${KJ_DOW_LONG[d].slice(0,3)}</div>`).join('')}</div></div>
     <div style="display:flex;gap:8px">
-      <div class="dp-field" style="flex:1" id="kj-amt-f"><label class="dp-label" for="kj-amt">Pay ($)</label><input class="dp-input" id="kj-amt" type="number" step="0.1" min="0" value="${j.amount}"></div>
+      <div class="dp-field" style="flex:1" id="kj-amt-f"><label class="dp-label" for="kj-amt">Pay ($)</label><input class="dp-input" id="kj-amt" type="number" step="1" min="0" inputmode="numeric" value="${Math.round(j.amount)}"></div>
       <div class="dp-field" style="flex:1"><label class="dp-label" for="kj-by">Countdown to (optional)</label><input class="dp-input" id="kj-by" type="time" value="${j.by_time?j.by_time.slice(0,5):''}"></div>
     </div>
     <label style="display:flex;gap:8px;align-items:center;font-size:14px;margin:4px 0 14px"><input type="checkbox" id="kj-pc" ${j.parent_confirm?'checked':''}> A grown-up ticks this one (bath, bed, wake up)</label>
@@ -375,7 +376,7 @@ function kjEditJob(id){
     const title=w.querySelector('#kj-title').value.trim();if(!title||!days.size)return;
     const by=w.querySelector('#kj-by').value;
     const row={kid:j.kid,title,icon:w.querySelector('#kj-icon').value.trim()||'⭐',kind,days:[...days].sort(),
-      amount:kind==='paid'?Math.max(0,Math.round((+w.querySelector('#kj-amt').value||0)*100)/100):0,
+      amount:kind==='paid'?Math.max(0,Math.round(+w.querySelector('#kj-amt').value||0)):0,
       by_time:by||null,parent_confirm:w.querySelector('#kj-pc').checked,sort:j.sort};
     try{
       if(id){await api('bravochore_kid_jobs','PATCH',row,`?id=eq.${id}`);Object.assign(j,row);}
