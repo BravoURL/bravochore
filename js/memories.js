@@ -205,16 +205,14 @@ function memNextBadge(n){return MEM_BADGES.find(b=>b>n)||null;}
 function memScoreHtml(){
   const st=memStats();if(!st.total)return '';
   let open=true;try{open=localStorage.getItem('bc_mem_score')!=='0';}catch(_e){}
-  const medal=['🥇','🥈','🥉'];
   let rank=0,prev=null;
   const rows=st.ppl.map((x,i)=>{if(prev===null||x.n!==prev){rank=i;prev=x.n;}
     const nb=memNextBadge(x.n);
     return `<div class="mem-lb-row${x.p.code===CU?' me':''}">
-      <span class="mem-lb-medal">${x.n&&rank<3?medal[rank]:''}</span>
       <span class="task-tag" style="background:${x.p.bg};color:${x.p.color}">${memEsc(x.p.name)}</span>
       <span class="mem-lb-bar"><span style="width:${x.n?Math.max(3,Math.min(100,x.pct)):0}%;background:${x.p.color}"></span></span>
       <span class="mem-lb-n mem-num"><b>${x.n}</b> · ${x.pct}%</span>
-      <span class="mem-lb-sub">${x.month?`+${x.month} this month`:nb?`${nb-x.n} to ${nb}`:'🏆'}</span>
+      <span class="mem-lb-sub">${x.month?`+${x.month} this month`:nb?`${nb-x.n} to ${nb}`:'All done'}</span>
     </div>`;}).join('');
   const lead=st.ppl[0]&&st.ppl[0].n&&(!st.ppl[1]||st.ppl[0].n>st.ppl[1].n)?`${memEsc(st.ppl[0].p.name)} leads`:st.ppl[0]&&st.ppl[0].n?'Tied at the top':'Race is on';
   return `<div class="mem-sb">

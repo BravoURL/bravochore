@@ -5,7 +5,7 @@
 // Quick add: Blackbird (haiku) turns plain words into an entry; one tap saves.
 // Table: bravochore_calendar (household RLS). Weekly repeats: repeat='weekly'.
 // ================================================================
-let calRows=[],calPlans=[],calLoaded=false,calMode='agenda',calMonth=null,calPick=null;
+let calRows=[],calPlans=[],calFeedEvents=[],calFeeds=[],calLoaded=false,calMode='agenda',calMonth=null,calPick=null;
 
 async function calLoad(force){
   if(calLoaded&&!force)return;
@@ -15,6 +15,7 @@ async function calLoad(force){
     api('bravochore_memory_plans','GET',null,`?select=id,title,plan_date&plan_date=gte.${from}&order=plan_date`).catch(()=>[]),
     typeof mlLoad==='function'?mlLoad(force).catch(()=>{}):null]);
   calRows=rows||[];calPlans=plans||[];calLoaded=true;
+  calLoadFeeds().catch(()=>{});
 }
 function calWhoTag(code){const p=people.find(x=>x.code===code);if(!p)return '';
   return `<span class="cal-who" style="background:${p.bg};color:${p.color}">${hhEsc(p.avatar||p.code)}</span>`;}
@@ -26,6 +27,7 @@ function calItems(day,kids){
     const on=r.repeat==='weekly'?(kjDowOf(r.day)===w&&day>=r.day):(day>=r.day&&day<=(r.end_day||r.day));
     if(on)out.push({kind:'cal',id:r.id,icon:r.icon||'📌',title:r.title,time:r.time,who:r.who||[],repeat:r.repeat,multi:r.end_day&&r.end_day!==r.day});
   });
+  calFeedEvents.forEach(e=>{if(day>=e.day&&day<=(e.end_day||e.day))out.push({kind:'feed',icon:'💼',title:e.title,time:e.day===day?e.time:null,who:[e.owner]});});
   if(typeof mlFor==='function'&&mlLoaded){const m=mlFor(day,'tea');if(m)out.push({kind:'meal',id:m.id,icon:'🍽️',title:'Tea: '+m.title,time:'17:30:00'});}
   (typeof events!=='undefined'?events:[]).forEach(ev=>{if(ev.due===day&&ev.status!=='completed')out.push({kind:'event',id:ev.id,icon:'🎉',title:ev.title});});
   calPlans.forEach(p=>{if(p.plan_date===day)out.push({kind:'plan',id:p.id,icon:'🗺️',title:p.title});});
@@ -76,7 +78,8 @@ async function renderCalendar(){
       <div class="filter-chip ${calMode==='agenda'?'active':''}" onclick="calMode='agenda';renderCalendar()">Agenda</div>
       <div class="filter-chip ${calMode==='month'?'active':''}" onclick="calMode='month';renderCalendar()">Month</div>
     </div>
-    ${body}`;
+    ${body}
+    ${calFeedsHtml()}`;
   const q=el.querySelector('#cal-q');
   el.querySelector('#cal-add').onclick=()=>calQuickAdd(q.value);
   q.addEventListener('keydown',e=>{if(e.key==='Enter')calQuickAdd(q.value);});
@@ -173,4 +176,57 @@ function calKidView(){
     html+=`<div class="cal-kday"><div class="cal-kday-h">${i===0?'Today':i===1?'Tomorrow':KJ_DOW_LONG[kjDowOf(d)]}</div>
       ${items.map(x=>`<div class="cal-kitem"><span>${hhEsc(x.icon)}</span><b>${hhEsc(x.title)}</b>${x.time?`<i>${calFmtTime(x.time)}</i>`:''}</div>`).join('')||'<div class="cal-kitem none">Nothing special</div>'}</div>`;}
   return html;
+}
+
+// ---------------------------------------------------------------- Outlook calendars
+// Published Outlook calendars (ICS links), read server-side by the cal-feed
+// function so the link never needs CORS. Refreshed every 15 minutes.
+let calFeedAt=0;
+async function calLoadFeeds(force){
+  if(!force&&Date.now()-calFeedAt<15*60*1000)return;
+  try{calFeeds=await api('bravochore_cal_feeds','GET',null,'?select=id,owner,label,show_titles&order=id')||[];}catch(_e){return;}
+  calFeedAt=Date.now();
+  if(!calFeeds.length){calFeedEvents=[];return;}
+  try{
+    const r=await fetch(`${SB}/functions/v1/cal-feed`,{method:'POST',headers:{'Content-Type':'application/json',apikey:SK,Authorization:await bcBearer()},body:'{}'});
+    const j=await r.json();calFeedEvents=j.events||[];
+  }catch(_e){}
+  if(document.getElementById('view-calendar')?.classList.contains('active'))renderCalendar();
+  if(document.getElementById('view-dashboard')?.classList.contains('active')&&typeof homeFillCal==='function')homeFillCal();
+}
+function calFeedsHtml(){
+  return `<div class="cal-feeds"><div class="cal-day-h">Outlook calendars</div>
+    ${calFeeds.map(f=>`<div class="cal-feed-row"><span>💼 ${hhEsc(f.label)} · ${hhEsc(kjName?kjName(f.owner):f.owner)}${f.show_titles?'':' <span class="mem-sub">(shows as busy)</span>'}</span><button class="mem-link" onclick="calFeedRemove(${f.id})">Remove</button></div>`).join('')}
+    <button class="qa-btn" onclick="calFeedAdd()">+ Connect Outlook</button></div>`;
+}
+function calFeedAdd(){
+  const w=document.createElement('div');w.className='mem-overlay';w.style.zIndex='950';
+  w.innerHTML=`<div class="mem-sheet tall" role="dialog" aria-modal="true">
+    <div class="mem-sheet-title">Connect an Outlook calendar</div>
+    <div class="mem-sheet-sub">BravoChore reads a published copy of your calendar. It can't change anything in Outlook.</div>
+    <ol class="cal-steps">
+      <li>On a computer, open <b>outlook.office.com</b> (work) or <b>outlook.live.com</b> (personal).</li>
+      <li>Settings ⚙ → <b>Calendar</b> → <b>Shared calendars</b>.</li>
+      <li>Under <b>Publish a calendar</b>, pick your calendar and <b>Can view all details</b> (or <b>titles and locations</b>), then <b>Publish</b>.</li>
+      <li>Copy the <b>ICS</b> link and paste it below.</li></ol>
+    <div class="dp-field"><label class="dp-label" for="cf-url">ICS link</label><input class="dp-input" id="cf-url" placeholder="https://outlook.office365.com/owa/calendar/…/calendar.ics" autocomplete="off"></div>
+    <div style="display:flex;gap:8px"><div class="dp-field" style="flex:1"><label class="dp-label" for="cf-l">Name</label><input class="dp-input" id="cf-l" value="Work"></div>
+    <div class="dp-field" style="flex:1"><label class="dp-label" for="cf-o">Whose</label><select class="dp-input" id="cf-o">${people.filter(p=>p.kind==='adult').map(p=>`<option value="${p.code}" ${p.code===CU?'selected':''}>${hhEsc(p.name)}</option>`).join('')}</select></div></div>
+    <label style="display:flex;gap:8px;align-items:center;font-size:14px;margin:4px 0 12px"><input type="checkbox" id="cf-t"> Show meeting titles (otherwise everything shows as "${'Work'}", which is safer on the wall)</label>
+    <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn-cancel" id="cf-c">Cancel</button><button class="btn-ok" id="cf-s">Connect</button></div></div>`;
+  document.body.appendChild(w);
+  w.querySelector('#cf-c').onclick=()=>w.remove();
+  w.querySelector('#cf-s').onclick=async()=>{
+    const url=w.querySelector('#cf-url').value.trim();
+    if(!/^(https?|webcal):\/\/.+/i.test(url)){chirp('Paste the ICS link from Outlook.');return;}
+    const row={url,label:w.querySelector('#cf-l').value.trim()||'Outlook',owner:w.querySelector('#cf-o').value,show_titles:w.querySelector('#cf-t').checked};
+    try{await api('bravochore_cal_feeds','POST',row);}catch(_e){chirp("Didn't save. Try again.");return;}
+    w.remove();chirp('Connected. Pulling it in…');await calLoadFeeds(true);
+    chirp(calFeedEvents.length?`${calFeedEvents.length} Outlook entries in the next 2 months.`:"Connected, but nothing came through yet. Check the link is the ICS one.");
+  };
+}
+async function calFeedRemove(id){
+  if(!(await confirm2('Disconnect this calendar?','Its entries disappear from BravoChore. Outlook itself is untouched.','btn-ok')))return;
+  try{await api('bravochore_cal_feeds','DELETE',null,`?id=eq.${id}`);}catch(_e){}
+  await calLoadFeeds(true);renderCalendar();
 }
