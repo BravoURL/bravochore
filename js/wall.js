@@ -15,6 +15,7 @@ async function wallLoad(force){
     typeof kjLoad==='function'?kjLoad(true).catch(()=>{}):null,
     typeof kbLoad==='function'?kbLoad(true).catch(()=>{}):null,
     typeof calLoad==='function'?calLoad(true).catch(()=>{}):null,
+    typeof mlLoad==='function'?mlLoad(true).catch(()=>{}):null,
     typeof loadEvents==='function'?loadEvents().catch(()=>{}):null]);
 }
 function wallBedtime(kid){
@@ -48,6 +49,7 @@ function wallHtml(){
     <div class="wall-l">
       <div class="wall-clock">${now.getHours()%12||12}:${String(now.getMinutes()).padStart(2,'0')}<span class="wall-ampm">${now.getHours()<12?'am':'pm'}</span></div>
       <div class="wall-date">${now.toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'})}${wx&&typeof homeWxText==='function'?`<span class="wall-wx">${homeWxText(wx)}</span>`:''}</div>
+      ${typeof mlTonight==='function'&&mlLoaded&&mlTonight()?`<div class="wall-tea">🍽️ Tea tonight: <b>${hhEsc(mlTonight().title)}</b></div>`:''}
       <div class="wall-cal">${typeof calItems==='function'?days.map(d=>{const items=calItems(d,true);
         return `<div class="wall-day"><div class="wall-day-h">${d===t?'Today':d===days[1]?'Tomorrow':KJ_DOW_LONG[kjDowOf(d)]}</div>
           ${items.map(x=>`<div class="wall-item"><span>${hhEsc(x.icon)}</span><b>${hhEsc(x.title)}</b>${x.time?`<i>${calFmtTime(x.time)}</i>`:''}</div>`).join('')||'<div class="wall-item none">Nothing on</div>'}</div>`;}).join(''):''}</div>

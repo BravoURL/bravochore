@@ -12,7 +12,8 @@ async function calLoad(force){
   const from=kjAddDays(tdStr(),-62);
   const [rows,plans]=await Promise.all([
     api('bravochore_calendar','GET',null,`?or=(day.gte.${from},repeat.eq.weekly)&order=day,time`),
-    api('bravochore_memory_plans','GET',null,`?select=id,title,plan_date&plan_date=gte.${from}&order=plan_date`).catch(()=>[])]);
+    api('bravochore_memory_plans','GET',null,`?select=id,title,plan_date&plan_date=gte.${from}&order=plan_date`).catch(()=>[]),
+    typeof mlLoad==='function'?mlLoad(force).catch(()=>{}):null]);
   calRows=rows||[];calPlans=plans||[];calLoaded=true;
 }
 function calWhoTag(code){const p=people.find(x=>x.code===code);if(!p)return '';
@@ -25,6 +26,7 @@ function calItems(day,kids){
     const on=r.repeat==='weekly'?(kjDowOf(r.day)===w&&day>=r.day):(day>=r.day&&day<=(r.end_day||r.day));
     if(on)out.push({kind:'cal',id:r.id,icon:r.icon||'📌',title:r.title,time:r.time,who:r.who||[],repeat:r.repeat,multi:r.end_day&&r.end_day!==r.day});
   });
+  if(typeof mlFor==='function'&&mlLoaded){const m=mlFor(day,'tea');if(m)out.push({kind:'meal',id:m.id,icon:'🍽️',title:'Tea: '+m.title,time:'17:30:00'});}
   (typeof events!=='undefined'?events:[]).forEach(ev=>{if(ev.due===day&&ev.status!=='completed')out.push({kind:'event',id:ev.id,icon:'🎉',title:ev.title});});
   calPlans.forEach(p=>{if(p.plan_date===day)out.push({kind:'plan',id:p.id,icon:'🗺️',title:p.title});});
   if(!kids&&typeof tasks!=='undefined'){const n=tasks.filter(t=>t.due===day&&!t.done).length;if(n)out.push({kind:'tasks',icon:'✅',title:`${n} task${n>1?'s':''} due`});}
@@ -89,6 +91,7 @@ function calBindItems(root){
     if(k==='event'&&typeof openEventPanel==='function')openEventPanel(id);
     else if(k==='plan'&&typeof plOpenSaved==='function')plOpenSaved(id);
     else if(k==='tasks')bnNav('tasks');
+    else if(k==='meal')bnNav('meals');
     else if(k==='cal')calEdit(calRows.find(r=>r.id===id));
   });
 }

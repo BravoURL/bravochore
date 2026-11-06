@@ -116,6 +116,7 @@ async function renderHome(){
     <div class="home-hello">
       <div class="home-greet">${hr<12?'Good morning':hr<17?'Good afternoon':'Good evening'}, ${homeEsc(CUN)}</div>
       <div class="home-date">${new Date().toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'})}<span id="home-wx">${wxCached?homeWxText(wxCached):''}</span></div>
+      <button class="home-tea" id="home-tea" onclick="bnNav('meals')">🍽️ <span>Tea tonight:</span> <b>…</b></button>
     </div>
     <div class="home-card">
       <div class="home-card-hd"><span class="home-label">${bcIcon('check')}Today</span><button class="home-link" onclick="bnNav('tasks')">All tasks ›</button></div>
@@ -136,7 +137,7 @@ async function renderHome(){
     box.innerHTML=ps.map(p=>`<button class="home-row" onclick="plOpenSaved(${p.id})"><span class="home-row-main">${homeEsc(p.title)}</span><span class="mem-sub">${new Date(p.plan_date+'T00:00:00').toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'})}</span></button>`).join('');
     const empty=box.parentElement.querySelector(':scope > .mem-muted');if(empty)empty.remove();});
 
-  homeFillKids();homeFillCal();
+  homeFillKids();homeFillCal();homeFillTea();
   // Slower bits fill in after first paint.
   homeWeather().then(wx=>{const w=document.getElementById('home-wx');if(w&&wx)w.innerHTML=homeWxText(wx);homeFillMemories(wx);});
 }
@@ -227,4 +228,11 @@ async function homeFillCal(){
   box.innerHTML=rows.slice(0,6).map(({d,x})=>`<button class="home-row" onclick="bnNav('calendar')"><span class="home-row-main">${homeEsc(x.icon)} ${homeEsc(x.title)}</span>
     <span class="mem-sub">${calDayLabel(d).replace(/ \d+ \w+$/,'')}${x.time?' '+calFmtTime(x.time):''}</span></button>`).join('');
   const empty=box.parentElement.querySelector(':scope > .mem-muted');if(empty)empty.remove();
+}
+
+async function homeFillTea(){
+  const el=document.getElementById('home-tea');if(!el||typeof mlLoad!=='function')return;
+  try{await mlLoad();}catch(_e){el.style.display='none';return;}
+  const m=mlTonight();
+  el.innerHTML=m?`🍽️ <span>Tea tonight:</span> <b>${homeEsc(m.title)}</b>`:'🍽️ <span>Tea tonight?</span> <b>Plan it</b>';
 }
