@@ -154,6 +154,9 @@ async function sendToBB(){
     bbSetState('idle');
     return;
   }
+  // Brain dump and in-app changes (kids' jobs, bedtimes, calendar, meals, shopping, tasks).
+  // Memories and day plans ('plan ... this afternoon') stay with the Memories lane.
+  if(typeof bbaIntent==='function'&&!/\bmemor(y|ies)\b|\bplan\b|bucket ?list|hit ?list/i.test(msg)&&bbaIntent(msg)){await bbaHandle(msg);bbSetState('idle');return;}
   // Memories lane comes before task creation, or "add X to memories" becomes a chore.
   if(typeof memIntent==='function'){
     try{if(typeof memEnsureLoaded==='function')await memEnsureLoaded();}catch(_e){}
