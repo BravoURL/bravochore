@@ -68,12 +68,14 @@ function selectUser(code,name){
   bbMsg("Hey — I'm Blackbird. Tap the bird icon on any task for advice, or just ask me anything.",'from-bb');
 }
 async function switchUser(){
+  if(typeof hhTablet!=='undefined'&&hhTablet){hhLeave();return;}
   if(AUTH_ENABLED){if(await confirm2('Sign out?','You\'ll sign in with Google again next time.','btn-ok'))bcSignOut();return;}
   document.getElementById('user-picker').style.display='flex';document.getElementById('app').style.display='none';buildUserPicker();}
 function setupPill(){
   const o=getOwner(CU);
   const pa=document.getElementById('pill-av');
   pa.style.background=o.bg;pa.style.color=o.color;pa.textContent=CU;
+  if(typeof hhTablet!=='undefined'&&hhTablet){const pl=pa.parentElement;if(pl)pl.title='Switch person';}
   document.getElementById('pill-name').textContent=CUN;
 }
 function renderExtraFilters(){
@@ -91,7 +93,7 @@ function bnNav(name){
   document.querySelectorAll('.bn-tab').forEach(t=>t.classList.remove('active'));
   const vEl=document.getElementById('view-'+name);
   if(vEl)vEl.classList.add('active');
-  const bEl=document.getElementById('bn-'+name);
+  const bEl=document.getElementById('bn-'+(name==='schedule'?'tasks':name));
   if(bEl)bEl.classList.add('active');
   if(name==='tasks'){renderTasksView();setTimeout(()=>{initDrag();initTaskBirds();},80);}
   else if(name==='shopping')renderShopping();
@@ -99,6 +101,7 @@ function bnNav(name){
   else if(name==='events'){loadEvents().then(renderEvents);}
   else if(name==='shelved'){loadEvents().then(renderShelved);}
   else if(name==='memories'){if(typeof renderMemories==='function')renderMemories();}
+  else if(name==='kids'){if(typeof renderKidsTab==='function')renderKidsTab();}
   else renderDashboard();
 }
 function showView(name,tab){bnNav(name);}
@@ -612,3 +615,13 @@ async function quickTick(id,e){
   }
 }
 
+
+// Small line icons (24px grid, stroke) used beside section labels. One style
+// across the adult app; kids' screens use bigger, colourful pictures instead.
+const BC_ICONS={
+  check:'<polyline points="20 6 9 17 4 12"/>',
+  image:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>',
+  calendar:'<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+  star:'<polygon points="12 2 15.1 8.3 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 8.9 8.3 12 2"/>',
+};
+function bcIcon(name,size=14){return `<svg class="bc-ic" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${BC_ICONS[name]||''}</svg>`;}

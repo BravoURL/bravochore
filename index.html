@@ -119,13 +119,13 @@ document.querySelector('link[rel="manifest"]').href = url;
       <div class="bn-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="12" cy="16" r="2" fill="currentColor"/></svg></div>
       <span>Events</span>
     </button>
+    <button class="bn-tab" id="bn-kids" onclick="bnNav('kids')">
+      <div class="bn-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.1 8.3 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 8.9 8.3 12 2"/></svg></div>
+      <span>Kids</span>
+    </button>
     <button class="bn-tab" id="bn-memories" onclick="bnNav('memories')">
       <div class="bn-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
       <span id="bn-memories-label">Memories</span>
-    </button>
-    <button class="bn-tab" id="bn-schedule" onclick="bnNav('schedule')">
-      <div class="bn-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-      <span>Routines</span>
     </button>
   </div>
 
@@ -207,6 +207,7 @@ document.querySelector('link[rel="manifest"]').href = url;
 
     <!-- ALL TASKS -->
     <div id="view-tasks" class="view">
+      <div class="seg" role="tablist"><button class="seg-b on" onclick="bnNav('tasks')">Tasks</button><button class="seg-b" onclick="bnNav('schedule')">Routines</button></div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <h2 style="font-family:'Playfair Display',serif;font-size:20px;font-weight:500">All Tasks</h2>
         <div style="display:flex;gap:6px">
@@ -265,8 +266,9 @@ document.querySelector('link[rel="manifest"]').href = url;
 
     <!-- SCHEDULE / DAY VIEW -->
     <div id="view-schedule" class="view">
+      <div class="seg" role="tablist"><button class="seg-b" onclick="bnNav('tasks')">Tasks</button><button class="seg-b on" onclick="bnNav('schedule')">Routines</button></div>
       <!-- Sub-nav tabs -->
-      <div style="display:flex;gap:0;overflow-x:auto;scrollbar-width:none;margin:-14px -14px 14px;border-bottom:1px solid var(--bdr);background:var(--surf)">
+      <div style="display:flex;gap:0;overflow-x:auto;scrollbar-width:none;margin:0 -14px 14px;border-bottom:1px solid var(--bdr);background:var(--surf)">
         <button class="sched-subnav active" id="ssn-today" onclick="setSchedSub('today',this)">Today</button>
         <button class="sched-subnav" id="ssn-week" onclick="setSchedSub('week',this)">Week</button>
         <button class="sched-subnav" id="ssn-laundry" onclick="setSchedSub('laundry',this)">Laundry</button>
@@ -396,6 +398,15 @@ document.querySelector('link[rel="manifest"]').href = url;
         <span id="mem-count" class="mem-num" style="margin-left:auto"></span>
       </div>
       <div id="memories-list"></div>
+    </div>
+
+    <!-- KIDS (adult view) -->
+    <div id="view-kids" class="view">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <h2 style="font-family:'Playfair Display',serif;font-size:20px;font-weight:500">Kids</h2>
+        <div style="display:flex;gap:6px"><button class="qa-btn" style="font-size:11px;padding:7px 12px" onclick="kjOpenEditor()">Edit jobs</button></div>
+      </div>
+      <div id="kids-body"></div>
     </div>
 
     <!-- SHELVED -->
@@ -833,6 +844,7 @@ document.querySelector('link[rel="manifest"]').href = url;
 <script src="js/blackbird-anim.js"></script>
 <script src="js/state.js"></script>
 <script src="js/auth.js"></script>
+<script src="js/household.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/detail.js"></script>
 <script src="js/timer.js"></script>
@@ -848,6 +860,7 @@ document.querySelector('link[rel="manifest"]').href = url;
 <script src="js/memories.js"></script>
 <script src="js/home.js"></script>
 <script src="js/planner.js"></script>
+<script src="js/kids.js"></script>
 <script src="js/boot.js"></script>
 
 <!-- ════════════════════════════════════════════════════

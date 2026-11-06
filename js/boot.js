@@ -43,6 +43,9 @@ async function boot(){
     // dormant banner appears. Re-enable when Alexa integration revives the feature.
     // setTimeout(()=>checkReminders(),700);
     setTimeout(()=>bbMsg(pickBlackbirdGreeting(),'from-bb'),100);
+    // Kids (on the tablet) land straight on their own jobs screen.
+    if(typeof hhIsChild==='function'&&hhIsChild(CU)&&typeof kjOpenKid==='function')kjOpenKid(CU);
+    if(typeof hhStartIdle==='function')hhStartIdle();
   }else{
     document.getElementById('user-picker').style.display='flex';
   }

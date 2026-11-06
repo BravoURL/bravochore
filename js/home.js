@@ -118,15 +118,16 @@ async function renderHome(){
       <div class="home-date">${new Date().toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'})}<span id="home-wx">${wxCached?homeWxText(wxCached):''}</span></div>
     </div>
     <div class="home-card">
-      <div class="home-card-hd"><span class="home-label">Today</span><button class="home-link" onclick="bnNav('tasks')">All tasks ›</button></div>
+      <div class="home-card-hd"><span class="home-label">${bcIcon('check')}Today</span><button class="home-link" onclick="bnNav('tasks')">All tasks ›</button></div>
       <div class="home-sumline">${todayLine}</div>
       <div class="home-tasks">${top.map(t=>taskCard(null,{lite:true,id:'home-t-'+t.id,dataId:t.id,cls:'home-task',
         onTick:`quickTick(${t.id},event)`,onOpen:`openDetail(${t.id})`,title:homeEsc(t.title),meta:homeTaskMeta(t,today)})).join('')||'<div class="mem-muted">You\'re all clear.</div>'}</div>
       ${rt}
     </div>
-    <div class="home-card home-mem" id="home-mem"><div class="home-card-hd"><span class="home-label">${homeEsc(MEM_LABEL)}</span></div><div class="mem-muted">Loading…</div></div>
+    <div class="home-card home-mem" id="home-mem"><div class="home-card-hd"><span class="home-label">${bcIcon('image')}${homeEsc(MEM_LABEL)}</span></div><div class="mem-muted">Loading…</div></div>
+    <div class="home-card" id="home-kids" style="display:none"></div>
     <div class="home-card">
-      <div class="home-card-hd"><span class="home-label">Coming up</span><button class="home-link" onclick="bnNav('events')">Events ›</button></div>
+      <div class="home-card-hd"><span class="home-label">${bcIcon('calendar')}Coming up</span><button class="home-link" onclick="bnNav('events')">Events ›</button></div>
       <div id="home-plans"></div>
       ${evHtml}
     </div>`;
@@ -134,6 +135,7 @@ async function renderHome(){
     box.innerHTML=ps.map(p=>`<button class="home-row" onclick="plOpenSaved(${p.id})"><span class="home-row-main">${homeEsc(p.title)}</span><span class="mem-sub">${new Date(p.plan_date+'T00:00:00').toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'})}</span></button>`).join('');
     const empty=box.parentElement.querySelector(':scope > .mem-muted');if(empty)empty.remove();});
 
+  homeFillKids();
   // Slower bits fill in after first paint.
   homeWeather().then(wx=>{const w=document.getElementById('home-wx');if(w&&wx)w.innerHTML=homeWxText(wx);homeFillMemories(wx);});
 }
@@ -197,3 +199,17 @@ document.addEventListener('DOMContentLoaded',()=>{
   const origTasks=renderTasksView;
   renderTasksView=function(){origTasks();try{renderHeadToHead();}catch(e){}};
 });
+
+// Kids at a glance for the grown-ups: jobs done, padlock, money today.
+async function homeFillKids(){
+  if(typeof kjLoad!=='function'||!kjKids().length)return;
+  try{await kjLoad();}catch(_e){setTimeout(homeFillKids,4000);return;}
+  const box=document.getElementById('home-kids');if(!box)return;
+  const day=tdStr(),t=kjTeam(day);
+  box.innerHTML=`<div class="home-card-hd"><span class="home-label">${bcIcon('star')}Kids</span><button class="home-link" onclick="bnNav('kids')">Kids ›</button></div>
+    ${kjKids().map(k=>{const s=kjSummary(k.code,day);return `<button class="home-row" onclick="bnNav('kids')">
+      <span class="home-row-main">${homeEsc(k.avatar||'')} ${homeEsc(k.name)}</span>
+      <span class="mem-sub">${s.allDone}/${s.all} · ${s.gate==='open'?'🔓':s.gate==='locked'?(s.reprieve?'🙈':'🔒'):''} ${kjMoney(s.earned)}</span></button>`;}).join('')}
+    <div class="mem-sub" style="margin:6px 0 0">Team ${t.pct}% today</div>`;
+  box.style.display='';
+}

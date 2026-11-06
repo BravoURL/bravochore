@@ -99,8 +99,13 @@ async function bcGate(){
   if(!AUTH_ENABLED)return true;
   const me=bcSession?await bcWhoAmI():null;
   if(me&&me.person_code){
-    const p=people.find(x=>x.code===me.person_code)||{name:me.person_code};
-    CU=me.person_code;CUN=p.name;bcHouseholdCode=me.household_code;
+    bcHouseholdCode=me.household_code;
+    if(typeof hhLoadPeople==='function')await hhLoadPeople();
+    let code=me.person_code;
+    // The wall tablet signs in as the household (HOME), then asks who's here.
+    if(code==='HOME'&&typeof hhWhoIsHere==='function'){hhTablet=true;code=await hhWhoIsHere();}
+    const p=people.find(x=>x.code===code)||{name:code};
+    CU=code;CUN=p.name;
     localStorage.setItem('bc_user',CU);localStorage.setItem('bc_username',CUN);
     return true;
   }

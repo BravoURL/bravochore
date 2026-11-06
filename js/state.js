@@ -6,7 +6,7 @@ const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6I
 const STORAGE_URL=`${SB}/storage/v1/object/public/bravochore-photos`;
 // Bumped on every deploy (with version.txt). The app checks version.txt when
 // it comes to the foreground and offers a refresh if it's out of date.
-const APP_VERSION='20261106163744';
+const APP_VERSION='20261106175414';
 const BB_PROXY=`${SB}/functions/v1/blackbird-proxy`;
 // One place for Blackbird's model. The old 'claude-sonnet-4-20250514' was retired,
 // which silently broke every Blackbird reply.
@@ -35,7 +35,7 @@ const MEM_KIDS=[
 ];
 // Current age = stored age + whole years since MEM_CHILD_AGES_AS_OF.
 function memAge(code){
-  const p=people.find(x=>x.code===code)||MEM_KIDS.find(x=>x.code===code);
+  const p=[...people,...MEM_KIDS].find(x=>x.code===code&&x.age_years!=null);
   if(!p||p.age_years==null)return null;
   const since=(Date.now()-new Date(MEM_CHILD_AGES_AS_OF).getTime())/31557600000;
   return p.age_years+Math.floor(since);
