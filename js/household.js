@@ -51,13 +51,17 @@ function hhWhoIsHere(){
         <span class="hh-face-name">${hhEsc(p.name)}</span></button>`).join('')}</div>
     </div>`;
     el.style.display='flex';
-    el.querySelectorAll('.hh-face').forEach(b=>b.onclick=async()=>{
+    const bind=()=>el.querySelectorAll('.hh-face').forEach(b=>b.onclick=async()=>{
       const p=hhPerson(b.dataset.code);if(!p)return;
       if(p.kind==='adult'&&!(await hhPinCheck(p)))return;
       sessionStorage.setItem(HH_ACTING,p.code);
+      if(typeof wallStop==='function')wallStop();
       el.style.display='none';
       resolve(p.code);
     });
+    // The wall display is the tablet's home screen; faces are on it.
+    if(typeof wallStart==='function'){el.classList.add('is-wall');wallStart(el,bind);}
+    else bind();
   });
 }
 

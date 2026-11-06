@@ -127,7 +127,8 @@ async function renderHome(){
     <div class="home-card home-mem" id="home-mem"><div class="home-card-hd"><span class="home-label">${bcIcon('image')}${homeEsc(MEM_LABEL)}</span></div><div class="mem-muted">Loading…</div></div>
     <div class="home-card" id="home-kids" style="display:none"></div>
     <div class="home-card">
-      <div class="home-card-hd"><span class="home-label">${bcIcon('calendar')}Coming up</span><button class="home-link" onclick="bnNav('events')">Events ›</button></div>
+      <div class="home-card-hd"><span class="home-label">${bcIcon('calendar')}Coming up</span><button class="home-link" onclick="bnNav('calendar')">Calendar ›</button></div>
+      <div id="home-cal"></div>
       <div id="home-plans"></div>
       ${evHtml}
     </div>`;
@@ -135,7 +136,7 @@ async function renderHome(){
     box.innerHTML=ps.map(p=>`<button class="home-row" onclick="plOpenSaved(${p.id})"><span class="home-row-main">${homeEsc(p.title)}</span><span class="mem-sub">${new Date(p.plan_date+'T00:00:00').toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'})}</span></button>`).join('');
     const empty=box.parentElement.querySelector(':scope > .mem-muted');if(empty)empty.remove();});
 
-  homeFillKids();
+  homeFillKids();homeFillCal();
   // Slower bits fill in after first paint.
   homeWeather().then(wx=>{const w=document.getElementById('home-wx');if(w&&wx)w.innerHTML=homeWxText(wx);homeFillMemories(wx);});
 }
@@ -212,4 +213,17 @@ async function homeFillKids(){
       <span class="mem-sub">${s.allDone}/${s.all} · ${s.gate==='open'?'🔓':s.gate==='locked'?(s.reprieve?'🙈':'🔒'):''} ${kjMoney(s.earned)}</span></button>`;}).join('')}
     <div class="mem-sub" style="margin:6px 0 0">Team ${t.pct}% today</div>`;
   box.style.display='';
+}
+
+// Quick calendar entries for the next week (events and plans list below).
+async function homeFillCal(){
+  if(typeof calLoad!=='function')return;
+  try{await calLoad();}catch(_e){return;}
+  const box=document.getElementById('home-cal');if(!box)return;
+  const rows=[];
+  for(let i=0;i<7;i++){const d=kjAddDays(tdStr(),i);calItems(d,true).filter(x=>x.kind==='cal').forEach(x=>rows.push({d,x}));}
+  if(!rows.length)return;
+  box.innerHTML=rows.slice(0,6).map(({d,x})=>`<button class="home-row" onclick="bnNav('calendar')"><span class="home-row-main">${homeEsc(x.icon)} ${homeEsc(x.title)}</span>
+    <span class="mem-sub">${calDayLabel(d).replace(/ \d+ \w+$/,'')}${x.time?' '+calFmtTime(x.time):''}</span></button>`).join('');
+  const empty=box.parentElement.querySelector(':scope > .mem-muted');if(empty)empty.remove();
 }

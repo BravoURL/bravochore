@@ -115,9 +115,9 @@ document.querySelector('link[rel="manifest"]').href = url;
       <div class="bn-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><polyline points="3 6 4 7 6 5"/><polyline points="3 12 4 13 6 11"/><polyline points="3 18 4 19 6 17"/></svg></div>
       <span>Tasks</span>
     </button>
-    <button class="bn-tab" id="bn-events" onclick="bnNav('events')">
+    <button class="bn-tab" id="bn-calendar" onclick="bnNav('calendar')">
       <div class="bn-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="12" cy="16" r="2" fill="currentColor"/></svg></div>
-      <span>Events</span>
+      <span>Calendar</span>
     </button>
     <button class="bn-tab" id="bn-kids" onclick="bnNav('kids')">
       <div class="bn-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.1 8.3 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 8.9 8.3 12 2"/></svg></div>
@@ -368,7 +368,13 @@ document.querySelector('link[rel="manifest"]').href = url;
     </div>
 
     <!-- EVENTS -->
+    <div id="view-calendar" class="view">
+      <div class="seg" role="tablist"><button class="seg-b on" onclick="bnNav('calendar')">Calendar</button><button class="seg-b" onclick="bnNav('events')">Events</button></div>
+      <div id="cal-body"></div>
+    </div>
+
     <div id="view-events" class="view">
+      <div class="seg" role="tablist"><button class="seg-b" onclick="bnNav('calendar')">Calendar</button><button class="seg-b on" onclick="bnNav('events')">Events</button></div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <h2 style="font-family:'Playfair Display',serif;font-size:20px;font-weight:500">Events</h2>
         <button class="qa-btn accent" style="font-size:11px;padding:7px 12px" onclick="openNewEventSheet()">+ New Event</button>
@@ -861,6 +867,9 @@ document.querySelector('link[rel="manifest"]').href = url;
 <script src="js/home.js"></script>
 <script src="js/planner.js"></script>
 <script src="js/kids.js"></script>
+<script src="js/bank.js"></script>
+<script src="js/calendar.js"></script>
+<script src="js/wall.js"></script>
 <script src="js/boot.js"></script>
 
 <!-- ════════════════════════════════════════════════════

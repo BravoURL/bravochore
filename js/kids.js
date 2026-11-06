@@ -11,7 +11,7 @@
 //  - Parents can quietly fix any day from the Kids tab. Kids never see it.
 // Tables: bravochore_kid_jobs, bravochore_kid_done (household RLS).
 // ================================================================
-let kjJobs=[],kjDone=[],kjLoaded=false,kjDay=null,kjKidOpen=null,kjTick=null;
+let kjJobs=[],kjDone=[],kjLoaded=false,kjDay=null,kjKidOpen=null,kjTick=null,kjKidTab='jobs';
 const KJ_DOW=['S','M','T','W','T','F','S'];
 const KJ_DOW_LONG=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
@@ -34,7 +34,7 @@ async function kjLoad(force){
   kjLoading=kjLoad2().finally(()=>{kjLoading=null;});return kjLoading;
 }
 async function kjLoad2(){
-  const from=kjAddDays(kjWeekStart(tdStr()),-7);
+  const from=kjAddDays(kjWeekStart(tdStr()),-21);
   const [jobs,done]=await Promise.all([
     api('bravochore_kid_jobs','GET',null,'?active=eq.true&order=kid,kind,sort,id'),
     api('bravochore_kid_done','GET',null,`?day=gte.${from}&order=day`)]);
@@ -175,7 +175,7 @@ function kjUhOh(text){
 
 // ---------------------------------------------------------------- kid screen
 async function kjOpenKid(code){
-  kjKidOpen=code;await kjLoad();
+  kjKidOpen=code;kjKidTab='jobs';await kjLoad();if(typeof kbLoad==='function')await kbLoad();if(typeof calLoad==='function')calLoad().catch(()=>{});
   let el=document.getElementById('kid-mode');
   if(!el){el=document.createElement('div');el.id='kid-mode';document.body.appendChild(el);}
   el.style.display='block';document.body.classList.add('kid-on');
@@ -220,9 +220,11 @@ function kjRenderKid(first){
     <div class="km-top">
       <span class="km-av" style="background:${p.bg};color:${p.color}">${hhEsc(p.avatar||p.code)}</span>
       <div class="km-hi"><div class="km-name">Hi ${hhEsc(p.name)}!</div><div class="km-date">${KJ_DOW_LONG[kjDowOf(day)]}</div></div>
-      <div class="km-money"><div class="km-today">${kjMoney(s.earned)}</div><div class="km-week">${kjMoney(wk.earned)} this week</div></div>
+      <div class="km-money"><div class="km-today">${kjMoney(s.earned)}</div><div class="km-week">${kjMoney(typeof kbWeek==='function'?kbWeek(kid,kjWeekStart(day)).total:wk.earned)} this week</div></div>
       <button class="km-exit" onclick="kjCloseKid()" aria-label="Finish">👋</button>
     </div>
+    <div class="km-tabs">${[['jobs','⭐','My jobs'],['bank','🏦','Bank'],['cal','📅','Calendar']].map(([k,i,l])=>`<button class="km-tab ${kjKidTab===k?'on':''}" onclick="kjKidTab='${k}';kjRenderKid(true)"><span>${i}</span>${l}</button>`).join('')}</div>
+    ${kjKidTab!=='jobs'?`<div id="km-other">${kjKidTab==='bank'&&typeof kbKidBank==='function'?kbKidBank(kid):kjKidTab==='cal'&&typeof calKidView==='function'?calKidView():''}</div>`:`
     <div class="km-team">
       <div class="km-team-row"><span>🤝 Team today</span><b>${team.done} / ${team.all}</b></div>
       <div class="km-bar"><div style="width:${team.pct}%"></div></div>
@@ -232,9 +234,10 @@ function kjRenderKid(first){
     <div class="km-grid">${s.daily.map(tile).join('')}</div>
     <div class="km-sec"><span class="km-lock">🪙</span> Jobs that pay <span class="km-sub">${kjMoney(s.doneAmt)} of ${kjMoney(s.possible)}</span></div>
     <div class="km-grid">${s.paid.map(tile).join('')||'<div class="km-none">No paid jobs today. Enjoy! ☀️</div>'}</div>
-    <div class="km-week-dots">${wk.days.map(x=>`<span class="km-dot ${x.future?'fut':x.s.full?'full':(x.d===tdStr()&&x.s.gate==='pending')?'fut':x.s.counts?'ok':'bad'}${x.d===day?' now':''}">${KJ_DOW[kjDowOf(x.d)]}</span>`).join('')}</div>
+    <div class="km-week-dots">${wk.days.map(x=>`<span class="km-dot ${x.future?'fut':x.s.full?'full':(x.d===tdStr()&&x.s.gate==='pending')?'fut':x.s.counts?'ok':'bad'}${x.d===day?' now':''}">${KJ_DOW[kjDowOf(x.d)]}</span>`).join('')}</div>`}
   </div>`;
   el.querySelectorAll('.kj-tile').forEach(b=>kjBindTile(b,day));
+  if(kjKidTab==='bank'&&typeof kbBindKid==='function')kbBindKid(kid);
 }
 function kjBindTile(b,day){
   const job=kjJobs.find(j=>j.id===+b.dataset.id);if(!job)return;
@@ -264,7 +267,7 @@ async function kjTickJob(job,day,status){
   kjRenderKid();
 }
 function kjTickKid(){
-  const el=document.getElementById('kid-mode');if(!el||el.style.display==='none')return;
+  const el=document.getElementById('kid-mode');if(!el||el.style.display==='none'||kjKidTab!=='jobs')return;
   const day=tdStr();let redraw=false;
   kjJobsFor(kjKidOpen,day).forEach(j=>{if(kjState(j,day)!==kjLastStates[j.id])redraw=true;});
   if(redraw){kjRenderKid();return;}
@@ -278,7 +281,7 @@ function kjTickKid(){
 async function renderKidsTab(){
   const body=document.getElementById('kids-body');if(!body)return;
   if(!kjLoaded)body.innerHTML='<div class="empty-state">Loading…</div>';
-  try{await kjLoad();}catch(e){body.innerHTML='<div class="empty-state">Couldn\'t load the kids\' jobs.</div>';return;}
+  try{await kjLoad();if(typeof kbLoad==='function')await kbLoad();}catch(e){body.innerHTML='<div class="empty-state">Couldn\'t load the kids\' jobs.</div>';return;}
   const day=kjDay||tdStr(),today=tdStr();
   const team=kjTeam(day);
   const label=day===today?'Today':day===kjAddDays(today,-1)?'Yesterday':new Date(day+'T00:00:00').toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'});
@@ -314,6 +317,7 @@ function kjKidCard(k,day){
       ${chip}
     </div>
     <div class="km-week-dots sm">${wk.days.map(x=>`<span class="km-dot ${x.future?'fut':x.s.full?'full':(x.d===tdStr()&&x.s.gate==='pending')?'fut':x.s.counts?'ok':'bad'}${x.d===day?' now':''}">${KJ_DOW[kjDowOf(x.d)]}</span>`).join('')}</div>
+    ${typeof kbParentCard==='function'?kbParentCard(k):''}
     <div class="kt-jobs">${s.jobs.map(row).join('')}</div>
     <button class="qa-btn" style="margin-top:8px;font-size:12px" onclick="kjOpenKid('${k.code}')">Open ${hhEsc(k.name)}'s screen</button>
   </div>`;

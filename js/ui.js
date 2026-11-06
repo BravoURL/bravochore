@@ -93,7 +93,7 @@ function bnNav(name){
   document.querySelectorAll('.bn-tab').forEach(t=>t.classList.remove('active'));
   const vEl=document.getElementById('view-'+name);
   if(vEl)vEl.classList.add('active');
-  const bEl=document.getElementById('bn-'+(name==='schedule'?'tasks':name));
+  const bEl=document.getElementById('bn-'+(name==='schedule'?'tasks':name==='events'?'calendar':name));
   if(bEl)bEl.classList.add('active');
   if(name==='tasks'){renderTasksView();setTimeout(()=>{initDrag();initTaskBirds();},80);}
   else if(name==='shopping')renderShopping();
@@ -102,6 +102,7 @@ function bnNav(name){
   else if(name==='shelved'){loadEvents().then(renderShelved);}
   else if(name==='memories'){if(typeof renderMemories==='function')renderMemories();}
   else if(name==='kids'){if(typeof renderKidsTab==='function')renderKidsTab();}
+  else if(name==='calendar'){if(typeof renderCalendar==='function')renderCalendar();}
   else renderDashboard();
 }
 function showView(name,tab){bnNav(name);}
