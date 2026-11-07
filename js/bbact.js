@@ -17,7 +17,7 @@ function bbaIntent(msg){
 }
 function bbaContext(){
   const t=tdStr(),now=new Date();
-  const jobs=(typeof kjJobs!=='undefined'?kjJobs:[]).map(j=>`#${j.id} ${j.kid} ${j.kind} "${j.title}" days=${(j.days||[]).join('')} $${j.amount}${j.part?' '+j.part:''}${j.parent_confirm?' grown-up-ticks':''}`).join('\n');
+  const jobs=(typeof kjJobs!=='undefined'?kjJobs:[]).map(j=>`#${j.id} ${j.kid} ${j.kind} "${j.title}" days=${(j.days||[]).join('')} $${j.amount}${j.part?' '+j.part:''}`).join('\n');
   const meals=typeof mlFor==='function'?[0,1,2,3,4,5,6].map(i=>{const d=kjAddDays(t,i),m=mlFor(d);return m?`${d} tea: ${m.title}`:null;}).filter(Boolean).join('\n'):'';
   return `Today: ${KJ_DOW_LONG[now.getDay()]} ${t}, ${now.toTimeString().slice(0,5)} Perth. User: ${CUN} (${CU}).
 People: ${people.filter(p=>p.kind!=='other').map(p=>`${p.code}=${p.name}${p.kind==='child'?' (child)':''}`).join(', ')}.
@@ -32,8 +32,8 @@ SHOP STORES: Coles (food, household), Bunnings (hardware, garden), ABI (fittings
 const BBA_SYS=`You are Blackbird inside BravoChore, the Wallis family's household app. Turn what the grown-up says (often a messy brain dump) into concrete changes.
 Reply with ONLY JSON: {"reply":"one short line","actions":[...]}
 Action types (use exact fields; "label" = short plain description shown to the user):
-- {"type":"kid_job_update","id":123,"changes":{"part":"morning"|"bedtime"|null,"amount":whole dollars,"days":[0-6],"title":"...","icon":"emoji","parent_confirm":bool,"active":false to remove},"label":"..."}  (only include changed fields; use ids from the list)
-- {"type":"kid_job_add","kid":"LW","title":"...","icon":"emoji","kind":"daily"|"paid","days":[0-6],"amount":whole dollars (0 for daily),"part":"morning"|"bedtime"|null,"parent_confirm":bool,"label":"..."}
+- {"type":"kid_job_update","id":123,"changes":{"part":"morning"|"bedtime"|null,"amount":whole dollars,"days":[0-6],"title":"...","icon":"emoji","active":false to remove},"label":"..."}  (only include changed fields; use ids from the list)
+- {"type":"kid_job_add","kid":"LW","title":"...","icon":"emoji","kind":"daily"|"paid","days":[0-6],"amount":whole dollars (0 for daily),"part":"morning"|"bedtime"|null,"label":"..."}
 - {"type":"calendar_add","title":"...","icon":"emoji","day":"YYYY-MM-DD","end_day":"YYYY-MM-DD"|null,"time":"HH:MM"|null,"who":["codes"],"label":"..."}
 - {"type":"task_add","title":"...","owner":"BW"|"BJ"|"BW+BJ","due":"YYYY-MM-DD"|null,"bucket":"Indoor"|"Outdoor","label":"..."}
 - {"type":"shopping_add","items":[{"name":"...","store":"Coles"}],"label":"..."}
@@ -87,7 +87,7 @@ async function bbaApply(a){
     case 'kid_job_update':{
       const j=kjJobs.find(x=>x.id===+a.id);if(!j)return false;
       const ch={};const c=a.changes||{};
-      ['title','icon','parent_confirm','active'].forEach(k=>{if(c[k]!==undefined)ch[k]=c[k];});
+      ['title','icon','active'].forEach(k=>{if(c[k]!==undefined)ch[k]=c[k];});
       if(c.part!==undefined)ch.part=['morning','bedtime'].includes(c.part)?c.part:null;
       if(c.amount!==undefined)ch.amount=whole(c.amount);
       if(Array.isArray(c.days)&&c.days.length)ch.days=c.days.map(Number).filter(n=>n>=0&&n<=6);
@@ -97,7 +97,7 @@ async function bbaApply(a){
     case 'kid_job_add':{
       if(!people.some(p=>p.code===a.kid&&p.kind==='child')||!a.title)return false;
       const row={kid:a.kid,title:a.title,icon:a.icon||'⭐',kind:a.kind==='daily'?'daily':'paid',days:(a.days&&a.days.length?a.days:[0,1,2,3,4,5,6]).map(Number),
-        amount:a.kind==='daily'?0:whole(a.amount||1),part:['morning','bedtime'].includes(a.part)?a.part:null,parent_confirm:!!a.parent_confirm,sort:50};
+        amount:a.kind==='daily'?0:whole(a.amount||1),part:['morning','bedtime'].includes(a.part)?a.part:null,parent_confirm:false,sort:50};
       const r=await api('bravochore_kid_jobs','POST',row);if(r&&r[0])kjJobs.push(r[0]);return true;}
     case 'calendar_add':{
       if(typeof calSave!=='function'||!a.title||!/^\d{4}-\d{2}-\d{2}$/.test(a.day||''))return false;

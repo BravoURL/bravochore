@@ -4,7 +4,7 @@
 //  - "Every day" jobs are unpaid and unlock the day's pay (padlock).
 //  - Paid jobs carry coins.
 //  - Timed jobs (bath, bed, wake up) count down. The app, not the parent,
-//    calls a miss. A grown-up holds the tile to tick those ones.
+//    calls a miss. (Grown-up hold-to-tick removed Nov 2026: long press opens Chrome's menu.)
 //  - Laurel: a missed every-day job locks the day's pay.
 //    Little ones (under 6) get a reprieve: the uh-oh plays, the pay stays,
 //    but the day doesn't count towards streaks or the team bonus.
@@ -212,13 +212,12 @@ function kjRenderKid(first){
   const tile=j=>{
     const st=states[j.id];const by=kjByMs(j,day);
     const left=by?Math.max(0,by-Date.now()):0;const mm=Math.floor(left/60000),ss=Math.floor(left%60000/1000);
-    return `<button class="kj-tile ${st}${j.parent_confirm?' grown':''}" data-id="${j.id}" aria-label="${hhEsc(j.title)}">
+    return `<button class="kj-tile ${st}" data-id="${j.id}" aria-label="${hhEsc(j.title)}">
       <span class="kj-ico">${hhEsc(j.icon||'⭐')}</span>
       <span class="kj-t">${hhEsc(j.title)}</span>
       ${j.kind==='paid'?`<span class="kj-coin">${kjMoney(j.amount)}</span>`:''}
       ${st==='done'?'<span class="kj-badge ok">✓</span>':st==='missed'?'<span class="kj-badge no">✕</span>':''}
       ${st==='countdown'?`<span class="kj-count" data-by="${by}">${mm}:${String(ss).padStart(2,'0')}</span>`:''}
-      ${j.parent_confirm&&(st==='open'||st==='countdown')?'<span class="kj-hold">Grown-up: hold</span>':''}
     </button>`;};
   el.innerHTML=`<div class="km">
     <div class="km-top">
@@ -247,20 +246,6 @@ function kjBindTile(b,day){
   const job=kjJobs.find(j=>j.id===+b.dataset.id);if(!job)return;
   const st=kjState(job,day);
   if(st==='missed')return;
-  if(job.parent_confirm&&st!=='done'){
-    // Grown-up holds the tile for a second to tick it.
-    let t=null;
-    // Android turns a long press into the copy/paste menu and cancels the touch,
-    // so block that menu, and treat it as a completed hold if it still fires.
-    let doneOnce=false;
-    const finish=async()=>{if(doneOnce)return;doneOnce=true;clearTimeout(t);b.classList.remove('holding');await kjTickJob(job,day,'done');};
-    const go=e=>{e.preventDefault();doneOnce=false;b.classList.add('holding');t=setTimeout(finish,800);};
-    const stop=()=>{clearTimeout(t);b.classList.remove('holding');};
-    b.addEventListener('pointerdown',go);['pointerup','pointerleave'].forEach(ev=>b.addEventListener(ev,stop));
-    b.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();if(b.classList.contains('holding'))finish();});
-    b.onclick=e=>e.preventDefault();
-    return;
-  }
   b.onclick=()=>kjTickJob(job,day,st==='done'?null:'done');
 }
 async function kjTickJob(job,day,status){
@@ -363,7 +348,7 @@ async function kjOpenEditor(){
     <div style="display:flex;gap:6px;margin-bottom:12px">${kjKids().map(k=>`<div class="filter-chip ${k.code===kjEdKid?'active':''}" onclick="kjEdKid='${k.code}';kjOpenEditor()">${hhEsc(k.name)}</div>`).join('')}</div>
     ${['daily','paid'].map(kind=>`<div class="kt-ed-sec">${kind==='daily'?'Every day (unpaid, unlocks pay)':'Paid jobs'}</div>
       ${jobs.filter(j=>j.kind===kind).map(j=>`<button class="kt-job" onclick="kjEditJob(${j.id})"><span class="kt-ico">${hhEsc(j.icon||'⭐')}</span>
-        <span class="kt-title">${hhEsc(j.title)}<span class="mem-sub" style="display:block;margin:0">${days(j)}${j.part?' · '+(KJ_PARTS.find(p=>p[0]===j.part)||[,,''])[2]:''}${j.parent_confirm?' · grown-up ticks':''}</span></span>
+        <span class="kt-title">${hhEsc(j.title)}<span class="mem-sub" style="display:block;margin:0">${days(j)}${j.part?' · '+(KJ_PARTS.find(p=>p[0]===j.part)||[,,''])[2]:''}</span></span>
         ${kind==='paid'?`<span class="kt-amt mem-num">${kjMoney(j.amount)}</span>`:''}</button>`).join('')}`).join('')}
     <button class="btn-ok" style="width:100%;margin-top:12px;padding:12px" onclick="kjEditJob(null)">+ Add a job for ${hhEsc(kjName(kjEdKid))}</button>
   </div>`;
@@ -387,7 +372,7 @@ function kjEditJob(id){
       <div class="dp-field" style="flex:1" id="kj-amt-f"><label class="dp-label" for="kj-amt">Pay ($)</label><input class="dp-input" id="kj-amt" type="number" step="1" min="0" inputmode="numeric" value="${Math.round(j.amount)}"></div>
       <div class="dp-field" style="flex:1"><label class="dp-label" for="kj-part">When</label><select class="dp-input" id="kj-part">${KJ_PARTS.map(([k,i,l])=>`<option value="${k}" ${(j.part||'any')===k?'selected':''}>${i} ${l}</option>`).join('')}</select></div>
     </div>
-    <label style="display:flex;gap:8px;align-items:center;font-size:14px;margin:4px 0 14px"><input type="checkbox" id="kj-pc" ${j.parent_confirm?'checked':''}> A grown-up ticks this one (bath, bed)</label>
+    <div style="height:10px"></div>
     <div style="display:flex;gap:8px">${id?'<button class="btn-cancel" id="kj-del" style="color:var(--red)">Remove</button>':''}
       <button class="btn-cancel" id="kj-cancel" style="margin-left:auto">Cancel</button><button class="btn-ok" id="kj-save">Save</button></div>
   </div>`;
@@ -406,7 +391,7 @@ function kjEditJob(id){
     const part=w.querySelector('#kj-part').value;
     const row={kid:j.kid,title,icon:w.querySelector('#kj-icon').value.trim()||'⭐',kind,days:[...days].sort(),
       amount:kind==='paid'?Math.max(0,Math.round(+w.querySelector('#kj-amt').value||0)):0,
-      part:part==='any'?null:part,parent_confirm:w.querySelector('#kj-pc').checked,sort:j.sort};
+      part:part==='any'?null:part,parent_confirm:false,sort:j.sort};
     try{
       if(id){await api('bravochore_kid_jobs','PATCH',row,`?id=eq.${id}`);Object.assign(j,row);}
       else{const r=await api('bravochore_kid_jobs','POST',row);if(r&&r[0])kjJobs.push(r[0]);}
