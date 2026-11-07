@@ -5,13 +5,13 @@
 //  - Captain (Laurel): Georgette's whole week done = $3.
 //  - Team: both kids do everything in a day = +10% of that day each
 //    (at least $1). Both do everything all week = +20% of the week each.
-//  - Caps: jobs + streak + captain + bonus jobs, Laurel $25, Georgette $10.
+//  - Caps: jobs + streak + captain + bonus jobs, both $25 (Nov 2026: equal jobs, equal opportunity).
 //    Team bonuses, tips and containers sit outside the caps.
 //  - Payday (Sunday): Laurel adds it up herself and the app checks her.
 //    A grown-up holds to pay; the money splits 50/40/10 into the jars.
 // Tables: bravochore_kid_ledger (every cent), bravochore_kid_goals.
 // ================================================================
-const KB_CFG={LW:{cap:25,streak:5,captain:3,addsUp:true},GW:{cap:10,streak:2}};
+const KB_CFG={LW:{cap:25,streak:5,captain:3,addsUp:true},GW:{cap:25,streak:2}};
 const KB_JARS=[
   {k:'spend',icon:'💵',name:'Spend',pct:50,quote:"I'm going to spend this money, now what's it going to accomplish?",ref:'Sydney, 14 April 2012 (122:37)'},
   {k:'save',icon:'🏦',name:'Save',pct:40,quote:"when you get some money, save it, don't spend it",ref:'Nelson, 7 June 2011 (112:109)'},
