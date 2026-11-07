@@ -213,7 +213,9 @@ async function homeFillKids(){
     ${kjKids().map(k=>{const s=kjSummary(k.code,day);return `<button class="home-row" onclick="bnNav('kids')">
       <span class="home-row-main">${homeEsc(k.avatar||'')} ${homeEsc(k.name)}</span>
       <span class="mem-sub">${s.allDone}/${s.all} · ${s.gate==='open'?'🔓':s.gate==='locked'?(s.reprieve?'🙈':'🔒'):''} ${kjMoney(s.earned)}</span></button>`;}).join('')}
-    <div class="mem-sub" style="margin:6px 0 0">Team ${t.pct}% today</div>`;
+    ${typeof kjWrapBanner==='function'?kjWrapBanner():''}${typeof kjTimerChips==='function'?kjTimerChips():''}
+    <div style="display:flex;align-items:center;gap:8px;margin:8px 0 0"><span class="mem-sub" style="margin:0;flex:1">Team ${t.pct}% today</span>
+      <button class="qa-btn" style="font-size:12px;padding:6px 12px" onclick="kjTimerSheet()">⏱ Timer</button></div>`;
   box.style.display='';
 }
 

@@ -1569,3 +1569,22 @@ body{background:var(--bg);font-size:15px;-webkit-font-smoothing:antialiased}
 .cal-feeds{margin-top:18px;padding-top:12px;border-top:1px solid var(--bdr)}
 .cal-feed-row{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px;padding:6px 0}
 .cal-steps{padding-left:20px;font-size:14px;line-height:1.6;margin-bottom:12px}
+/* ---- kids: timers + wrap-up (Nov 2026: no clock times) ---- */
+.km-part{font-size:15px;font-weight:700;color:#6b6b66;margin:12px 0 6px;letter-spacing:.02em}
+.kt-actions{display:flex;gap:8px;margin:0 0 10px}.kt-actions>*{flex:1;padding:11px;font-size:14px}
+.kt-wrapban{display:block;width:100%;text-align:left;background:#FFF4E5;border:1px solid #F5C27A;color:#7A4A00;border-radius:12px;padding:11px 14px;font-size:14px;font-weight:600;margin:0 0 10px;cursor:pointer}
+.kt-timers{display:flex;flex-direction:column;gap:6px;margin:0 0 10px}
+.kt-timer{display:flex;align-items:center;gap:10px;background:#FFF4E5;border-radius:10px;padding:8px 12px;font-size:13px}.kt-timer>span:first-child{flex:1;min-width:0}
+.kt-job.skip .kt-title,.kt-job.skip .kt-ico{opacity:.45}.kt-job.pending .kt-st{color:var(--amber)}
+.kj-tpick{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.kj-tp{display:flex;flex-direction:column;align-items:flex-start;gap:2px;border:1.5px solid var(--bdr);background:var(--bg2,#fff);border-radius:12px;padding:10px;text-align:left;font-size:13px;font-weight:600;color:var(--tx);cursor:pointer;min-height:64px}
+.kj-tp span{font-size:22px}.kj-tp i{font-style:normal;font-weight:400;font-size:11px;color:var(--tx2)}
+.kj-tp.on{border-color:#F57C00;background:#FFF4E5}
+.kj-wr{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--bdr)}
+.kj-wr-t{flex:1;min-width:0;font-size:14px}
+.kj-wb{width:42px;height:42px;border-radius:10px;border:1.5px solid var(--bdr);background:none;font-size:18px;font-weight:700;cursor:pointer}
+.kj-wb.ok{color:#43A047}.kj-wb.no{color:#E24B4A}.kj-wb.na{color:#8a8a85}
+.kj-wr-done{text-align:center;font-size:18px;padding:20px 0}
+.wall-timer{margin-top:6px;background:#FFF4E5;color:#7A4A00;border-radius:10px;padding:6px 10px;font-weight:700;font-size:16px;display:inline-flex;gap:8px;align-items:center}
+.wall-timer .kj-count{font-size:22px}
+.wall-tbtn{width:100%;margin:10px 0 4px;padding:14px;border-radius:14px;border:0;background:#F57C00;color:#fff;font-size:17px;font-weight:700;cursor:pointer}

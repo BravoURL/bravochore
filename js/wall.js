@@ -1,11 +1,11 @@
 // ================================================================
 // WALL MODE (Phase 4). What the wall tablet shows when nobody's using it:
 // big clock, weather, today and the next few days, both kids' boards with
-// a bedtime countdown, and the faces to tap in. After a few quiet minutes it
+// any running timer, and the faces to tap in. After a few quiet minutes it
 // becomes a photo frame (family Memories photos first). Data refreshes
 // every 10 minutes, never while someone is typing.
 // ================================================================
-let wallTimer=null,wallIdle=null,wallShow=null,wallPhotos=[],wallPhotoAt=0,wallLastLoad=0;
+let wallTimer=null,wallSec=null,wallIdle=null,wallShow=null,wallPhotos=[],wallPhotoAt=0,wallLastLoad=0;
 const WALL_SLIDES_AFTER=3*60*1000;
 
 async function wallLoad(force){
@@ -18,25 +18,23 @@ async function wallLoad(force){
     typeof mlLoad==='function'?mlLoad(true).catch(()=>{}):null,
     typeof loadEvents==='function'?loadEvents().catch(()=>{}):null]);
 }
-function wallBedtime(kid){
-  const day=tdStr();const j=kjJobsFor(kid,day).find(x=>x.by_time&&/bed/i.test(x.title));
-  if(!j)return '';
-  const st=kjState(j,day);if(st==='done')return '😴 In bed';
-  const by=kjByMs(j,day),left=by-Date.now();
-  if(left<=0)return '🛏️ Bedtime!';
-  const h=Math.floor(left/3600000),m=Math.floor(left%3600000/60000);
-  return `🛏️ Bed in ${h?h+'h ':''}${m}m`;
+// A running timer (started by a grown-up) shows big on the kid's card.
+function wallKidTimer(kid){
+  const day=tdStr();const x=kjRunning(day).filter(y=>y.j.kid===kid).sort((a,b)=>a.t.ends_at.localeCompare(b.t.ends_at))[0];
+  if(!x)return '';
+  const by=new Date(x.t.ends_at).getTime(),left=Math.max(0,by-Date.now());
+  return `<div class="wall-timer">${hhEsc(x.j.icon||'⏱')} ${hhEsc(x.j.title)} <span class="kj-count" data-by="${by}">${Math.floor(left/60000)}:${String(Math.floor(left%60000/1000)).padStart(2,'0')}</span></div>`;
 }
 function wallKid(k){
   const s=kjSummary(k.code,tdStr());const pct=s.all?Math.round(s.allDone/s.all*100):0;
   const lock=s.gate==='open'?'🔓':s.gate==='locked'?(s.reprieve?'🙈':'🔒'):'🔒';
-  const next=s.jobs.find(j=>{const st=kjState(j,tdStr());return st==='open'||st==='countdown';});
+  const next=s.jobs.find(j=>kjState(j,tdStr())==='open');
   return `<button class="wall-kid hh-face" data-code="${hhEsc(k.code)}">
     <div class="wall-ring" style="--p:${pct};--c:${k.color}"><span class="wall-ring-av" style="background:${k.bg}">${hhEsc(k.avatar||k.code)}</span></div>
     <div class="wall-kid-b"><div class="wall-kid-n">${hhEsc(k.name)}</div>
       <div class="wall-kid-s">${s.allDone}/${s.all} jobs ${lock} · <b>${kjMoney(s.earned)}</b></div>
       ${next?`<div class="wall-kid-next">Next: ${hhEsc(next.icon||'')} ${hhEsc(next.title)}</div>`:'<div class="wall-kid-next">All done today! 🌟</div>'}
-      <div class="wall-kid-bed">${wallBedtime(k.code)}</div></div></button>`;
+      ${wallKidTimer(k.code)}</div></button>`;
 }
 function wallHtml(){
   const now=new Date(),t=tdStr();
@@ -58,6 +56,7 @@ function wallHtml(){
       ${team?`<div class="wall-team"><span>🤝 Team today</span><div class="km-bar"><div style="width:${team.pct}%"></div></div><b>${team.pct}%</b></div>`:''}
       ${kids.map(wallKid).join('')}
       <div class="wall-adults">${adults.map(p=>`<button class="hh-face wall-adult" data-code="${hhEsc(p.code)}"><span class="hh-face-av sm" style="background:${p.bg};color:${p.color}">${hhEsc(p.avatar||p.code)}</span>${hhEsc(p.name)}</button>`).join('')}</div>
+      <button class="wall-tbtn" onclick="event.stopPropagation();kjTimerSheet()">⏱ Start a timer</button>
       <div class="wall-hint">Tap your face to start</div>
     </div>
   </div>`;
@@ -103,8 +102,17 @@ async function wallStart(el,bind){
     if(el.style.display==='none'){clearInterval(wallTimer);return;}
     await wallLoad(false);draw();
   },30000);
+  // Every second: tick countdowns, poll for timers started elsewhere, call misses.
+  clearInterval(wallSec);
+  wallSec=setInterval(()=>{
+    if(el.style.display==='none'){clearInterval(wallSec);return;}
+    if(typeof kjPollTimers!=='function')return;
+    const had=kjRunning().length;kjPollTimers();kjWarnCheck(kjKids().map(k=>k.code));kjCheckExpired(true);
+    if(kjRunning().length!==had||el.querySelectorAll('.kj-count').length!==kjRunning().filter((x,i,a)=>a.findIndex(y=>y.j.kid===x.j.kid)===i).length){draw();return;}
+    el.querySelectorAll('.kj-count').forEach(c=>{const left=Math.max(0,+c.dataset.by-Date.now());c.textContent=`${Math.floor(left/60000)}:${String(Math.floor(left%60000/1000)).padStart(2,'0')}`;});
+  },1000);
   ['pointerdown','touchstart'].forEach(ev=>el.addEventListener(ev,wallArmIdle,{passive:true}));
   wallArmIdle();
 }
-function wallStop(){clearInterval(wallTimer);clearTimeout(wallIdle);clearInterval(wallShow);
+function wallStop(){clearInterval(wallTimer);clearInterval(wallSec);clearTimeout(wallIdle);clearInterval(wallShow);
   const s=document.getElementById('wall-show');if(s)s.style.display='none';}

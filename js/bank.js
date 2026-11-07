@@ -163,6 +163,10 @@ function kbBindKid(kid){
 // Payday: record the week and split it into the jars (whole dollars).
 async function kbPay(kid,ws){
   const w=kbWeek(kid,ws);if(w.paid)return;
+  // No verdict, no pay: every day of the week must be wrapped up first.
+  const unwrapped=[0,1,2,3,4,5,6].map(i=>kjAddDays(ws,i)).filter(d=>d<tdStr()&&kjSummary(kid,d).pending);
+  if(unwrapped.length){if(typeof chirp==='function')chirp(`Wrap up ${unwrapped.length} day${unwrapped.length>1?'s':''} first, then payday.`);
+    if(typeof kjWrapUp==='function'&&!kjKidOpen)kjWrapUp(unwrapped[0]);return;}
   const save=kbR(w.total*.4),give=kbR(w.total*.1),spend=w.total-save-give;
   const rows=[['spend',spend],['save',save],['give',give]].map(([jar,amount])=>({kid,day:tdStr(),week_start:ws,kind:'payday',jar,amount,note:'Payday',by_code:CU}));
   try{const r=await api('bravochore_kid_ledger','POST',rows);kbLedger.push(...(r||rows));}
