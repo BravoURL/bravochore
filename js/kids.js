@@ -427,12 +427,12 @@ function kjTimerChips(){
 async function kjCancelTimer(ids){
   try{for(const id of ids)await api('bravochore_kid_timers','DELETE',null,`?id=eq.${id}`);}catch(_e){}
   kjTimers=kjTimers.filter(t=>!ids.includes(t.id));kjAfterChange();
+  if(document.getElementById('kj-timer-sheet'))kjTimerSheet();
 }
 function kjAfterChange(){
   try{if(document.getElementById('view-kids')?.classList.contains('active'))renderKidsTab();}catch(_e){}
   try{if(kjKidOpen)kjRenderKid();}catch(_e){}
   try{if(typeof homeFillKids==='function'&&document.getElementById('home-kids'))homeFillKids();}catch(_e){}
-  try{const ts=document.getElementById('kj-timer-sheet');if(ts)kjTimerSheet();}catch(_e){}
 }
 async function kjTimerSheet(){
   await kjLoad();await kjLoadTimers();
@@ -443,7 +443,7 @@ async function kjTimerSheet(){
     const key=kjTimerKey(j.title);(groups[key]=groups[key]||{key,title:j.title,icon:j.icon,part:kjPartIdx(j),jobs:[]}).jobs.push(j);}));
   const list=Object.values(groups).sort((a,b)=>(b.part===2)-(a.part===2)||a.part-b.part);
   let w=document.getElementById('kj-timer-sheet');
-  if(!w){w=document.createElement('div');w.id='kj-timer-sheet';w.className='mem-overlay';w.style.zIndex='955';document.body.appendChild(w);}
+  if(!w){w=document.createElement('div');w.id='kj-timer-sheet';w.className='mem-overlay';w.style.zIndex='9550';document.body.appendChild(w);}
   let pick=w.dataset.pick||'',mins=+(w.dataset.mins||10);
   const draw=()=>{
     const g=groups[pick];
@@ -465,7 +465,7 @@ async function kjTimerSheet(){
       const jobs=boxes.length?g.jobs.filter(j=>boxes.find(b=>+b.dataset.j===j.id)?.checked):g.jobs;
       if(!jobs.length)return;
       if(await kjStartTimer(jobs,mins)){w.remove();
-        if(typeof chirp==='function')chirp(`⏱ ${mins} minutes: ${g.title}`);}
+        kjBanner('⏱',`${mins} minutes: ${g.title}`);}
     };
   };
   draw();
@@ -480,7 +480,7 @@ async function kjStartTimer(jobs,mins){
     if(!r.ok)throw new Error(await r.text());
     const got=await r.json();
     kjTimers=kjTimers.filter(t=>!got.some(g=>g.job_id===t.job_id&&g.day===t.day)).concat(got);
-  }catch(_e){if(typeof chirp==='function')chirp("Timer didn't start. Check the connection.");return false;}
+  }catch(_e){kjBanner('😕',"Timer didn't start. Check the connection.",'bad');return false;}
   kjAfterChange();return true;
 }
 // For screens other than the kid screen (the wall): record misses when timers run out.
@@ -511,7 +511,7 @@ function kjWrapBanner(){
 function kjWrapUp(day){
   day=day||tdStr();
   let w=document.getElementById('kj-wrap');
-  if(!w){w=document.createElement('div');w.id='kj-wrap';w.className='mem-overlay';w.style.zIndex='955';document.body.appendChild(w);}
+  if(!w){w=document.createElement('div');w.id='kj-wrap';w.className='mem-overlay';w.style.zIndex='9550';document.body.appendChild(w);}
   const open=k=>kjJobsFor(k.code,day).filter(j=>['open','pending','countdown'].includes(kjState(j,day)));
   const left=kjKids().reduce((a,k)=>a+open(k).length,0);
   const next=kjPendingDays().find(x=>x.d!==day);
@@ -538,7 +538,7 @@ function kjWrapUp(day){
 // Parent fix for one job on one day.
 function kjFixSheet(job,day){
   const st=kjState(job,day);
-  const w=document.createElement('div');w.className='mem-overlay';w.style.zIndex='955';
+  const w=document.createElement('div');w.className='mem-overlay';w.style.zIndex='9550';
   const opt=(s,l)=>`<button class="${st===s?'btn-ok':'qa-btn'}" data-s="${s}" style="width:100%;margin-top:8px;padding:12px">${l}</button>`;
   w.innerHTML=`<div class="mem-sheet" role="dialog" aria-modal="true">
     <div class="mem-sheet-title">${hhEsc(job.icon||'')} ${hhEsc(job.title)}</div><div class="mem-sheet-sub">${hhEsc(kjName(job.kid))} · ${kjDayLabel(day)}</div>
