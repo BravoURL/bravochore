@@ -1588,3 +1588,9 @@ body{background:var(--bg);font-size:15px;-webkit-font-smoothing:antialiased}
 .wall-timer{margin-top:6px;background:#FFF4E5;color:#7A4A00;border-radius:10px;padding:6px 10px;font-weight:700;font-size:16px;display:inline-flex;gap:8px;align-items:center}
 .wall-timer .kj-count{font-size:22px}
 .wall-tbtn{width:100%;margin:10px 0 4px;padding:14px;border-radius:14px;border:0;background:#F57C00;color:#fff;font-size:17px;font-weight:700;cursor:pointer}
+
+/* Grown-up hold tiles: no copy/paste menu, no text selection, fill bar while holding */
+.kj-tile,.kj-tile *{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.kj-tile.grown{touch-action:none}
+.kj-tile.grown::after{content:'';position:absolute;left:0;bottom:0;height:6px;width:0;background:#43A047;border-radius:0 0 18px 18px}
+.kj-tile.grown.holding::after{width:100%;transition:width .8s linear}

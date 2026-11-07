@@ -250,9 +250,14 @@ function kjBindTile(b,day){
   if(job.parent_confirm&&st!=='done'){
     // Grown-up holds the tile for a second to tick it.
     let t=null;
-    const go=e=>{e.preventDefault();b.classList.add('holding');t=setTimeout(async()=>{b.classList.remove('holding');await kjTickJob(job,day,'done');},1000);};
+    // Android turns a long press into the copy/paste menu and cancels the touch,
+    // so block that menu, and treat it as a completed hold if it still fires.
+    let doneOnce=false;
+    const finish=async()=>{if(doneOnce)return;doneOnce=true;clearTimeout(t);b.classList.remove('holding');await kjTickJob(job,day,'done');};
+    const go=e=>{e.preventDefault();doneOnce=false;b.classList.add('holding');t=setTimeout(finish,800);};
     const stop=()=>{clearTimeout(t);b.classList.remove('holding');};
-    b.addEventListener('pointerdown',go);['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,stop));
+    b.addEventListener('pointerdown',go);['pointerup','pointerleave'].forEach(ev=>b.addEventListener(ev,stop));
+    b.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();if(b.classList.contains('holding'))finish();});
     b.onclick=e=>e.preventDefault();
     return;
   }
